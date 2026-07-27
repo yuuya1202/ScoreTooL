@@ -159,6 +159,14 @@ let filters = { search: "", diffs: new Set(DIFF_ORDER), levelMin: null, levelMax
 /* Helpers                                                              */
 /* ------------------------------------------------------------------ */
 function songKey(title, type) { return title + "||" + String(type).toLowerCase(); }
+// 公式CSVは曲名中のスペースをノーブレークスペース(U+00A0)で、
+// 曲名中の実カンマを全角カンマ(，)で出力してくる仕様があるため、
+// マスタ(songs.json)側の表記（半角スペース・半角カンマ）に正規化してから突合する。
+function normalizeTitle(raw) {
+  return String(raw).trim()
+    .replace(/\u00A0/g, " ")
+    .replace(/，/g, ",");
+}
 function fmtNum(n) { return (n === null || n === undefined || isNaN(n)) ? "-" : n.toLocaleString("en-US"); }
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
@@ -183,9 +191,10 @@ function parseScoreCsv(text) {
     const [title, diffRaw, levelRaw, clearRank, grade, highScore, exScore, playCount, clearCount] = cols;
     if (!title || !diffRaw) continue;
     const type = diffRaw.trim().toLowerCase();
-    const key = songKey(title.trim(), type);
+    const normalizedTitle = normalizeTitle(title);
+    const key = songKey(normalizedTitle, type);
     records[key] = {
-      title: title.trim(), type,
+      title: normalizedTitle, type,
       clearRank: (clearRank || "").trim(),
       grade: (grade || "").trim(),
       highScore: parseInt(highScore, 10) || 0,
