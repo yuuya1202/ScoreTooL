@@ -221,6 +221,7 @@ async function loadAll() {
       level: typeof d.level === "number" ? d.level : parseFloat(d.level),
       jacket: d.jacket || "",
       reading: d.reading || "",
+      maxExScore: Number(d.max_exscore)||0,
     }));
   } catch (e) {
     masterError = "楽曲マスタ(songs.json)の読み込みに失敗しました: " + e.message +
@@ -427,7 +428,10 @@ function renderListTab(merged) {
         <td class="level-num">${m.level}</td>
         <td>${clearMeta ? `<span class="badge" style="color:${clearMeta.color};background:${clearMeta.color}22;border-color:${clearMeta.color}55">${clearMeta.label}</span>` : `<span class="badge badge-dim">未プレイ</span>`}</td>
         <td class="mono">${m.score?fmtNum(m.score.highScore):"-"}</td>
-        <td class="mono">${m.score&&m.score.exScore?fmtNum(m.score.exScore):"-"}</td>
+        <td class="mono">${(() => {
+const diff=(m.score&&m.maxExScore)?(m.score.exScore-m.maxExScore):null;
+return diff===null?"-":String(diff);
+})()}</td>
       </tr>`;
   }).join("");
 
@@ -474,6 +478,8 @@ function renderListTab(merged) {
   const maxSel = document.querySelectorAll('.select-input')[1];
   if (minSel) minSel.value = filters.levelMin;
   if (maxSel) maxSel.value = filters.levelMax;
+  const sInput=document.querySelector('.search-input');
+  if(sInput){const active=document.activeElement===sInput;sInput.value=filters.search;if(active){sInput.focus();sInput.setSelectionRange(filters.search.length,filters.search.length);}}
 }
 
 loadAll();
