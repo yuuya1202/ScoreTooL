@@ -6,15 +6,37 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>VOLT LOG - SDVX Score Tracker</title>
+<title>○○ - SDVX EX-Score Tool</title>
 <style>
   :root {
+    --bg: #f4f5f9;
+    --bg-glow: #e9edfa;
+    --panel: #ffffff;
+    --panel-2: #f0f2f8;
+    --border: #dde1ec;
+    --text: #1a1f2e;
+    --muted: #6b7280;
+    --row-border: rgba(0,0,0,0.06);
+    --row-hover: rgba(0,0,0,0.03);
+    --dim-bg: rgba(0,0,0,0.035);
+    --cyan: #0891a8;
+    --magenta: #c81f74;
+    --gold: #b8860b;
+    --nov: #9333ea; --adv: #b45309; --exh: #dc2626; --inf: #a855f7;
+    --mxm: #6b7280; --grv: #b8860b; --hvn: #0284c7; --vvd: #db2777;
+    --xcd: #4361EE; --nbl: #0891a8; --ult: #c81f74;
+  }
+  [data-theme="dark"] {
     --bg: #05070d;
+    --bg-glow: #0d1830;
     --panel: #10141f;
     --panel-2: #161c2c;
     --border: #232b40;
     --text: #e7ecf7;
     --muted: #7a84a0;
+    --row-border: rgba(255,255,255,0.04);
+    --row-hover: rgba(255,255,255,0.02);
+    --dim-bg: rgba(255,255,255,0.03);
     --cyan: #00e5ff;
     --magenta: #ff2e9a;
     --gold: #ffd23f;
@@ -24,9 +46,10 @@
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; background: radial-gradient(1200px 600px at 15% -10%, #0d1830 0%, var(--bg) 55%);
+    margin: 0; background: radial-gradient(1200px 600px at 15% -10%, var(--bg-glow) 0%, var(--bg) 55%);
     color: var(--text); font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
     min-height: 100vh; padding: 20px;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
   .header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:18px; }
   .brand { display:flex; align-items:center; gap:12px; }
@@ -40,6 +63,23 @@
     background: linear-gradient(90deg, var(--cyan), var(--magenta)); -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .brand-sub { font-size:11px; color:var(--muted); letter-spacing:0.5px; margin-top:2px; }
+  .account-menu-wrap { position:relative; }
+  .account-avatar {
+    width:38px; height:38px; border-radius:50%; border:none; cursor:pointer;
+    background: linear-gradient(135deg, var(--cyan), var(--magenta)); color:#05070d;
+    font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center;
+  }
+  .account-dropdown {
+    position:absolute; top:48px; right:0; background:var(--panel); border:1px solid var(--border);
+    border-radius:10px; padding:6px; min-width:190px; box-shadow:0 8px 24px rgba(0,0,0,0.25); z-index:60;
+  }
+  .account-dropdown-name { font-size:12px; color:var(--muted); padding:8px 10px; border-bottom:1px solid var(--border); margin-bottom:4px; }
+  .account-dropdown-item {
+    display:block; width:100%; text-align:left; background:none; border:none; color:var(--text);
+    padding:9px 10px; font-size:13px; border-radius:7px; cursor:pointer;
+  }
+  .account-dropdown-item:hover { background:var(--panel-2); }
+  .account-dropdown-item.danger { color:#ff4757; }
   .stats-row { display:flex; gap:10px; flex-wrap:wrap; }
   .stat-chip { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:8px 14px; min-width:78px; text-align:center; }
   .stat-chip-value { font-size:18px; font-weight:800; font-variant-numeric:tabular-nums; }
@@ -72,16 +112,16 @@
     text-align:left; color:var(--muted); font-size:11px; font-weight:700; padding:8px; border-bottom:1px solid var(--border);
     position:sticky; top:0; background:var(--panel); z-index:1;
   }
-  table.score-table td { padding:7px 8px; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+  table.score-table td { padding:7px 8px; border-bottom:1px solid var(--row-border); vertical-align:middle; }
   table.score-table tr.unplayed { opacity:0.55; }
-  table.score-table tr:hover td { background:rgba(255,255,255,0.02); }
+  table.score-table tr:hover td { background:var(--row-hover); }
   .jacket-thumb { width:34px; height:34px; border-radius:6px; object-fit:cover; background:#1c2338; flex-shrink:0; }
   .title-cell { display:flex; align-items:center; gap:10px; max-width:340px; }
   .title-text { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .level-num { font-variant-numeric:tabular-nums; font-weight:700; color:var(--muted); }
   .mono { font-family:ui-monospace,"SF Mono",monospace; font-variant-numeric:tabular-nums; }
   .badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:800; border:1px solid; letter-spacing:0.3px; }
-  .badge-dim { color:var(--muted); background:rgba(255,255,255,0.03); border-color:var(--border); }
+  .badge-dim { color:var(--muted); background:var(--dim-bg); border-color:var(--border); }
   .empty-state { text-align:center; padding:50px 20px; color:var(--muted); }
   .empty-state .big { font-size:15px; color:var(--text); margin-bottom:6px; font-weight:700; }
   .toast {
@@ -112,17 +152,18 @@
 <div id="appRoot" style="display:none">
   <div class="header">
     <div class="brand">
-      <div class="brand-mark">V</div>
+      <div class="brand-mark">○</div>
       <div>
-        <div class="brand-title">VOLT LOG</div>
-        <div class="brand-sub">SOUND VOLTEX SCORE TRACKER</div>
+        <div class="brand-title">○○</div>
+        <div class="brand-sub">SDVX EX-Score Tool</div>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <div class="stats-row" id="statsRow"></div>
-      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
-        <span id="authUserLabel"></span>
-        <button class="btn secondary" style="padding:6px 12px;font-size:11px" onclick="handleLogout()">ログアウト</button>
+    <div class="account-menu-wrap">
+      <button class="account-avatar" id="accountAvatarBtn" onclick="toggleAccountMenu()">?</button>
+      <div class="account-dropdown" id="accountDropdown" style="display:none">
+        <div class="account-dropdown-name" id="accountDropdownName"></div>
+        <button class="account-dropdown-item" id="themeToggleBtn" onclick="handleToggleTheme()">🌙 ダークモードに切り替え</button>
+        <button class="account-dropdown-item danger" onclick="handleLogout()">ログアウト</button>
       </div>
     </div>
   </div>
@@ -206,6 +247,37 @@ function showToast(msg, kind) {
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => { el.style.display = 'none'; }, 3200);
 }
+
+let currentTheme = "light";
+function applyTheme(theme) {
+  currentTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = currentTheme === "dark" ? "☀️ ライトモードに切り替え" : "🌙 ダークモードに切り替え";
+}
+window.applyTheme = applyTheme;
+
+window.handleToggleTheme = async function () {
+  const next = currentTheme === "dark" ? "light" : "dark";
+  applyTheme(next);
+  try {
+    await window.saveThemeToFirestore(next);
+  } catch (e) {
+    showToast("テーマ設定の保存に失敗しました: " + e.message, "error");
+  }
+};
+
+window.toggleAccountMenu = function () {
+  const dd = document.getElementById('accountDropdown');
+  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+};
+document.addEventListener('click', (e) => {
+  const wrap = document.querySelector('.account-menu-wrap');
+  const dd = document.getElementById('accountDropdown');
+  if (wrap && dd && dd.style.display !== 'none' && !wrap.contains(e.target)) {
+    dd.style.display = 'none';
+  }
+});
 
 function parseScoreCsv(text) {
   const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
@@ -459,14 +531,6 @@ function getFiltered(merged) {
 /* ------------------------------------------------------------------ */
 function render() {
   const merged = getMerged();
-  const stats = getStats(merged);
-
-  document.getElementById('statsRow').innerHTML = `
-    <div class="stat-chip"><div class="stat-chip-value">${fmtNum(stats.total)}</div><div class="stat-chip-label">登録曲数</div></div>
-    <div class="stat-chip"><div class="stat-chip-value" style="color:#5EC8FF">${fmtNum(stats.played)}</div><div class="stat-chip-label">プレー済</div></div>
-    <div class="stat-chip"><div class="stat-chip-value" style="color:#FFD23F">${fmtNum(stats.sCount)}</div><div class="stat-chip-label">S</div></div>
-    <div class="stat-chip"><div class="stat-chip-value" style="color:#C79BFF">${fmtNum(stats.pucCount)}</div><div class="stat-chip-label">PUC</div></div>
-  `;
 
   if (tab === 'data') {
     renderDataTab();
@@ -890,20 +954,32 @@ window.getUserScores = async function (uid) {
   return snap.exists() ? (snap.data().scores || {}) : {};
 };
 
+window.saveThemeToFirestore = async function (theme) {
+  if (!auth.currentUser) return;
+  await setDoc(doc(db, "users", auth.currentUser.uid), { theme }, { merge: true });
+};
+
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     let username = "";
+    let theme = "light";
     try {
       const snap = await getDoc(doc(db, "users", user.uid));
-      username = snap.exists() ? (snap.data().username || "") : "";
+      if (snap.exists()) {
+        username = snap.data().username || "";
+        theme = snap.data().theme || "light";
+      }
     } catch (e) {
       console.error("ユーザー情報の取得に失敗:", e);
     }
+    window.applyTheme(theme);
     document.getElementById('authGate').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
-    document.getElementById('authUserLabel').textContent = username ? (username + " でログイン中") : "";
+    document.getElementById('accountDropdownName').textContent = username ? (username + " でログイン中") : "";
+    document.getElementById('accountAvatarBtn').textContent = username ? username.charAt(0).toUpperCase() : "?";
     window.loadAll();
   } else {
+    window.applyTheme("light");
     document.getElementById('appRoot').style.display = 'none';
     document.getElementById('authGate').style.display = 'block';
   }
