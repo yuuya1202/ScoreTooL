@@ -130,10 +130,12 @@
   <div class="tabs">
     <button class="tab-btn active" id="tab-list" onclick="switchTab('list')">スコア一覧</button>
     <button class="tab-btn" id="tab-data" onclick="switchTab('data')">データ管理</button>
+    <button class="tab-btn" id="tab-friends" onclick="switchTab('friends')">フレンド</button>
   </div>
 
   <div id="view-list"></div>
   <div id="view-data" style="display:none"></div>
+  <div id="view-friends" style="display:none"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -176,6 +178,7 @@ let masterError = null;
 let tab = "list";
 let visibleCount = 200;
 let filters = { search: "", diffs: new Set(DIFF_ORDER), levelMin: null, levelMax: null, status: "all", sort: "level_desc" };
+let friendsState = { loading: false, incoming: [], outgoing: [], friends: [] };
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                              */
@@ -271,11 +274,55 @@ function distinctLevels() {
 /* ------------------------------------------------------------------ */
 function switchTab(t) {
   tab = t;
-  document.getElementById('tab-list').className = 'tab-btn' + (t === 'list' ? ' active' : '');
-  document.getElementById('tab-data').className = 'tab-btn' + (t === 'data' ? ' active' : '');
-  document.getElementById('view-list').style.display = t === 'list' ? 'block' : 'none';
-  document.getElementById('view-data').style.display = t === 'data' ? 'block' : 'none';
+  ['list', 'data', 'friends'].forEach(name => {
+    document.getElementById('tab-' + name).className = 'tab-btn' + (t === name ? ' active' : '');
+    document.getElementById('view-' + name).style.display = t === name ? 'block' : 'none';
+  });
   render();
+  if (t === 'friends') refreshFriendsData();
+}
+
+async function refreshFriendsData() {
+  friendsState.loading = true;
+  render();
+  try {
+    const [incoming, outgoing, friends] = await Promise.all([
+      window.getIncomingFriendRequests(),
+      window.getOutgoingFriendRequests(),
+      window.getFriends(),
+    ]);
+    friendsState.incoming = incoming;
+    friendsState.outgoing = outgoing;
+    friendsState.friends = friends;
+  } catch (e) {
+    showToast("フレンド情報の取得に失敗しました: " + e.message, "error");
+  }
+  friendsState.loading = false;
+  render();
+}
+
+async function handleSendFriendRequest() {
+  const input = document.getElementById('friendUsernameInput');
+  const username = input.value.trim();
+  if (!username) { showToast("ユーザー名を入力してください", "error"); return; }
+  try {
+    await window.sendFriendRequest(username);
+    input.value = "";
+    showToast("フレンド申請を送りました", "success");
+    refreshFriendsData();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+}
+
+async function handleRespondRequest(id, accept) {
+  try {
+    await window.respondFriendRequest(id, accept);
+    showToast(accept ? "フレンドになりました" : "申請を拒否しました", "success");
+    refreshFriendsData();
+  } catch (e) {
+    showToast("処理に失敗しました: " + e.message, "error");
+  }
 }
 
 async function handleImportCsv() {
@@ -387,6 +434,8 @@ function render() {
 
   if (tab === 'data') {
     renderDataTab();
+  } else if (tab === 'friends') {
+    renderFriendsTab();
   } else {
     renderListTab(merged);
   }
@@ -420,6 +469,54 @@ function renderDataTab() {
     </div>
   `;
 }
+
+function renderFriendsTab() {
+  if (friendsState.loading) {
+    document.getElementById('view-friends').innerHTML = `<div class="panel"><p class="hint">読み込み中...</p></div>`;
+    return;
+  }
+  const FRIEND_LIMIT = 30;
+  const { incoming, outgoing, friends } = friendsState;
+
+  const incomingRows = incoming.length ? incoming.map(r => `
+    <div class="btn-row" style="justify-content:space-between;align-items:center">
+      <span>${esc(r.fromUsername || "(不明なユーザー)")} さんから申請</span>
+      <span>
+        <button class="btn" style="padding:6px 12px;font-size:11px" onclick="handleRespondRequest('${esc(r.id)}', true)">承認</button>
+        <button class="btn secondary" style="padding:6px 12px;font-size:11px" onclick="handleRespondRequest('${esc(r.id)}', false)">拒否</button>
+      </span>
+    </div>`).join("") : `<p class="hint">届いている申請はありません</p>`;
+
+  const outgoingRows = outgoing.length ? outgoing.map(r => `
+    <div class="hint">${esc(r.toUsername || "(不明なユーザー)")} さんに申請中（相手の承認待ち）</div>`).join("") : "";
+
+  const friendRows = friends.length ? `
+    <table class="score-table">
+      <thead><tr><th>ユーザー名</th></tr></thead>
+      <tbody>${friends.map(f => `<tr><td>${esc(f.username || "(不明なユーザー)")}</td></tr>`).join("")}</tbody>
+    </table>` : `<p class="hint">フレンドがまだいません</p>`;
+
+  document.getElementById('view-friends').innerHTML = `
+    <div class="panel">
+      <h3>フレンドを追加</h3>
+      <p class="hint">相手のアカウント名を入力して申請してください。相手が承認するとお互いのスコアを比較できるようになります。</p>
+      <div class="btn-row">
+        <input class="search-input" id="friendUsernameInput" placeholder="相手のアカウント名" style="flex:1">
+        <button class="btn" onclick="handleSendFriendRequest()">申請する</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>届いている申請</h3>
+      ${incomingRows}
+    </div>
+    ${outgoing.length ? `<div class="panel"><h3>申請中</h3>${outgoingRows}</div>` : ""}
+    <div class="panel">
+      <h3>フレンド一覧（${friends.length} / ${FRIEND_LIMIT}）</h3>
+      ${friendRows}
+    </div>
+  `;
+}
+
 
 function renderListTab(merged) {
   if (songs.length === 0) {
@@ -522,7 +619,8 @@ import {
   signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
 import {
-  getFirestore, doc, setDoc, getDoc, serverTimestamp
+  getFirestore, doc, setDoc, getDoc, serverTimestamp,
+  collection, query, where, getDocs, updateDoc
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -613,6 +711,79 @@ window.loadScoresFromFirestore = async function () {
   if (!auth.currentUser) return {};
   const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
   return snap.exists() ? (snap.data().scores || {}) : {};
+};
+
+function sortedId(a, b) {
+  return a < b ? a + "_" + b : b + "_" + a;
+}
+
+window.sendFriendRequest = async function (targetUsernameRaw) {
+  if (!auth.currentUser) throw new Error("ログインしていません");
+  const myUid = auth.currentUser.uid;
+  const targetUsername = targetUsernameRaw.trim().toLowerCase();
+  if (!targetUsername) throw new Error("ユーザー名を入力してください");
+
+  const mySnap = await getDoc(doc(db, "users", myUid));
+  const myUsername = mySnap.exists() ? mySnap.data().username : "";
+  if (targetUsername === (myUsername || "").toLowerCase()) {
+    throw new Error("自分自身には申請できません");
+  }
+
+  const unameSnap = await getDoc(doc(db, "usernames", targetUsername));
+  if (!unameSnap.exists()) throw new Error("そのアカウント名は見つかりません");
+  const targetUid = unameSnap.data().uid;
+
+  const id = sortedId(myUid, targetUid);
+  const reqRef = doc(db, "friendRequests", id);
+  const existing = await getDoc(reqRef);
+  if (existing.exists()) {
+    const st = existing.data().status;
+    if (st === "accepted") throw new Error("すでにフレンドです");
+    if (st === "pending") throw new Error("すでに申請中です");
+    if (st === "rejected") throw new Error("過去に拒否されているため、現在は再申請できません");
+  }
+
+  const targetUserSnap = await getDoc(doc(db, "users", targetUid));
+  const targetDisplayName = targetUserSnap.exists() ? targetUserSnap.data().username : targetUsername;
+
+  await setDoc(reqRef, {
+    fromUid: myUid,
+    toUid: targetUid,
+    fromUsername: myUsername,
+    toUsername: targetDisplayName,
+    status: "pending",
+    createdAt: serverTimestamp(),
+  });
+};
+
+window.getIncomingFriendRequests = async function () {
+  const myUid = auth.currentUser.uid;
+  const q = query(collection(db, "friendRequests"), where("toUid", "==", myUid), where("status", "==", "pending"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
+window.getOutgoingFriendRequests = async function () {
+  const myUid = auth.currentUser.uid;
+  const q = query(collection(db, "friendRequests"), where("fromUid", "==", myUid), where("status", "==", "pending"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
+window.getFriends = async function () {
+  const myUid = auth.currentUser.uid;
+  const q1 = query(collection(db, "friendRequests"), where("fromUid", "==", myUid), where("status", "==", "accepted"));
+  const q2 = query(collection(db, "friendRequests"), where("toUid", "==", myUid), where("status", "==", "accepted"));
+  const [s1, s2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+  const friends = [];
+  s1.forEach(d => { const data = d.data(); friends.push({ uid: data.toUid, username: data.toUsername }); });
+  s2.forEach(d => { const data = d.data(); friends.push({ uid: data.fromUid, username: data.fromUsername }); });
+  return friends;
+};
+
+window.respondFriendRequest = async function (id, accept) {
+  const reqRef = doc(db, "friendRequests", id);
+  await updateDoc(reqRef, { status: accept ? "accepted" : "rejected" });
 };
 
 onAuthStateChanged(auth, async (user) => {
