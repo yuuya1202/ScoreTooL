@@ -743,14 +743,11 @@ window.sendFriendRequest = async function (targetUsernameRaw) {
     if (st === "rejected") throw new Error("過去に拒否されているため、現在は再申請できません");
   }
 
-  const targetUserSnap = await getDoc(doc(db, "users", targetUid));
-  const targetDisplayName = targetUserSnap.exists() ? targetUserSnap.data().username : targetUsername;
-
   await setDoc(reqRef, {
     fromUid: myUid,
     toUid: targetUid,
     fromUsername: myUsername,
-    toUsername: targetDisplayName,
+    toUsername: targetUsernameRaw.trim(),
     status: "pending",
     createdAt: serverTimestamp(),
   });
