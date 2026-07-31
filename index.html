@@ -131,11 +131,13 @@
     <button class="tab-btn active" id="tab-list" onclick="switchTab('list')">スコア一覧</button>
     <button class="tab-btn" id="tab-data" onclick="switchTab('data')">データ管理</button>
     <button class="tab-btn" id="tab-friends" onclick="switchTab('friends')">フレンド</button>
+    <button class="tab-btn" id="tab-compare" onclick="switchTab('compare')">比較</button>
   </div>
 
   <div id="view-list"></div>
   <div id="view-data" style="display:none"></div>
   <div id="view-friends" style="display:none"></div>
+  <div id="view-compare" style="display:none"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -179,6 +181,7 @@ let tab = "list";
 let visibleCount = 200;
 let filters = { search: "", diffs: new Set(DIFF_ORDER), levelMin: null, levelMax: null, status: "all", sort: "level_desc" };
 let friendsState = { loading: false, incoming: [], outgoing: [], friends: [] };
+let compareState = { loadingFriends: false, friendsList: [], selectedUid: "", loadingScores: false, friendScores: null };
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                              */
@@ -274,12 +277,45 @@ function distinctLevels() {
 /* ------------------------------------------------------------------ */
 function switchTab(t) {
   tab = t;
-  ['list', 'data', 'friends'].forEach(name => {
+  ['list', 'data', 'friends', 'compare'].forEach(name => {
     document.getElementById('tab-' + name).className = 'tab-btn' + (t === name ? ' active' : '');
     document.getElementById('view-' + name).style.display = t === name ? 'block' : 'none';
   });
   render();
   if (t === 'friends') refreshFriendsData();
+  if (t === 'compare') refreshCompareFriends();
+}
+
+async function refreshCompareFriends() {
+  compareState.loadingFriends = true;
+  render();
+  try {
+    compareState.friendsList = await window.getFriends();
+  } catch (e) {
+    showToast("フレンド一覧の取得に失敗しました: " + e.message, "error");
+  }
+  compareState.loadingFriends = false;
+  render();
+}
+
+function handleSelectCompareFriend(uid) {
+  compareState.selectedUid = uid;
+  compareState.friendScores = null;
+  render();
+  if (uid) loadCompareFriendScores(uid);
+}
+
+async function loadCompareFriendScores(uid) {
+  compareState.loadingScores = true;
+  render();
+  try {
+    compareState.friendScores = await window.getUserScores(uid);
+  } catch (e) {
+    showToast("相手のスコア取得に失敗しました: " + e.message, "error");
+    compareState.friendScores = {};
+  }
+  compareState.loadingScores = false;
+  render();
 }
 
 async function refreshFriendsData() {
@@ -436,6 +472,8 @@ function render() {
     renderDataTab();
   } else if (tab === 'friends') {
     renderFriendsTab();
+  } else if (tab === 'compare') {
+    renderCompareTab();
   } else {
     renderListTab(merged);
   }
@@ -514,6 +552,70 @@ function renderFriendsTab() {
       <h3>フレンド一覧（${friends.length} / ${FRIEND_LIMIT}）</h3>
       ${friendRows}
     </div>
+  `;
+}
+
+
+function renderCompareTab() {
+  if (compareState.loadingFriends) {
+    document.getElementById('view-compare').innerHTML = `<div class="panel"><p class="hint">読み込み中...</p></div>`;
+    return;
+  }
+  const { friendsList, selectedUid, loadingScores, friendScores } = compareState;
+
+  if (friendsList.length === 0) {
+    document.getElementById('view-compare').innerHTML = `
+      <div class="panel">
+        <h3>比較</h3>
+        <p class="hint">まだフレンドがいません。「フレンド」タブから相手を追加してください。</p>
+      </div>`;
+    return;
+  }
+
+  const options = `<option value="">選択してください</option>` +
+    friendsList.map(f => `<option value="${esc(f.uid)}" ${f.uid === selectedUid ? "selected" : ""}>${esc(f.username || "(不明なユーザー)")}</option>`).join("");
+
+  let bodyHtml = "";
+  if (!selectedUid) {
+    bodyHtml = `<p class="hint">比較したいフレンドを選んでください</p>`;
+  } else if (loadingScores || friendScores === null) {
+    bodyHtml = `<p class="hint">読み込み中...</p>`;
+  } else {
+    const merged = getMerged();
+    const friendUsername = (friendsList.find(f => f.uid === selectedUid) || {}).username || "相手";
+    const rows = merged
+      .filter(m => m.score || friendScores[m.key])
+      .sort((a, b) => (b.level - a.level) || a.title.localeCompare(b.title, "ja"))
+      .map(m => {
+        const fs = friendScores[m.key] || null;
+        const meta = DIFF_META[m.type] || { abbr: (m.type || "?").slice(0, 3).toUpperCase(), color: "#888" };
+        return `<tr>
+          <td>${esc(m.title)}</td>
+          <td><span class="badge" style="color:${meta.color};background:${meta.color}22;border-color:${meta.color}55">${meta.abbr}</span></td>
+          <td class="level-num">${esc(m.level)}</td>
+          <td class="mono">${m.score ? fmtNum(m.score.highScore) : "-"}</td>
+          <td class="mono">${fs ? fmtNum(fs.highScore) : "-"}</td>
+        </tr>`;
+      }).join("");
+
+    bodyHtml = `
+      <div class="panel" style="padding:0">
+        <div class="table-wrap">
+          <table class="score-table">
+            <thead><tr><th>楽曲</th><th>難易度</th><th>Lv</th><th>自分</th><th>${esc(friendUsername)}</th></tr></thead>
+            <tbody>${rows || `<tr><td colspan="5" class="empty-state">比較できるスコアがありません</td></tr>`}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  document.getElementById('view-compare').innerHTML = `
+    <div class="panel">
+      <h3>比較</h3>
+      <p class="hint">フレンドを選んで、お互いのハイスコアを見比べられます。</p>
+      <select class="select-input" onchange="handleSelectCompareFriend(this.value)">${options}</select>
+    </div>
+    ${bodyHtml}
   `;
 }
 
@@ -781,6 +883,11 @@ window.getFriends = async function () {
 window.respondFriendRequest = async function (id, accept) {
   const reqRef = doc(db, "friendRequests", id);
   await updateDoc(reqRef, { status: accept ? "accepted" : "rejected" });
+};
+
+window.getUserScores = async function (uid) {
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.exists() ? (snap.data().scores || {}) : {};
 };
 
 onAuthStateChanged(auth, async (user) => {
