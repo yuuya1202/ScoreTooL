@@ -94,24 +94,44 @@
 </head>
 <body>
 
-<div class="header">
-  <div class="brand">
-    <div class="brand-mark">V</div>
-    <div>
-      <div class="brand-title">VOLT LOG</div>
-      <div class="brand-sub">SOUND VOLTEX SCORE TRACKER</div>
+<div id="authGate" class="panel" style="max-width:360px;margin:60px auto;display:none">
+  <h3 id="authTitle">ログイン</h3>
+  <p class="hint" id="authHint">アカウント名とパスワードを入力してください。</p>
+  <input class="search-input" id="authUsername" placeholder="アカウント名（半角英数字・3〜20文字）" style="width:100%;margin-bottom:8px;box-sizing:border-box;">
+  <input class="search-input" id="authPassword" type="password" placeholder="パスワード（6文字以上）" style="width:100%;margin-bottom:4px;box-sizing:border-box;">
+  <p class="hint" id="authError" style="color:#ff4757;min-height:16px"></p>
+  <div class="btn-row">
+    <button class="btn" id="authSubmitBtn" onclick="handleAuthSubmit()">ログイン</button>
+    <button class="btn secondary" onclick="toggleAuthMode()">新規登録はこちら</button>
+  </div>
+</div>
+
+<div id="appRoot" style="display:none">
+  <div class="header">
+    <div class="brand">
+      <div class="brand-mark">V</div>
+      <div>
+        <div class="brand-title">VOLT LOG</div>
+        <div class="brand-sub">SOUND VOLTEX SCORE TRACKER</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div class="stats-row" id="statsRow"></div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
+        <span id="authUserLabel"></span>
+        <button class="btn secondary" style="padding:6px 12px;font-size:11px" onclick="handleLogout()">ログアウト</button>
+      </div>
     </div>
   </div>
-  <div class="stats-row" id="statsRow"></div>
-</div>
 
-<div class="tabs">
-  <button class="tab-btn active" id="tab-list" onclick="switchTab('list')">スコア一覧</button>
-  <button class="tab-btn" id="tab-data" onclick="switchTab('data')">データ管理</button>
-</div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-list" onclick="switchTab('list')">スコア一覧</button>
+    <button class="tab-btn" id="tab-data" onclick="switchTab('data')">データ管理</button>
+  </div>
 
-<div id="view-list"></div>
-<div id="view-data" style="display:none"></div>
+  <div id="view-list"></div>
+  <div id="view-data" style="display:none"></div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -482,7 +502,118 @@ return diff===null?"-":String(diff);
   if(sInput){const active=document.activeElement===sInput;sInput.value=filters.search;if(active){sInput.focus();sInput.setSelectionRange(filters.search.length,filters.search.length);}}
 }
 
-loadAll();
+/* loadAll() はログイン確認後、下部のFirebase用scriptから呼び出す */
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, getDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBYjKFgJljrrbrDi0xbTdJxH4p7HobDznw",
+  authDomain: "ex-score-tool.firebaseapp.com",
+  projectId: "ex-score-tool",
+  storageBucket: "ex-score-tool.firebasestorage.app",
+  messagingSenderId: "941719335618",
+  appId: "1:941719335618:web:b602dfe45701dec852c15b"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const FAKE_EMAIL_SUFFIX = "@voltlog.local";
+function usernameToEmail(username) {
+  return username.trim().toLowerCase() + FAKE_EMAIL_SUFFIX;
+}
+function validateUsername(u) {
+  return /^[a-zA-Z0-9_]{3,20}$/.test(u);
+}
+function mapAuthError(e) {
+  switch (e.code) {
+    case "auth/email-already-in-use": return "そのアカウント名は既に使われています";
+    case "auth/weak-password": return "パスワードは6文字以上にしてください";
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found": return "アカウント名またはパスワードが違います";
+    case "auth/invalid-email": return "アカウント名に使える文字を確認してください";
+    default: return "エラーが発生しました: " + e.message;
+  }
+}
+
+let authMode = "login";
+function renderAuthGate() {
+  document.getElementById('authTitle').textContent = authMode === "login" ? "ログイン" : "新規登録";
+  document.getElementById('authSubmitBtn').textContent = authMode === "login" ? "ログイン" : "登録する";
+  document.querySelector('#authGate .btn.secondary').textContent = authMode === "login" ? "新規登録はこちら" : "ログインはこちら";
+  document.getElementById('authError').textContent = "";
+}
+window.toggleAuthMode = function () {
+  authMode = authMode === "login" ? "signup" : "login";
+  renderAuthGate();
+};
+
+window.handleAuthSubmit = async function () {
+  const username = document.getElementById('authUsername').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  errEl.textContent = "";
+
+  if (!validateUsername(username)) {
+    errEl.textContent = "アカウント名は半角英数字とアンダースコアで3〜20文字にしてください";
+    return;
+  }
+  if (!password || password.length < 6) {
+    errEl.textContent = "パスワードは6文字以上で入力してください";
+    return;
+  }
+
+  const email = usernameToEmail(username);
+  try {
+    if (authMode === "signup") {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(db, "users", cred.user.uid), {
+        username, createdAt: serverTimestamp(), scores: {}
+      });
+      await setDoc(doc(db, "usernames", username.toLowerCase()), { uid: cred.user.uid });
+    } else {
+      await signInWithEmailAndPassword(auth, email, password);
+    }
+  } catch (e) {
+    errEl.textContent = mapAuthError(e);
+  }
+};
+
+window.handleLogout = function () {
+  signOut(auth);
+};
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    let username = "";
+    try {
+      const snap = await getDoc(doc(db, "users", user.uid));
+      username = snap.exists() ? (snap.data().username || "") : "";
+    } catch (e) {
+      console.error("ユーザー情報の取得に失敗:", e);
+    }
+    document.getElementById('authGate').style.display = 'none';
+    document.getElementById('appRoot').style.display = 'block';
+    document.getElementById('authUserLabel').textContent = username ? (username + " でログイン中") : "";
+    window.loadAll();
+  } else {
+    document.getElementById('appRoot').style.display = 'none';
+    document.getElementById('authGate').style.display = 'block';
+  }
+});
+
+renderAuthGate();
 </script>
 </body>
 </html>
