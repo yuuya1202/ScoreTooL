@@ -735,22 +735,22 @@ window.sendFriendRequest = async function (targetUsernameRaw) {
 
   const id = sortedId(myUid, targetUid);
   const reqRef = doc(db, "friendRequests", id);
-  const existing = await getDoc(reqRef);
-  if (existing.exists()) {
-    const st = existing.data().status;
-    if (st === "accepted") throw new Error("すでにフレンドです");
-    if (st === "pending") throw new Error("すでに申請中です");
-    if (st === "rejected") throw new Error("過去に拒否されているため、現在は再申請できません");
-  }
 
-  await setDoc(reqRef, {
-    fromUid: myUid,
-    toUid: targetUid,
-    fromUsername: myUsername,
-    toUsername: targetUsernameRaw.trim(),
-    status: "pending",
-    createdAt: serverTimestamp(),
-  });
+  try {
+    await setDoc(reqRef, {
+      fromUid: myUid,
+      toUid: targetUid,
+      fromUsername: myUsername,
+      toUsername: targetUsernameRaw.trim(),
+      status: "pending",
+      createdAt: serverTimestamp(),
+    });
+  } catch (e) {
+    if (e.code === "permission-denied") {
+      throw new Error("すでに申請済み、フレンド、または過去に拒否されている可能性があります");
+    }
+    throw e;
+  }
 };
 
 window.getIncomingFriendRequests = async function () {
