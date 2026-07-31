@@ -163,7 +163,6 @@ const CLEAR_META = {
   "ULTIMATE CHAIN":     { label: "UC",     color: "#C79BFF" },
   "PERFECT":            { label: "PUC",    color: "#FFD23F" },
 };
-const LS_SCORES = "voltlog_scores_v1";
 
 /* ------------------------------------------------------------------ */
 /* State                                                                */
@@ -248,8 +247,11 @@ async function loadAll() {
       "。index.html と同じフォルダに songs.json を置いてデプロイしているか確認してください。";
   }
   try {
-    scores = JSON.parse(localStorage.getItem(LS_SCORES) || "{}");
-  } catch (e) { scores = {}; }
+    scores = await window.loadScoresFromFirestore();
+  } catch (e) {
+    scores = {};
+    showToast("スコアデータの読み込みに失敗しました: " + e.message, "error");
+  }
 
   const bounds = distinctLevels();
   if (bounds.length) { filters.levelMin = bounds[0]; filters.levelMax = bounds[bounds.length - 1]; }
@@ -273,7 +275,7 @@ function switchTab(t) {
   render();
 }
 
-function handleImportCsv() {
+async function handleImportCsv() {
   const ta = document.getElementById('csvInput');
   const text = ta.value;
   if (!text.trim()) { showToast("CSVを貼り付けてください", "error"); return; }
@@ -286,8 +288,9 @@ function handleImportCsv() {
       if (masterKeys.has(key)) matched++;
       else { unmatched++; if (unmatchedTitles.length < 30) unmatchedTitles.push(records[key].title + " / " + records[key].type); }
     }
-    scores = Object.assign({}, scores, records);
-    localStorage.setItem(LS_SCORES, JSON.stringify(scores));
+    const merged = Object.assign({}, scores, records);
+    await window.saveScoresToFirestore(merged);
+    scores = merged;
     ta.value = "";
     showToast(`スコアを取り込みました（${parsedCount}件, マスタ一致 ${matched}件）`, "success");
     window._lastImportInfo = { parsedCount, matched, unmatched, unmatchedTitles };
@@ -297,12 +300,16 @@ function handleImportCsv() {
   }
 }
 
-function handleClearScores() {
+async function handleClearScores() {
   if (!confirm("自分のスコアデータを全て削除しますか？この操作は取り消せません。")) return;
-  scores = {};
-  localStorage.removeItem(LS_SCORES);
-  showToast("スコアデータを削除しました", "success");
-  render();
+  try {
+    await window.saveScoresToFirestore({});
+    scores = {};
+    showToast("スコアデータを削除しました", "success");
+    render();
+  } catch (e) {
+    showToast("削除に失敗しました: " + e.message, "error");
+  }
 }
 
 function toggleDiff(type) {
@@ -396,7 +403,7 @@ function renderDataTab() {
     </div>
     <div class="panel">
       <h3>スコアCSVの取り込み</h3>
-      <p class="hint">公式アプリから書き出したスコアCSVを貼り付けてください。1行目のヘッダーは無視されます。取り込んだスコアはこのブラウザ内（localStorage）に保存されます。</p>
+      <p class="hint">公式アプリから書き出したスコアCSVを貼り付けてください。1行目のヘッダーは無視されます。取り込んだスコアはあなたのアカウントに紐づけてクラウド（Firestore）に保存されるため、別の端末からログインしても同じデータが見られます。</p>
       <textarea class="data-input" id="csvInput" placeholder="楽曲名,難易度,楽曲レベル,クリアランク,スコアグレード,ハイスコア,..."></textarea>
       <div class="btn-row">
         <button class="btn" onclick="handleImportCsv()">CSVを取り込む</button>
@@ -592,6 +599,17 @@ window.handleAuthSubmit = async function () {
 
 window.handleLogout = function () {
   signOut(auth);
+};
+
+window.saveScoresToFirestore = async function (scores) {
+  if (!auth.currentUser) throw new Error("ログインしていません");
+  await setDoc(doc(db, "users", auth.currentUser.uid), { scores }, { merge: true });
+};
+
+window.loadScoresFromFirestore = async function () {
+  if (!auth.currentUser) return {};
+  const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
+  return snap.exists() ? (snap.data().scores || {}) : {};
 };
 
 onAuthStateChanged(auth, async (user) => {
