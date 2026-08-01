@@ -1171,7 +1171,7 @@ function buildListSkeleton() {
     <div class="panel" style="padding:0">
       <div class="table-wrap">
         <table class="score-table">
-          <thead><tr><th class="col-title">楽曲</th><th class="col-center">EX/通常</th></tr></thead>
+          <thead><tr><th class="col-title">楽曲</th><th class="col-center"><span style="color:#FFD23F">EX</span>/通常</th></tr></thead>
           <tbody id="scoreTbody"></tbody>
         </table>
         <div id="listEmptyState"></div>
@@ -1226,7 +1226,7 @@ function updateListTableBody(visible, filtered, merged, totalPages) {
     return `
       <tr class="${!m.score?'unplayed':''}">
         <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
-        <td class="mono col-center exnormal-cell">${exDisplay}/${normalDisplay}</td>
+        <td class="mono col-center exnormal-cell"><span style="color:#FFD23F">${exDisplay}</span>/${normalDisplay}</td>
       </tr>`;
   }).join("");
 
