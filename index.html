@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>○○ - SDVX EX-Score Tool</title>
+<title>SDVX EX-Score Tool</title>
 <style>
   :root {
     --bg: #05070d;
@@ -95,17 +95,18 @@
   .unmatched-box { margin-top:10px; font-size:11px; color:var(--muted); }
   .unmatched-box ul { margin:6px 0 0; padding-left:18px; max-height:140px; overflow:auto; }
   table.score-table { width:100%; min-width:620px; border-collapse:collapse; font-size:13px; }
+  table.friend-table { width:100%; border-collapse:collapse; font-size:13px; }
   .col-title { width:260px; }
   @media (max-width: 480px) {
     .col-title { width:200px; }
   }
-  table.score-table th {
+  table.score-table th, table.friend-table th {
     text-align:left; color:var(--muted); font-size:11px; font-weight:700; padding:8px; border-bottom:1px solid var(--border);
     position:sticky; top:0; background:var(--panel); z-index:1;
   }
-  table.score-table td { padding:7px 8px; border-bottom:1px solid var(--row-border); vertical-align:middle; }
+  table.score-table td, table.friend-table td { padding:7px 8px; border-bottom:1px solid var(--row-border); vertical-align:middle; }
   table.score-table tr.unplayed { opacity:0.55; }
-  table.score-table tr:hover td { background:var(--row-hover); }
+  table.score-table tr:hover td, table.friend-table tr:hover td { background:var(--row-hover); }
   .jacket-thumb { width:34px; height:34px; border-radius:6px; object-fit:cover; background:#1c2338; flex-shrink:0; border:2px solid var(--border); box-sizing:border-box; }
   .title-cell { display:flex; align-items:flex-start; gap:10px; }
   .title-text { white-space:normal; word-break:break-word; line-height:1.35; min-width:0; flex:1; }
@@ -197,8 +198,7 @@
   <div class="header">
     <div class="brand">
       <div>
-        <div class="brand-title">○○</div>
-        <div class="brand-sub">SDVX EX-Score Tool</div>
+        <div class="brand-title">SDVX EX-Score Tool</div>
       </div>
     </div>
     <div class="account-menu-wrap">
@@ -684,7 +684,7 @@ function renderFriendsTab() {
     <div class="hint">${esc(r.toUsername || "(不明なユーザー)")} さんに申請中（相手の承認待ち）</div>`).join("") : "";
 
   const friendRows = friends.length ? `
-    <table class="score-table">
+    <table class="friend-table">
       <thead><tr><th>ユーザー名</th><th style="width:80px"></th></tr></thead>
       <tbody>${friends.map(f => `<tr><td>${esc(f.username || "(不明なユーザー)")}</td><td><button class="link-btn" style="color:#ff4757" onclick="handleRemoveFriend('${esc(f.uid)}', '${esc((f.username||"").replace(/'/g,"")) }')">削除</button></td></tr>`).join("")}</tbody>
     </table>` : `<p class="hint">フレンドがまだいません</p>`;
@@ -815,6 +815,7 @@ function buildCompareSkeleton(friendOptionsHtml) {
       <select class="select-input" id="compareFriendSelect">${friendOptionsHtml}</select>
     </div>
     <div class="panel">
+      <p class="footnote" id="compareTally" style="text-align:left;margin:0 0 12px"></p>
       <div class="filter-bar">
         <input class="search-input" id="compareSearchInput" placeholder="曲名で検索…">
         <button class="btn secondary" id="compareFilterBtn">絞り込み</button>
@@ -845,7 +846,6 @@ function buildCompareSkeleton(friendOptionsHtml) {
           </div>
         </div>
       </div>
-      <p class="footnote" id="compareTally" style="text-align:left;margin-top:14px"></p>
     </div>
     <div class="panel" style="padding:0">
       <div class="table-wrap">
@@ -1124,7 +1124,7 @@ return diff===null?"-":String(diff);
   document.getElementById('listEmptyState').innerHTML = filtered.length === 0
     ? `<div class="empty-state">条件に一致する楽曲がありません</div>` : "";
 
-  const countText = `${filtered.length} / ${merged.length} 件を表示中`;
+  const countText = `${filtered.length} 件を表示中`;
   const pageOptions = Array.from({ length: totalPages }, (_, i) => i + 1)
     .map(p => `<option value="${p}" ${p === currentPage ? "selected" : ""}>${p}/${totalPages}</option>`).join("");
   const pagerHtml = totalPages > 1 ? `
