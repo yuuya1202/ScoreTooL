@@ -1166,7 +1166,7 @@ function buildListSkeleton() {
     <div class="panel" style="padding:0">
       <div class="table-wrap">
         <table class="score-table">
-          <thead><tr><th class="col-title">楽曲</th><th>クリア</th><th>EXスコア</th><th>通常スコア</th></tr></thead>
+          <thead><tr><th class="col-title">楽曲</th><th>EXスコア</th><th>通常スコア</th><th>クリア</th></tr></thead>
           <tbody id="scoreTbody"></tbody>
         </table>
         <div id="listEmptyState"></div>
@@ -1219,12 +1219,12 @@ function updateListTableBody(visible, filtered, merged, totalPages) {
     return `
       <tr class="${!m.score?'unplayed':''}">
         <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
-        <td>${clearMeta ? `<span class="badge" style="color:${clearMeta.color};background:${clearMeta.color}22;border-color:${clearMeta.color}55">${clearMeta.label}</span>` : `<span class="badge badge-dim">未プレイ</span>`}</td>
         <td class="mono">${(() => {
 const diff=exDiff(m);
 return diff===null?"-":String(diff);
 })()}</td>
         <td class="mono">${m.score?fmtNum(m.score.highScore):"-"}</td>
+        <td>${clearMeta ? `<span class="badge" style="color:${clearMeta.color};background:${clearMeta.color}22;border-color:${clearMeta.color}55">${clearMeta.label}</span>` : `<span class="badge badge-dim">未プレイ</span>`}</td>
       </tr>`;
   }).join("");
 
