@@ -189,7 +189,7 @@
     display:inline-block; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:800;
     color:#ffffff; letter-spacing:0.3px;
   }
-  .table-wrap { max-height:58vh; overflow:auto; }
+  .table-wrap { overflow-x:auto; }
 </style>
 </head>
 <body>
@@ -826,7 +826,7 @@ function buildListSkeleton() {
         </select>
       </div>
     </div>
-    <div id="listTopInfo" class="footnote" style="margin:2px 0 10px"></div>
+    <div id="listTopInfo" class="footnote" style="margin:2px 0 10px;text-align:left"></div>
     <div class="panel" style="padding:0">
       <div class="table-wrap">
         <table class="score-table">
@@ -899,17 +899,14 @@ return diff===null?"-":String(diff);
 
   const countText = `${filtered.length} / ${merged.length} 件を表示中`;
   const pageOptions = Array.from({ length: totalPages }, (_, i) => i + 1)
-    .map(p => `<option value="${p}" ${p === currentPage ? "selected" : ""}>${p}ページ目</option>`).join("");
+    .map(p => `<option value="${p}" ${p === currentPage ? "selected" : ""}>${p}/${totalPages}</option>`).join("");
   const pagerHtml = totalPages > 1 ? `
     <div class="btn-row" style="justify-content:center;margin-top:14px">
       <select class="select-input" onchange="goToPage(this.value)">${pageOptions}</select>
     </div>` : "";
 
   document.getElementById('listTopInfo').textContent = countText;
-  document.getElementById('listFooterArea').innerHTML = `
-    ${pagerHtml}
-    <p class="footnote">${countText}</p>
-  `;
+  document.getElementById('listFooterArea').innerHTML = pagerHtml;
 }
 
 function buildDecimalRange(start, end, step) {
