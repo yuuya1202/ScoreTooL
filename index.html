@@ -113,7 +113,7 @@
   table.score-table { width:100%; min-width:620px; border-collapse:collapse; font-size:13px; }
   .col-title { width:260px; }
   @media (max-width: 480px) {
-    .col-title { width:150px; }
+    .col-title { width:200px; }
   }
   table.score-table th {
     text-align:left; color:var(--muted); font-size:11px; font-weight:700; padding:8px; border-bottom:1px solid var(--border);
@@ -275,7 +275,7 @@ let scores = {};
 let masterError = null;
 let tab = "list";
 let visibleCount = 200;
-const SCORE_DEFAULTS = { minEx: 0, maxEx: 9999, minNormal: 0, maxNormal: 10000000 };
+const SCORE_DEFAULTS = { minEx: 0, maxEx: 99999, minNormal: 0, maxNormal: 10000000 };
 let filters = {
   search: "", diffs: new Set(DIFF_ORDER), levels: new Set(), sort: "exscore_desc",
   scoreMode: "ex",
@@ -908,20 +908,20 @@ function setDraftScoreMode(mode) {
   draftScoreMode = mode;
   renderFilterModalBody();
 }
-function normalizeScoreInput(raw, cap) {
+function normalizeScoreInput(raw, fallback, cap) {
   let n = parseInt(String(raw).replace(/[^0-9]/g, ""), 10);
-  if (isNaN(n) || n < 0) n = 0;
+  if (isNaN(n) || n < 0) n = fallback;
   if (cap !== undefined && n > cap) n = cap;
   return n;
 }
 function setDraftScoreMin(raw) {
-  if (draftScoreMode === "ex") draftScoreMinEx = normalizeScoreInput(raw);
-  else draftScoreMinNormal = normalizeScoreInput(raw, 10000000);
+  if (draftScoreMode === "ex") draftScoreMinEx = normalizeScoreInput(raw, 0);
+  else draftScoreMinNormal = normalizeScoreInput(raw, 0, 10000000);
   renderFilterModalBody();
 }
 function setDraftScoreMax(raw) {
-  if (draftScoreMode === "ex") draftScoreMaxEx = normalizeScoreInput(raw);
-  else draftScoreMaxNormal = normalizeScoreInput(raw, 10000000);
+  if (draftScoreMode === "ex") draftScoreMaxEx = normalizeScoreInput(raw, SCORE_DEFAULTS.maxEx);
+  else draftScoreMaxNormal = normalizeScoreInput(raw, SCORE_DEFAULTS.maxNormal, 10000000);
   renderFilterModalBody();
 }
 window.toggleDraftLevel = toggleDraftLevel;
