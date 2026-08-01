@@ -175,6 +175,9 @@
     cursor:pointer; background:var(--panel-2); color:var(--muted);
   }
   .toggle-pill.on { background:var(--cyan); border-color:var(--cyan); color:#05070d; }
+  .score-range-row { display:flex; align-items:center; gap:8px; }
+  .score-range-input { width:90px; text-align:center; }
+  .score-range-sign { color:var(--muted); font-weight:700; }
   .badge-filled {
     display:inline-block; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:800;
     color:#ffffff; letter-spacing:0.3px;
@@ -266,7 +269,13 @@ let scores = {};
 let masterError = null;
 let tab = "list";
 let visibleCount = 200;
-let filters = { search: "", diffs: new Set(DIFF_ORDER), levels: new Set(), status: "all", sort: "level_desc" };
+const SCORE_DEFAULTS = { minEx: 0, maxEx: 9999, minNormal: 0, maxNormal: 10000000 };
+let filters = {
+  search: "", diffs: new Set(DIFF_ORDER), levels: new Set(), sort: "exscore_desc",
+  scoreMode: "ex",
+  scoreMinEx: SCORE_DEFAULTS.minEx, scoreMaxEx: SCORE_DEFAULTS.maxEx,
+  scoreMinNormal: SCORE_DEFAULTS.minNormal, scoreMaxNormal: SCORE_DEFAULTS.maxNormal,
+};
 let draftLevels = new Set();
 let draftDiffs = new Set();
 let friendsState = { loading: false, incoming: [], outgoing: [], friends: [] };
@@ -546,14 +555,30 @@ function exDiff(m) {
   return (m.score && m.maxExScore) ? (m.score.exScore - m.maxExScore) : null;
 }
 
+function isScoreFilterActive() {
+  if (filters.scoreMode === "ex") {
+    return filters.scoreMinEx !== SCORE_DEFAULTS.minEx || filters.scoreMaxEx !== SCORE_DEFAULTS.maxEx;
+  }
+  return filters.scoreMinNormal !== SCORE_DEFAULTS.minNormal || filters.scoreMaxNormal !== SCORE_DEFAULTS.maxNormal;
+}
+
 function getFiltered(merged) {
   let list = merged.filter(m => filters.diffs.has(m.type) && filters.levels.has(m.level));
   if (filters.search.trim()) {
     const q = filters.search.trim().toLowerCase();
     list = list.filter(m => m.title.toLowerCase().includes(q) || (m.reading || "").includes(q));
   }
-  if (filters.status === "unplayed") list = list.filter(m => !m.score);
-  else if (filters.status === "played") list = list.filter(m => !!m.score);
+  if (isScoreFilterActive()) {
+    if (filters.scoreMode === "ex") {
+      list = list.filter(m => {
+        const d = exDiff(m);
+        if (d === null) return false;
+        return d >= -filters.scoreMaxEx && d <= -filters.scoreMinEx;
+      });
+    } else {
+      list = list.filter(m => m.score && m.score.highScore >= filters.scoreMinNormal && m.score.highScore <= filters.scoreMaxNormal);
+    }
+  }
 
   const cmp = {
     level_desc: (a,b) => b.level - a.level || a.title.localeCompare(b.title),
@@ -734,14 +759,14 @@ function buildListSkeleton() {
         <input class="search-input" id="searchInput" placeholder="曲名で検索…">
         <button class="btn secondary" id="openFilterBtn">絞り込み</button>
         <select class="select-input" id="sortSelect" aria-label="並び替え">
+          <option value="exscore_desc">スコア高い順（EX）</option>
+          <option value="exscore_asc">スコア低い順（EX）</option>
+          <option value="score_desc">スコア高い順（通常）</option>
+          <option value="score_asc">スコア低い順（通常）</option>
           <option value="level_desc">レベル高い順</option>
           <option value="level_asc">レベル低い順</option>
           <option value="title_asc">曲名（あ～）</option>
           <option value="title_desc">曲名（ん～）</option>
-          <option value="score_desc">スコア高い順（通常）</option>
-          <option value="score_asc">スコア低い順（通常）</option>
-          <option value="exscore_desc">スコア高い順（EX）</option>
-          <option value="exscore_asc">スコア低い順（EX）</option>
         </select>
       </div>
     </div>
@@ -825,12 +850,20 @@ const LEVEL_BANDS = [
 ];
 const ALL_LEVEL_VALUES = LEVEL_BANDS.flatMap(b => b.values);
 
-let draftStatus = "all";
+let draftScoreMode = "ex";
+let draftScoreMinEx = SCORE_DEFAULTS.minEx;
+let draftScoreMaxEx = SCORE_DEFAULTS.maxEx;
+let draftScoreMinNormal = SCORE_DEFAULTS.minNormal;
+let draftScoreMaxNormal = SCORE_DEFAULTS.maxNormal;
 
 function openFilterModal() {
   draftLevels = new Set(filters.levels);
   draftDiffs = new Set(filters.diffs);
-  draftStatus = filters.status;
+  draftScoreMode = filters.scoreMode;
+  draftScoreMinEx = filters.scoreMinEx;
+  draftScoreMaxEx = filters.scoreMaxEx;
+  draftScoreMinNormal = filters.scoreMinNormal;
+  draftScoreMaxNormal = filters.scoreMaxNormal;
   renderFilterModalBody();
   document.getElementById('filterModalOverlay').style.display = 'flex';
 }
@@ -842,7 +875,11 @@ function closeFilterModal() {
 function applyFilterModal() {
   filters.levels = new Set(draftLevels);
   filters.diffs = new Set(draftDiffs);
-  filters.status = draftStatus;
+  filters.scoreMode = draftScoreMode;
+  filters.scoreMinEx = draftScoreMinEx;
+  filters.scoreMaxEx = draftScoreMaxEx;
+  filters.scoreMinNormal = draftScoreMinNormal;
+  filters.scoreMaxNormal = draftScoreMaxNormal;
   closeFilterModal();
   render();
 }
@@ -861,25 +898,81 @@ function setAllDiffs(diffList, on) {
   diffList.forEach(d => on ? draftDiffs.add(d) : draftDiffs.delete(d));
   renderFilterModalBody();
 }
-function setDraftStatus(v) {
-  draftStatus = v;
+function setDraftScoreMode(mode) {
+  draftScoreMode = mode;
+  renderFilterModalBody();
+}
+function normalizeScoreInput(raw, cap) {
+  let n = parseInt(String(raw).replace(/[^0-9]/g, ""), 10);
+  if (isNaN(n) || n < 0) n = 0;
+  if (cap !== undefined && n > cap) n = cap;
+  return n;
+}
+function setDraftScoreMin(raw) {
+  if (draftScoreMode === "ex") {
+    const n = normalizeScoreInput(raw);
+    if (n > draftScoreMaxEx) {
+      showToast("最小値は最大値以下にしてください", "error");
+      renderFilterModalBody();
+      return;
+    }
+    draftScoreMinEx = n;
+  } else {
+    const n = normalizeScoreInput(raw, 10000000);
+    if (n > draftScoreMaxNormal) {
+      showToast("最小値は最大値以下にしてください", "error");
+      renderFilterModalBody();
+      return;
+    }
+    draftScoreMinNormal = n;
+  }
+  renderFilterModalBody();
+}
+function setDraftScoreMax(raw) {
+  if (draftScoreMode === "ex") {
+    const n = normalizeScoreInput(raw);
+    if (n < draftScoreMinEx) {
+      showToast("最大値は最小値以上にしてください", "error");
+      renderFilterModalBody();
+      return;
+    }
+    draftScoreMaxEx = n;
+  } else {
+    const n = normalizeScoreInput(raw, 10000000);
+    if (n < draftScoreMinNormal) {
+      showToast("最大値は最小値以上にしてください", "error");
+      renderFilterModalBody();
+      return;
+    }
+    draftScoreMaxNormal = n;
+  }
   renderFilterModalBody();
 }
 window.toggleDraftLevel = toggleDraftLevel;
 window.setBandLevels = setBandLevels;
 window.toggleDraftDiff = toggleDraftDiff;
 window.setAllDiffs = setAllDiffs;
-window.setDraftStatus = setDraftStatus;
+window.setDraftScoreMode = setDraftScoreMode;
+window.setDraftScoreMin = setDraftScoreMin;
+window.setDraftScoreMax = setDraftScoreMax;
 
 function renderFilterModalBody() {
-  const statusOptions = [
-    { value: "all", label: "すべて" },
-    { value: "played", label: "プレイ済み" },
-    { value: "unplayed", label: "未プレイ" },
-  ];
-  const statusHtml = statusOptions.map(o =>
-    `<button class="toggle-pill ${draftStatus === o.value ? 'on' : ''}" onclick="setDraftStatus('${o.value}')">${o.label}</button>`
-  ).join("");
+  const isEx = draftScoreMode === "ex";
+  const curMin = isEx ? draftScoreMinEx : draftScoreMinNormal;
+  const curMax = isEx ? draftScoreMaxEx : draftScoreMaxNormal;
+  const scoreHtml = `
+    <div class="toggle-group" style="margin-bottom:10px">
+      <button class="toggle-pill ${isEx ? 'on' : ''}" onclick="setDraftScoreMode('ex')">EX</button>
+      <button class="toggle-pill ${!isEx ? 'on' : ''}" onclick="setDraftScoreMode('normal')">通常</button>
+    </div>
+    <div class="score-range-row">
+      ${isEx ? `<span class="score-range-sign">-</span>` : ""}
+      <input type="number" class="select-input score-range-input" min="0" value="${curMin}" onchange="setDraftScoreMin(this.value)">
+      <span style="color:var(--muted)">〜</span>
+      ${isEx ? `<span class="score-range-sign">-</span>` : ""}
+      <input type="number" class="select-input score-range-input" min="0" value="${curMax}" onchange="setDraftScoreMax(this.value)">
+    </div>
+  `;
 
   const levelSectionsHtml = LEVEL_BANDS.map(band => {
     const checksHtml = band.values.map(lv => `
@@ -912,8 +1005,8 @@ function renderFilterModalBody() {
 
   document.getElementById('filterModalBody').innerHTML = `
     <div class="filter-section">
-      <h4>対象</h4>
-      <div class="toggle-group">${statusHtml}</div>
+      <h4>スコア</h4>
+      ${scoreHtml}
     </div>
     <div class="filter-section">
       <h4>レベル</h4>
