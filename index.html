@@ -151,7 +151,7 @@
   .modal-close:hover { color:var(--text); }
   .modal-body { padding:16px 18px; overflow-y:auto; flex:1; }
   .modal-footer { padding:14px 18px; border-top:1px solid var(--border); display:flex; justify-content:center; }
-  .modal-footer .btn { width:33%; min-width:140px; }
+  .modal-footer .btn { width:50%; min-width:200px; white-space:nowrap; }
   .filter-section { margin-bottom:18px; }
   .filter-section h4 { margin:0 0 8px; font-size:13px; color:var(--text); }
   .filter-band { margin-bottom:14px; }
@@ -166,6 +166,12 @@
     border-radius:7px; padding:5px 9px; font-size:12px; cursor:pointer;
   }
   .check-item input { margin:0; cursor:pointer; }
+  .toggle-group { display:flex; gap:8px; flex-wrap:wrap; }
+  .toggle-pill {
+    border:1px solid var(--border); border-radius:20px; padding:7px 16px; font-size:12px; font-weight:700;
+    cursor:pointer; background:var(--panel-2); color:var(--muted);
+  }
+  .toggle-pill.on { background:var(--cyan); border-color:var(--cyan); color:#05070d; }
   .badge-filled {
     display:inline-block; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:800;
     color:#ffffff; letter-spacing:0.3px;
@@ -373,8 +379,7 @@ async function loadAll() {
     showToast("スコアデータの読み込みに失敗しました: " + e.message, "error");
   }
 
-  const bounds = distinctLevels();
-  filters.levels = new Set(bounds);
+  filters.levels = new Set(ALL_LEVEL_VALUES);
 
   render();
 }
@@ -542,14 +547,12 @@ function getFiltered(merged) {
   }
   if (filters.status === "unplayed") list = list.filter(m => !m.score);
   else if (filters.status === "played") list = list.filter(m => !!m.score);
-  else if (filters.status === "not_aaa") list = list.filter(m => !m.score || GRADE_RANK[m.score.grade] < GRADE_RANK["AAA"]);
-  else if (filters.status === "not_s") list = list.filter(m => !m.score || m.score.grade !== "S");
-  else if (filters.status === "not_puc") list = list.filter(m => !m.score || m.score.clearRank !== "PERFECT");
 
   const cmp = {
     level_desc: (a,b) => b.level - a.level || a.title.localeCompare(b.title),
     level_asc:  (a,b) => a.level - b.level || a.title.localeCompare(b.title),
     title_asc:  (a,b) => (a.reading||a.title).localeCompare(b.reading||b.title, "ja"),
+    title_desc: (a,b) => (b.reading||b.title).localeCompare(a.reading||a.title, "ja"),
     score_desc: (a,b) => (b.score?.highScore||-1) - (a.score?.highScore||-1),
     score_asc:  (a,b) => (a.score?a.score.highScore:Infinity) - (b.score?b.score.highScore:Infinity),
   }[filters.sort] || (() => 0);
@@ -722,18 +725,11 @@ function buildListSkeleton() {
       <div class="filter-bar">
         <input class="search-input" id="searchInput" placeholder="曲名で検索…">
         <button class="btn secondary" id="openFilterBtn">絞り込み</button>
-        <select class="select-input" id="statusSelect">
-          <option value="all">すべて</option>
-          <option value="played">プレー済のみ</option>
-          <option value="unplayed">未プレイのみ</option>
-          <option value="not_aaa">未AAA</option>
-          <option value="not_s">未S</option>
-          <option value="not_puc">未PUC</option>
-        </select>
-        <select class="select-input" id="sortSelect">
+        <select class="select-input" id="sortSelect" aria-label="並び替え">
           <option value="level_desc">レベル高い順</option>
           <option value="level_asc">レベル低い順</option>
-          <option value="title_asc">曲名順</option>
+          <option value="title_asc">曲名（あ→わ）</option>
+          <option value="title_desc">曲名（わ→あ）</option>
           <option value="score_desc">スコア高い順</option>
           <option value="score_asc">スコア低い順</option>
         </select>
@@ -764,7 +760,6 @@ function buildListSkeleton() {
   `;
   document.getElementById('searchInput').value = filters.search;
   document.getElementById('searchInput').addEventListener('input', (e) => updateFilter('search', e.target.value));
-  document.getElementById('statusSelect').addEventListener('change', (e) => updateFilter('status', e.target.value));
   document.getElementById('sortSelect').addEventListener('change', (e) => updateFilter('sort', e.target.value));
   document.getElementById('openFilterBtn').addEventListener('click', openFilterModal);
   document.getElementById('filterModalCloseBtn').addEventListener('click', closeFilterModal);
@@ -775,7 +770,6 @@ function buildListSkeleton() {
 }
 
 function updateListControls() {
-  document.getElementById('statusSelect').value = filters.status;
   document.getElementById('sortSelect').value = filters.sort;
   // 検索欄はユーザーが今まさに入力中の値そのものなので、ここでは一切触らない
 }
@@ -807,17 +801,27 @@ return diff===null?"-":String(diff);
   `;
 }
 
+function buildDecimalRange(start, end, step) {
+  const out = [];
+  for (let v = start; v <= end + 1e-9; v += step) out.push(Math.round(v * 10) / 10);
+  return out;
+}
+
 const LEVEL_BANDS = [
-  { label: "1〜16", test: lv => lv < 17 },
-  { label: "17 / 17.5", test: lv => lv >= 17 && lv < 18 },
-  { label: "18.0〜18.9", test: lv => lv >= 18 && lv < 19 },
-  { label: "19.0〜19.9", test: lv => lv >= 19 && lv < 20 },
-  { label: "20.0", test: lv => lv >= 20 },
+  { label: "1〜16", values: Array.from({ length: 16 }, (_, i) => i + 1) },
+  { label: "17 / 17.5", values: [17, 17.5] },
+  { label: "18.0〜18.9", values: buildDecimalRange(18.0, 18.9, 0.1) },
+  { label: "19.0〜19.9", values: buildDecimalRange(19.0, 19.9, 0.1) },
+  { label: "20.0〜20.9", values: buildDecimalRange(20.0, 20.9, 0.1) },
 ];
+const ALL_LEVEL_VALUES = LEVEL_BANDS.flatMap(b => b.values);
+
+let draftStatus = "all";
 
 function openFilterModal() {
   draftLevels = new Set(filters.levels);
   draftDiffs = new Set(filters.diffs);
+  draftStatus = filters.status;
   renderFilterModalBody();
   document.getElementById('filterModalOverlay').style.display = 'flex';
 }
@@ -829,6 +833,7 @@ function closeFilterModal() {
 function applyFilterModal() {
   filters.levels = new Set(draftLevels);
   filters.diffs = new Set(draftDiffs);
+  filters.status = draftStatus;
   closeFilterModal();
   render();
 }
@@ -847,17 +852,28 @@ function setAllDiffs(diffList, on) {
   diffList.forEach(d => on ? draftDiffs.add(d) : draftDiffs.delete(d));
   renderFilterModalBody();
 }
+function setDraftStatus(v) {
+  draftStatus = v;
+  renderFilterModalBody();
+}
 window.toggleDraftLevel = toggleDraftLevel;
 window.setBandLevels = setBandLevels;
 window.toggleDraftDiff = toggleDraftDiff;
 window.setAllDiffs = setAllDiffs;
+window.setDraftStatus = setDraftStatus;
 
 function renderFilterModalBody() {
-  const allLevels = distinctLevels();
+  const statusOptions = [
+    { value: "all", label: "すべて" },
+    { value: "played", label: "プレイ済み" },
+    { value: "unplayed", label: "未プレイ" },
+  ];
+  const statusHtml = statusOptions.map(o =>
+    `<button class="toggle-pill ${draftStatus === o.value ? 'on' : ''}" onclick="setDraftStatus('${o.value}')">${o.label}</button>`
+  ).join("");
+
   const levelSectionsHtml = LEVEL_BANDS.map(band => {
-    const levelsInBand = allLevels.filter(band.test);
-    if (levelsInBand.length === 0) return "";
-    const checksHtml = levelsInBand.map(lv => `
+    const checksHtml = band.values.map(lv => `
       <label class="check-item">
         <input type="checkbox" ${draftLevels.has(lv) ? "checked" : ""} onchange="toggleDraftLevel(${lv}, this.checked)">
         <span>${lv}</span>
@@ -867,15 +883,15 @@ function renderFilterModalBody() {
         <div class="filter-band-head">
           <span class="filter-band-label">${band.label}</span>
           <span class="filter-band-actions">
-            <button class="link-btn" onclick="setBandLevels(${JSON.stringify(levelsInBand)}, true)">全選択</button>
-            <button class="link-btn" onclick="setBandLevels(${JSON.stringify(levelsInBand)}, false)">解除</button>
+            <button class="link-btn" onclick="setBandLevels(${JSON.stringify(band.values)}, true)">全選択</button>
+            <button class="link-btn" onclick="setBandLevels(${JSON.stringify(band.values)}, false)">解除</button>
           </span>
         </div>
         <div class="check-grid">${checksHtml}</div>
       </div>`;
   }).join("");
 
-  const diffList = DIFF_ORDER.filter(d => songs.some(s => s.type === d));
+  const diffList = DIFF_ORDER;
   const diffChecksHtml = diffList.map(d => {
     const meta = DIFF_META[d];
     return `
@@ -886,6 +902,10 @@ function renderFilterModalBody() {
   }).join("");
 
   document.getElementById('filterModalBody').innerHTML = `
+    <div class="filter-section">
+      <h4>対象</h4>
+      <div class="toggle-group">${statusHtml}</div>
+    </div>
     <div class="filter-section">
       <h4>レベル</h4>
       ${levelSectionsHtml}
