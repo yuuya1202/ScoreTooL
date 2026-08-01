@@ -118,7 +118,7 @@
   table.score-table td { padding:7px 8px; border-bottom:1px solid var(--row-border); vertical-align:middle; }
   table.score-table tr.unplayed { opacity:0.55; }
   table.score-table tr:hover td { background:var(--row-hover); }
-  .jacket-thumb { width:34px; height:34px; border-radius:6px; object-fit:cover; background:#1c2338; flex-shrink:0; }
+  .jacket-thumb { width:34px; height:34px; border-radius:6px; object-fit:cover; background:#1c2338; flex-shrink:0; border:2px solid var(--border); box-sizing:border-box; }
   .title-cell { display:flex; align-items:flex-start; gap:10px; }
   .title-text { white-space:normal; word-break:break-word; line-height:1.35; min-width:0; flex:1; }
   .level-num { font-variant-numeric:tabular-nums; font-weight:700; color:var(--muted); }
@@ -696,8 +696,7 @@ function renderCompareTab() {
         const fs = friendScores[m.key] || null;
         const meta = DIFF_META[m.type] || { abbr: (m.type || "?").slice(0, 3).toUpperCase(), color: "#888" };
         return `<tr>
-          <td>${esc(m.title)}</td>
-          <td><span class="badge" style="color:${meta.color};background:${meta.color}22;border-color:${meta.color}55">${meta.abbr}</span></td>
+          <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
           <td class="level-num">${esc(m.level)}</td>
           <td class="mono">${m.score ? fmtNum(m.score.highScore) : "-"}</td>
           <td class="mono">${fs ? fmtNum(fs.highScore) : "-"}</td>
@@ -708,8 +707,8 @@ function renderCompareTab() {
       <div class="panel" style="padding:0">
         <div class="table-wrap">
           <table class="score-table">
-            <thead><tr><th>楽曲</th><th>難易度</th><th>Lv</th><th>自分</th><th>${esc(friendUsername)}</th></tr></thead>
-            <tbody>${rows || `<tr><td colspan="5" class="empty-state">比較できるスコアがありません</td></tr>`}</tbody>
+            <thead><tr><th style="width:260px">楽曲</th><th>Lv</th><th>自分</th><th>${esc(friendUsername)}</th></tr></thead>
+            <tbody>${rows || `<tr><td colspan="4" class="empty-state">比較できるスコアがありません</td></tr>`}</tbody>
           </table>
         </div>
       </div>`;
@@ -737,8 +736,8 @@ function buildListSkeleton() {
         <select class="select-input" id="sortSelect" aria-label="並び替え">
           <option value="level_desc">レベル高い順</option>
           <option value="level_asc">レベル低い順</option>
-          <option value="title_asc">曲名（あ→わ）</option>
-          <option value="title_desc">曲名（わ→あ）</option>
+          <option value="title_asc">曲名（あ～）</option>
+          <option value="title_desc">曲名（ん～）</option>
           <option value="score_desc">スコア高い順（通常）</option>
           <option value="score_asc">スコア低い順（通常）</option>
           <option value="exscore_desc">スコア高い順（EX）</option>
@@ -749,7 +748,7 @@ function buildListSkeleton() {
     <div class="panel" style="padding:0">
       <div class="table-wrap">
         <table class="score-table">
-          <thead><tr><th style="width:260px">楽曲</th><th>難易度</th><th>Lv</th><th>ハイスコア</th><th>EXスコア</th><th>クリア</th></tr></thead>
+          <thead><tr><th style="width:260px">楽曲</th><th>Lv</th><th>ハイスコア</th><th>EXスコア</th><th>クリア</th></tr></thead>
           <tbody id="scoreTbody"></tbody>
         </table>
         <div id="listEmptyState"></div>
@@ -791,8 +790,7 @@ function updateListTableBody(visible, filtered, merged) {
     const clearMeta = m.score ? CLEAR_META[m.score.clearRank] : null;
     return `
       <tr class="${!m.score?'unplayed':''}">
-        <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy">`:`<div class="jacket-thumb"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
-        <td><span class="badge" style="color:${meta.color};background:${meta.color}22;border-color:${meta.color}55">${meta.abbr}</span></td>
+        <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
         <td class="level-num">${m.level}</td>
         <td class="mono">${m.score?fmtNum(m.score.highScore):"-"}</td>
         <td class="mono">${(() => {
