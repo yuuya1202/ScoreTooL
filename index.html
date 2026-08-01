@@ -106,6 +106,7 @@
   .btn { background: linear-gradient(135deg, var(--cyan), #00a8c2); color:#05070d; border:none; border-radius:8px; padding:9px 18px; font-weight:800; font-size:13px; cursor:pointer; }
   .btn:disabled { opacity:0.5; cursor:not-allowed; }
   .btn.secondary { background:var(--panel-2); color:var(--text); border:1px solid var(--border); }
+  .btn.filter-active { background:var(--cyan); color:#05070d; border-color:var(--cyan); font-weight:800; }
   .btn.danger { background:rgba(255,71,87,0.15); color:#ff4757; border:1px solid rgba(255,71,87,0.4); }
   .btn-row { display:flex; gap:8px; margin-top:10px; }
   .unmatched-box { margin-top:10px; font-size:11px; color:var(--muted); }
@@ -278,7 +279,8 @@ let songs = [];
 let scores = {};
 let masterError = null;
 let tab = "list";
-let visibleCount = 200;
+const PAGE_SIZE = 100;
+let currentPage = 1;
 const SCORE_DEFAULTS = { minEx: 0, maxEx: 99999, minNormal: 0, maxNormal: 10000000 };
 let filters = {
   search: "", diffs: new Set(DIFF_ORDER), levels: new Set(), sort: "exscore_desc",
@@ -570,10 +572,14 @@ async function handleClearScores() {
 
 function updateFilter(key, value) {
   filters[key] = value;
+  currentPage = 1;
   render();
 }
 
-function showMore() { visibleCount += 200; render(); }
+function goToPage(p) {
+  currentPage = parseInt(p, 10) || 1;
+  render();
+}
 
 /* ------------------------------------------------------------------ */
 /* Derived data                                                         */
@@ -602,6 +608,15 @@ function isScoreFilterActive() {
     return filters.scoreMinEx !== SCORE_DEFAULTS.minEx || filters.scoreMaxEx !== SCORE_DEFAULTS.maxEx;
   }
   return filters.scoreMinNormal !== SCORE_DEFAULTS.minNormal || filters.scoreMaxNormal !== SCORE_DEFAULTS.maxNormal;
+}
+
+function isFilterActive() {
+  if (isScoreFilterActive()) return true;
+  if (filters.levels.size !== ALL_LEVEL_VALUES.length) return true;
+  for (const lv of ALL_LEVEL_VALUES) if (!filters.levels.has(lv)) return true;
+  if (filters.diffs.size !== DIFF_ORDER.length) return true;
+  for (const d of DIFF_ORDER) if (!filters.diffs.has(d)) return true;
+  return false;
 }
 
 function getFiltered(merged) {
@@ -811,6 +826,7 @@ function buildListSkeleton() {
         </select>
       </div>
     </div>
+    <div id="listTopInfo" class="footnote" style="margin:2px 0 10px"></div>
     <div class="panel" style="padding:0">
       <div class="table-wrap">
         <table class="score-table">
@@ -825,7 +841,10 @@ function buildListSkeleton() {
       <div class="modal-box">
         <div class="modal-header">
           <h3>絞り込み</h3>
-          <button class="modal-close" id="filterModalCloseBtn">×</button>
+          <div style="display:flex;align-items:center;gap:14px">
+            <button class="link-btn" id="filterModalResetBtn">リセット</button>
+            <button class="modal-close" id="filterModalCloseBtn">×</button>
+          </div>
         </div>
         <div class="modal-body" id="filterModalBody"></div>
         <div class="modal-footer">
@@ -839,6 +858,7 @@ function buildListSkeleton() {
   document.getElementById('sortSelect').addEventListener('change', (e) => updateFilter('sort', e.target.value));
   document.getElementById('openFilterBtn').addEventListener('click', openFilterModal);
   document.getElementById('filterModalCloseBtn').addEventListener('click', closeFilterModal);
+  document.getElementById('filterModalResetBtn').addEventListener('click', resetFilterModal);
   document.getElementById('filterModalApplyBtn').addEventListener('click', applyFilterModal);
   document.getElementById('filterModalOverlay').addEventListener('click', (e) => {
     if (e.target.id === 'filterModalOverlay') closeFilterModal();
@@ -847,10 +867,12 @@ function buildListSkeleton() {
 
 function updateListControls() {
   document.getElementById('sortSelect').value = filters.sort;
+  const filterBtn = document.getElementById('openFilterBtn');
+  if (filterBtn) filterBtn.classList.toggle('filter-active', isFilterActive());
   // 検索欄はユーザーが今まさに入力中の値そのものなので、ここでは一切触らない
 }
 
-function updateListTableBody(visible, filtered, merged) {
+function updateListTableBody(visible, filtered, merged, totalPages) {
   const rows = visible.map(m => {
     const meta = DIFF_META[m.type] || { abbr: (m.type||"?").slice(0,3).toUpperCase(), color: "#888" };
     const clearMeta = m.score ? CLEAR_META[m.score.clearRank] : null;
@@ -870,9 +892,19 @@ return diff===null?"-":String(diff);
   document.getElementById('scoreTbody').innerHTML = rows;
   document.getElementById('listEmptyState').innerHTML = filtered.length === 0
     ? `<div class="empty-state">条件に一致する楽曲がありません</div>` : "";
+
+  const countText = `${filtered.length} / ${merged.length} 件を表示中`;
+  const pageOptions = Array.from({ length: totalPages }, (_, i) => i + 1)
+    .map(p => `<option value="${p}" ${p === currentPage ? "selected" : ""}>${p}ページ目</option>`).join("");
+  const pagerHtml = totalPages > 1 ? `
+    <div class="btn-row" style="justify-content:center;margin-top:14px">
+      <select class="select-input" onchange="goToPage(this.value)">${pageOptions}</select>
+    </div>` : "";
+
+  document.getElementById('listTopInfo').textContent = countText;
   document.getElementById('listFooterArea').innerHTML = `
-    ${filtered.length > visible.length ? `<div class="show-more"><button class="btn secondary" onclick="showMore()">さらに表示（残り ${filtered.length-visible.length}件）</button></div>` : ""}
-    <p class="footnote">${filtered.length} / ${merged.length} 件を表示中</p>
+    ${pagerHtml}
+    <p class="footnote">${countText}</p>
   `;
 }
 
@@ -913,6 +945,18 @@ function closeFilterModal() {
   document.getElementById('filterModalOverlay').style.display = 'none';
 }
 
+function resetFilterModal() {
+  draftLevels = new Set(ALL_LEVEL_VALUES);
+  draftDiffs = new Set(DIFF_ORDER);
+  draftScoreMode = "ex";
+  draftScoreMinEx = SCORE_DEFAULTS.minEx;
+  draftScoreMaxEx = SCORE_DEFAULTS.maxEx;
+  draftScoreMinNormal = SCORE_DEFAULTS.minNormal;
+  draftScoreMaxNormal = SCORE_DEFAULTS.maxNormal;
+  renderFilterModalBody();
+}
+window.resetFilterModal = resetFilterModal;
+
 function applyFilterModal() {
   filters.levels = new Set(draftLevels);
   filters.diffs = new Set(draftDiffs);
@@ -921,6 +965,7 @@ function applyFilterModal() {
   filters.scoreMaxEx = draftScoreMaxEx;
   filters.scoreMinNormal = draftScoreMinNormal;
   filters.scoreMaxNormal = draftScoreMaxNormal;
+  currentPage = 1;
   closeFilterModal();
   render();
 }
@@ -1055,14 +1100,18 @@ function renderListTab(merged) {
   }
 
   const filtered = getFiltered(merged);
-  const visible = filtered.slice(0, visibleCount);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const visible = filtered.slice(start, start + PAGE_SIZE);
 
   if (!listSkeletonBuilt) {
     buildListSkeleton();
     listSkeletonBuilt = true;
   }
   updateListControls();
-  updateListTableBody(visible, filtered, merged);
+  updateListTableBody(visible, filtered, merged, totalPages);
 }
 
 /* loadAll() はログイン確認後、下部のFirebase用scriptから呼び出す */
