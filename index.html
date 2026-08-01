@@ -104,8 +104,9 @@
   table.friend-table { width:100%; border-collapse:collapse; font-size:13px; }
   .col-title { width:260px; }
   @media (max-width: 480px) {
-    .col-title { width:200px; }
-    .col-center { width:70px; padding-left:4px; padding-right:4px; }
+    table.score-table { min-width:0; }
+    .col-title { width:auto; max-width:65%; }
+    .col-center { width:90px; padding-left:4px; padding-right:4px; }
   }
   table.score-table th, table.friend-table th {
     text-align:left; color:var(--muted); font-size:11px; font-weight:700; padding:8px; border-bottom:1px solid var(--border);
@@ -957,7 +958,7 @@ function buildCompareSkeleton(friendOptionsHtml) {
     <div class="panel" style="padding:0">
       <div class="table-wrap">
         <table class="score-table">
-          <thead><tr><th class="col-title">楽曲</th><th>自分</th><th id="compareFriendHeader">相手</th></tr></thead>
+          <thead><tr><th class="col-title">楽曲</th><th class="col-center">自分</th><th class="col-center" id="compareFriendHeader">相手</th></tr></thead>
           <tbody id="compareTbody"></tbody>
         </table>
         <div id="compareEmptyState"></div>
@@ -1046,8 +1047,8 @@ function updateCompareTableBody() {
     const friendColor = result === "loss" ? "color:#FF4757" : "";
     return `<tr>
       <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
-      <td class="mono" style="${mineColor}">${mineDisplay}</td>
-      <td class="mono" style="${friendColor}">${friendDisplay}</td>
+      <td class="mono col-center" style="${mineColor}">${mineDisplay}</td>
+      <td class="mono col-center" style="${friendColor}">${friendDisplay}</td>
     </tr>`;
   }).join("");
 
@@ -1169,7 +1170,7 @@ function buildListSkeleton() {
     <div class="panel" style="padding:0">
       <div class="table-wrap">
         <table class="score-table">
-          <thead><tr><th class="col-title">楽曲</th><th class="col-center">EXスコア</th><th class="col-center">通常スコア</th><th class="col-center">クリア</th></tr></thead>
+          <thead><tr><th class="col-title">楽曲</th><th class="col-center">EX/通常</th></tr></thead>
           <tbody id="scoreTbody"></tbody>
         </table>
         <div id="listEmptyState"></div>
@@ -1218,16 +1219,16 @@ function updateListControls() {
 function updateListTableBody(visible, filtered, merged, totalPages) {
   const rows = visible.map(m => {
     const meta = DIFF_META[m.type] || { abbr: (m.type||"?").slice(0,3).toUpperCase(), color: "#888" };
-    const clearMeta = m.score ? CLEAR_META[m.score.clearRank] : null;
+    const exVal = exDiff(m);
+    const exDisplay = exVal === null ? "-" : String(exVal);
+    const normalDisplay = m.score ? fmtNum(m.score.highScore) : "-";
     return `
       <tr class="${!m.score?'unplayed':''}">
         <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
-        <td class="mono col-center">${(() => {
-const diff=exDiff(m);
-return diff===null?"-":String(diff);
-})()}</td>
-        <td class="mono col-center">${m.score?fmtNum(m.score.highScore):"-"}</td>
-        <td class="col-center">${clearMeta ? `<span class="badge" style="color:${clearMeta.color};background:${clearMeta.color}22;border-color:${clearMeta.color}55">${clearMeta.label}</span>` : `<span class="badge badge-dim">未プレイ</span>`}</td>
+        <td class="col-center">
+          <div class="mono" style="font-size:12px">${exDisplay}</div>
+          <div class="mono" style="font-size:11px;color:var(--muted)">${normalDisplay}</div>
+        </td>
       </tr>`;
   }).join("");
 
