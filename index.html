@@ -122,8 +122,8 @@
   .empty-state { text-align:center; padding:50px 20px; color:var(--muted); }
   .empty-state .big { font-size:15px; color:var(--text); margin-bottom:6px; font-weight:700; }
   .toast {
-    position:fixed; bottom:20px; right:20px; padding:12px 18px; border-radius:10px; font-size:13px; font-weight:600;
-    z-index:50; box-shadow:0 8px 24px rgba(0,0,0,0.4); display:none;
+    position:fixed; top:20px; right:20px; padding:12px 18px; border-radius:10px; font-size:13px; font-weight:600;
+    z-index:150; box-shadow:0 8px 24px rgba(0,0,0,0.4); display:none;
   }
   .toast.success { background:#14261d; color:#5fe0a0; border:1px solid #5fe0a0; }
   .toast.error { background:#2a1620; color:#ff4757; border:1px solid #ff4757; }
@@ -587,7 +587,7 @@ async function handleImportCsv() {
     scores = merged;
     scoresUpdatedAt = new Date();
     ta.value = "";
-    showToast(`スコアを取り込みました（${parsedCount}件, マスタ一致 ${matched}件）`, "success");
+    showToast("スコアを登録しました", "success");
     window._lastImportInfo = { parsedCount, matched, unmatched, unmatchedTitles };
     render();
   } catch (e) {
