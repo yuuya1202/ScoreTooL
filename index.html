@@ -108,7 +108,7 @@
   .jacket-thumb { width:34px; height:34px; border-radius:6px; object-fit:cover; background:#1c2338; flex-shrink:0; border:2px solid var(--border); box-sizing:border-box; }
   .title-cell { display:flex; align-items:flex-start; gap:10px; }
   .title-text { white-space:normal; word-break:break-word; line-height:1.35; min-width:0; flex:1; }
-  .level-num { font-variant-numeric:tabular-nums; font-weight:700; color:var(--muted); }
+  .level-num { font-variant-numeric:tabular-nums; font-weight:700; color:var(--text); }
   .mono { font-family:ui-monospace,"SF Mono",monospace; font-variant-numeric:tabular-nums; }
   .badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:800; border:1px solid; letter-spacing:0.3px; }
   .badge-dim { color:var(--muted); background:var(--dim-bg); border-color:var(--border); }
@@ -272,7 +272,15 @@ let filters = {
 let draftLevels = new Set();
 let draftDiffs = new Set();
 let friendsState = { loading: false, incoming: [], outgoing: [], friends: [] };
-let compareState = { loadingFriends: false, friendsList: [], selectedUid: "", loadingScores: false, friendScores: null };
+let compareState = {
+  loadingFriends: false, friendsList: [], selectedUid: "",
+  loadingScores: false, friendScores: null,
+  search: "", mode: "ex", resultFilter: "all",
+  levels: new Set(), diffs: new Set(DIFF_ORDER),
+};
+let compareSkeletonBuilt = false;
+let compareDraftLevels = new Set();
+let compareDraftDiffs = new Set();
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                              */
@@ -383,6 +391,7 @@ async function loadAll() {
   }
 
   filters.levels = new Set(ALL_LEVEL_VALUES);
+  compareState.levels = new Set(ALL_LEVEL_VALUES);
 
   render();
 }
@@ -420,6 +429,7 @@ async function refreshCompareFriends() {
 function handleSelectCompareFriend(uid) {
   compareState.selectedUid = uid;
   compareState.friendScores = null;
+  compareSkeletonBuilt = false;
   render();
   if (uid) loadCompareFriendScores(uid);
 }
@@ -696,9 +706,39 @@ function renderFriendsTab() {
 }
 
 
+function compareResultFor(m, friendScores, mode) {
+  const fs = friendScores[m.key] || null;
+  let mineVal, friendVal;
+  if (mode === "ex") {
+    mineVal = exDiff(m);
+    friendVal = (fs && m.maxExScore) ? (fs.exScore - m.maxExScore) : null;
+  } else {
+    mineVal = m.score ? m.score.highScore : null;
+    friendVal = fs ? fs.highScore : null;
+  }
+  const mineHas = mineVal !== null && mineVal !== undefined;
+  const friendHas = friendVal !== null && friendVal !== undefined;
+  if (!mineHas && !friendHas) return null; // どちらも未プレイ: 集計対象外
+  if (mineHas && !friendHas) return "win";  // 自分だけプレイ済み
+  if (!mineHas && friendHas) return "loss"; // 相手だけプレイ済み
+  if (mineVal > friendVal) return "win";
+  if (mineVal < friendVal) return "loss";
+  return "draw";
+}
+
+function getCompareFiltered(merged, friendScores) {
+  let list = merged.filter(m => (m.score || friendScores[m.key]) && compareState.diffs.has(m.type) && compareState.levels.has(m.level));
+  if (compareState.search.trim()) {
+    const q = compareState.search.trim().toLowerCase();
+    list = list.filter(m => m.title.toLowerCase().includes(q) || (m.reading || "").includes(q));
+  }
+  return list.sort((a, b) => (b.level - a.level) || a.title.localeCompare(b.title, "ja"));
+}
+
 function renderCompareTab() {
   if (compareState.loadingFriends) {
     document.getElementById('view-compare').innerHTML = `<div class="panel"><p class="hint">読み込み中...</p></div>`;
+    compareSkeletonBuilt = false;
     return;
   }
   const { friendsList, selectedUid, loadingScores, friendScores } = compareState;
@@ -709,52 +749,257 @@ function renderCompareTab() {
         <h3>比較</h3>
         <p class="hint">まだフレンドがいません。「フレンド」タブから相手を追加してください。</p>
       </div>`;
+    compareSkeletonBuilt = false;
     return;
   }
 
   const options = `<option value="">選択してください</option>` +
     friendsList.map(f => `<option value="${esc(f.uid)}" ${f.uid === selectedUid ? "selected" : ""}>${esc(f.username || "(不明なユーザー)")}</option>`).join("");
 
-  let bodyHtml = "";
   if (!selectedUid) {
-    bodyHtml = `<p class="hint">比較したいフレンドを選んでください</p>`;
-  } else if (loadingScores || friendScores === null) {
-    bodyHtml = `<p class="hint">読み込み中...</p>`;
-  } else {
-    const merged = getMerged();
-    const friendUsername = (friendsList.find(f => f.uid === selectedUid) || {}).username || "相手";
-    const rows = merged
-      .filter(m => m.score || friendScores[m.key])
-      .sort((a, b) => (b.level - a.level) || a.title.localeCompare(b.title, "ja"))
-      .map(m => {
-        const fs = friendScores[m.key] || null;
-        const meta = DIFF_META[m.type] || { abbr: (m.type || "?").slice(0, 3).toUpperCase(), color: "#888" };
-        return `<tr>
-          <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
-          <td class="level-num">${esc(m.level)}</td>
-          <td class="mono">${m.score ? fmtNum(m.score.highScore) : "-"}</td>
-          <td class="mono">${fs ? fmtNum(fs.highScore) : "-"}</td>
-        </tr>`;
-      }).join("");
-
-    bodyHtml = `
-      <div class="panel" style="padding:0">
-        <div class="table-wrap">
-          <table class="score-table">
-            <thead><tr><th class="col-title">楽曲</th><th>Lv</th><th>自分</th><th>${esc(friendUsername)}</th></tr></thead>
-            <tbody>${rows || `<tr><td colspan="4" class="empty-state">比較できるスコアがありません</td></tr>`}</tbody>
-          </table>
-        </div>
+    document.getElementById('view-compare').innerHTML = `
+      <div class="panel">
+        <h3>比較</h3>
+        <p class="hint">比較したいフレンドを選んでください</p>
+        <select class="select-input" onchange="handleSelectCompareFriend(this.value)">${options}</select>
       </div>`;
+    compareSkeletonBuilt = false;
+    return;
   }
 
+  if (loadingScores || friendScores === null) {
+    document.getElementById('view-compare').innerHTML = `
+      <div class="panel">
+        <h3>比較</h3>
+        <select class="select-input" onchange="handleSelectCompareFriend(this.value)">${options}</select>
+        <p class="hint" style="margin-top:10px">読み込み中...</p>
+      </div>`;
+    compareSkeletonBuilt = false;
+    return;
+  }
+
+  if (!compareSkeletonBuilt) {
+    buildCompareSkeleton(options);
+    compareSkeletonBuilt = true;
+  }
+  updateCompareControls();
+  updateCompareTableBody();
+}
+
+function buildCompareSkeleton(friendOptionsHtml) {
   document.getElementById('view-compare').innerHTML = `
     <div class="panel">
       <h3>比較</h3>
-      <p class="hint">フレンドを選んで、お互いの通常スコアを見比べられます。</p>
-      <select class="select-input" onchange="handleSelectCompareFriend(this.value)">${options}</select>
+      <select class="select-input" id="compareFriendSelect">${friendOptionsHtml}</select>
     </div>
-    ${bodyHtml}
+    <div class="panel">
+      <div class="filter-bar">
+        <input class="search-input" id="compareSearchInput" placeholder="曲名で検索…">
+        <button class="btn secondary" id="compareFilterBtn">絞り込み</button>
+      </div>
+      <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
+        <div>
+          <div class="filter-band-label" style="margin-bottom:6px">勝負基準</div>
+          <div class="toggle-group" id="compareModeToggle">
+            <button class="toggle-pill" data-mode="ex">EX</button>
+            <button class="toggle-pill" data-mode="normal">通常</button>
+          </div>
+        </div>
+        <div>
+          <div class="filter-band-label" style="margin-bottom:6px">表示形式</div>
+          <div class="toggle-group" id="compareResultToggle">
+            <button class="toggle-pill" data-result="all">すべて</button>
+            <button class="toggle-pill" data-result="win">勝利</button>
+            <button class="toggle-pill" data-result="loss">敗北</button>
+            <button class="toggle-pill" data-result="draw">引き分け</button>
+          </div>
+        </div>
+      </div>
+      <p class="footnote" id="compareTally" style="text-align:left;margin-top:14px"></p>
+    </div>
+    <div class="panel" style="padding:0">
+      <div class="table-wrap">
+        <table class="score-table">
+          <thead><tr><th class="col-title">楽曲</th><th>Lv</th><th>自分</th><th id="compareFriendHeader">相手</th><th>結果</th></tr></thead>
+          <tbody id="compareTbody"></tbody>
+        </table>
+        <div id="compareEmptyState"></div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="compareFilterModalOverlay" style="display:none">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3>絞り込み</h3>
+          <div style="display:flex;align-items:center;gap:14px">
+            <button class="link-btn" id="compareFilterResetBtn">内容を初期化</button>
+            <button class="modal-close" id="compareFilterCloseBtn">×</button>
+          </div>
+        </div>
+        <div class="modal-body" id="compareFilterModalBody"></div>
+        <div class="modal-footer">
+          <button class="btn" id="compareFilterApplyBtn">この条件で絞り込む</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('compareFriendSelect').addEventListener('change', (e) => handleSelectCompareFriend(e.target.value));
+  document.getElementById('compareSearchInput').addEventListener('input', (e) => { compareState.search = e.target.value; render(); });
+  document.getElementById('compareModeToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-mode]');
+    if (btn) { compareState.mode = btn.dataset.mode; render(); }
+  });
+  document.getElementById('compareResultToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-result]');
+    if (btn) { compareState.resultFilter = btn.dataset.result; render(); }
+  });
+  document.getElementById('compareFilterBtn').addEventListener('click', openCompareFilterModal);
+  document.getElementById('compareFilterCloseBtn').addEventListener('click', closeCompareFilterModal);
+  document.getElementById('compareFilterResetBtn').addEventListener('click', resetCompareFilterModal);
+  document.getElementById('compareFilterApplyBtn').addEventListener('click', applyCompareFilterModal);
+  document.getElementById('compareFilterModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'compareFilterModalOverlay') closeCompareFilterModal();
+  });
+}
+
+function updateCompareControls() {
+  const { friendsList, selectedUid } = compareState;
+  const friendUsername = (friendsList.find(f => f.uid === selectedUid) || {}).username || "相手";
+  document.getElementById('compareFriendHeader').textContent = friendUsername;
+  document.querySelectorAll('#compareModeToggle button').forEach(b => {
+    b.classList.toggle('on', b.dataset.mode === compareState.mode);
+  });
+  document.querySelectorAll('#compareResultToggle button').forEach(b => {
+    b.classList.toggle('on', b.dataset.result === compareState.resultFilter);
+  });
+}
+
+function updateCompareTableBody() {
+  const merged = getMerged();
+  const { friendScores, mode, resultFilter } = compareState;
+  const filtered = getCompareFiltered(merged, friendScores);
+
+  let win = 0, loss = 0, draw = 0;
+  const withResult = filtered.map(m => ({ m, result: compareResultFor(m, friendScores, mode) }));
+  withResult.forEach(({ result }) => {
+    if (result === "win") win++;
+    else if (result === "loss") loss++;
+    else if (result === "draw") draw++;
+  });
+
+  const visible = resultFilter === "all" ? withResult : withResult.filter(r => r.result === resultFilter);
+
+  const RESULT_LABEL = { win: "勝ち", loss: "負け", draw: "分け" };
+  const RESULT_COLOR = { win: "#22C55E", loss: "#FF4757", draw: "#8B94AC" };
+
+  const rows = visible.map(({ m, result }) => {
+    const fs = friendScores[m.key] || null;
+    const meta = DIFF_META[m.type] || { abbr: (m.type || "?").slice(0, 3).toUpperCase(), color: "#888" };
+    const mineDisplay = mode === "ex"
+      ? (exDiff(m) === null ? "-" : String(exDiff(m)))
+      : (m.score ? fmtNum(m.score.highScore) : "-");
+    const friendDisplay = mode === "ex"
+      ? ((fs && m.maxExScore) ? String(fs.exScore - m.maxExScore) : "-")
+      : (fs ? fmtNum(fs.highScore) : "-");
+    const resultHtml = result ? `<span class="badge-filled" style="background:${RESULT_COLOR[result]}">${RESULT_LABEL[result]}</span>` : `<span class="badge badge-dim">-</span>`;
+    return `<tr>
+      <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
+      <td class="level-num">${m.level}</td>
+      <td class="mono">${mineDisplay}</td>
+      <td class="mono">${friendDisplay}</td>
+      <td>${resultHtml}</td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById('compareTbody').innerHTML = rows;
+  document.getElementById('compareEmptyState').innerHTML = visible.length === 0
+    ? `<div class="empty-state">比較できるスコアがありません</div>` : "";
+  document.getElementById('compareTally').textContent = `${win}勝${loss}敗${draw}分け（対象 ${filtered.length}曲）`;
+}
+
+function openCompareFilterModal() {
+  compareDraftLevels = new Set(compareState.levels);
+  compareDraftDiffs = new Set(compareState.diffs);
+  renderCompareFilterModalBody();
+  document.getElementById('compareFilterModalOverlay').style.display = 'flex';
+}
+function closeCompareFilterModal() {
+  document.getElementById('compareFilterModalOverlay').style.display = 'none';
+}
+function resetCompareFilterModal() {
+  compareDraftLevels = new Set(ALL_LEVEL_VALUES);
+  compareDraftDiffs = new Set(DIFF_ORDER);
+  renderCompareFilterModalBody();
+}
+function applyCompareFilterModal() {
+  compareState.levels = new Set(compareDraftLevels);
+  compareState.diffs = new Set(compareDraftDiffs);
+  closeCompareFilterModal();
+  render();
+}
+function toggleCompareDraftLevel(level, checked) {
+  if (checked) compareDraftLevels.add(level); else compareDraftLevels.delete(level);
+}
+function setCompareBandLevels(levelsInBand, on) {
+  levelsInBand.forEach(lv => on ? compareDraftLevels.add(lv) : compareDraftLevels.delete(lv));
+  renderCompareFilterModalBody();
+}
+function toggleCompareDraftDiff(type, checked) {
+  if (checked) compareDraftDiffs.add(type); else compareDraftDiffs.delete(type);
+}
+function setCompareAllDiffs(diffList, on) {
+  diffList.forEach(d => on ? compareDraftDiffs.add(d) : compareDraftDiffs.delete(d));
+  renderCompareFilterModalBody();
+}
+window.toggleCompareDraftLevel = toggleCompareDraftLevel;
+window.setCompareBandLevels = setCompareBandLevels;
+window.toggleCompareDraftDiff = toggleCompareDraftDiff;
+window.setCompareAllDiffs = setCompareAllDiffs;
+
+function renderCompareFilterModalBody() {
+  const levelSectionsHtml = LEVEL_BANDS.map(band => {
+    const checksHtml = band.values.map(lv => `
+      <label class="check-item">
+        <input type="checkbox" ${compareDraftLevels.has(lv) ? "checked" : ""} onchange="toggleCompareDraftLevel(${lv}, this.checked)">
+        <span>${lv}</span>
+      </label>`).join("");
+    return `
+      <div class="filter-band">
+        <div class="filter-band-head">
+          <span class="filter-band-label">${band.label}</span>
+          <span class="filter-band-actions">
+            <button class="link-btn" onclick="setCompareBandLevels(${JSON.stringify(band.values)}, true)">全選択</button>
+            <button class="link-btn" onclick="setCompareBandLevels(${JSON.stringify(band.values)}, false)">解除</button>
+          </span>
+        </div>
+        <div class="check-grid">${checksHtml}</div>
+      </div>`;
+  }).join("");
+
+  const diffList = DIFF_ORDER;
+  const diffChecksHtml = diffList.map(d => {
+    const meta = DIFF_META[d];
+    return `
+      <label class="check-item">
+        <input type="checkbox" ${compareDraftDiffs.has(d) ? "checked" : ""} onchange="toggleCompareDraftDiff('${d}', this.checked)">
+        <span class="badge-filled" style="background:${meta.color}">${meta.abbr}</span>
+      </label>`;
+  }).join("");
+
+  document.getElementById('compareFilterModalBody').innerHTML = `
+    <div class="filter-section">
+      <h4>レベル</h4>
+      ${levelSectionsHtml}
+    </div>
+    <div class="filter-section">
+      <div class="filter-band-head">
+        <h4 style="margin:0">難易度</h4>
+        <span class="filter-band-actions">
+          <button class="link-btn" onclick='setCompareAllDiffs(${JSON.stringify(diffList)}, true)'>全選択</button>
+          <button class="link-btn" onclick='setCompareAllDiffs(${JSON.stringify(diffList)}, false)'>解除</button>
+        </span>
+      </div>
+      <div class="check-grid">${diffChecksHtml}</div>
+    </div>
   `;
 }
 
