@@ -197,12 +197,16 @@
   <h3 id="authTitle">ログイン</h3>
   <p class="hint" id="authHint">アカウント名とパスワードを入力してください。</p>
   <input class="search-input" id="authUsername" placeholder="アカウント名（半角英数字・3〜20文字）" style="width:100%;margin-bottom:8px;box-sizing:border-box;">
-  <input class="search-input" id="authPassword" type="password" placeholder="パスワード（6文字以上）" style="width:100%;margin-bottom:4px;box-sizing:border-box;">
+  <input class="search-input" id="authPassword" type="text" placeholder="パスワード（6文字以上）" style="width:100%;margin-bottom:4px;box-sizing:border-box;">
   <p class="hint" id="authError" style="color:#ff4757;min-height:16px"></p>
   <div class="btn-row">
     <button class="btn" id="authSubmitBtn" onclick="handleAuthSubmit()">ログイン</button>
     <button class="btn secondary" onclick="toggleAuthMode()">新規登録はこちら</button>
   </div>
+  <details style="margin-top:14px;font-size:11px;color:var(--muted)">
+    <summary style="cursor:pointer">アカウント削除・パスワードを忘れた場合</summary>
+    <p style="margin:6px 0 0">X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener">@yuuya1202</a> までご連絡ください。</p>
+  </details>
 </div>
 
 <div id="appRoot" style="display:none">
@@ -1111,7 +1115,7 @@ let authMode = "login";
 function renderAuthGate() {
   document.getElementById('authTitle').textContent = authMode === "login" ? "ログイン" : "新規登録";
   document.getElementById('authSubmitBtn').textContent = authMode === "login" ? "ログイン" : "登録する";
-  document.querySelector('#authGate .btn.secondary').textContent = authMode === "login" ? "新規登録はこちら" : "ログインはこちら";
+  document.querySelector('#authGate .btn.secondary').textContent = authMode === "login" ? "新規登録はこちら" : "戻る";
   document.getElementById('authError').textContent = "";
 }
 window.toggleAuthMode = function () {
