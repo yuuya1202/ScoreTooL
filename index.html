@@ -42,7 +42,12 @@
   }
   .brand-title {
     font-size:20px; font-weight:800; letter-spacing:2px; text-transform:uppercase;
+  }
+  .brand-title-sdvx {
     background: linear-gradient(90deg, var(--cyan), var(--magenta)); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .brand-title-exscore {
+    background: linear-gradient(90deg, #b8860b, #ffe066, #d4af37, #fff3b0); -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .brand-sub { font-size:11px; color:var(--muted); letter-spacing:0.5px; margin-top:2px; }
   .account-menu-wrap { position:relative; }
@@ -94,7 +99,7 @@
   .btn { background: linear-gradient(135deg, var(--cyan), #00a8c2); color:#05070d; border:none; border-radius:8px; padding:9px 18px; font-weight:800; font-size:13px; cursor:pointer; }
   .btn:disabled { opacity:0.5; cursor:not-allowed; }
   .btn.secondary { background:var(--panel-2); color:var(--text); border:1px solid var(--border); }
-  .btn.filter-active { background:#2e3852; color:var(--text); border-color:#4a5678; font-weight:800; }
+  .btn.filter-active { background:var(--nov); color:#ffffff; border-color:var(--nov); font-weight:800; }
   .btn.danger { background:rgba(255,71,87,0.15); color:#ff4757; border:1px solid rgba(255,71,87,0.4); }
   .btn-row { display:flex; gap:8px; margin-top:10px; }
   .unmatched-box { margin-top:10px; font-size:11px; color:var(--muted); }
@@ -113,7 +118,7 @@
   table.score-table tr.unplayed { opacity:0.55; }
   table.score-table tr:hover td, table.friend-table tr:hover td { background:var(--row-hover); }
   .jacket-thumb { width:34px; height:34px; border-radius:6px; object-fit:cover; background:#1c2338; flex-shrink:0; border:2px solid var(--border); box-sizing:border-box; }
-  .title-cell { display:flex; align-items:flex-start; gap:10px; }
+  .title-cell { display:flex; align-items:center; gap:10px; }
   .title-text { white-space:normal; word-break:break-word; line-height:1.35; min-width:0; flex:1; }
   .level-num { font-variant-numeric:tabular-nums; color:var(--text); }
   .mono { font-family:ui-monospace,"SF Mono",monospace; font-variant-numeric:tabular-nums; }
@@ -203,7 +208,7 @@
   <div class="header">
     <div class="brand">
       <div>
-        <div class="brand-title">SDVX EX-Score</div>
+        <div class="brand-title"><span class="brand-title-sdvx">SDVX</span> <span class="brand-title-exscore">EX-Score</span></div>
       </div>
     </div>
     <div class="account-menu-wrap">
@@ -652,6 +657,14 @@ function isFilterActive() {
   return false;
 }
 
+function isCompareFilterActive() {
+  if (compareState.levels.size !== ALL_LEVEL_VALUES.length) return true;
+  for (const lv of ALL_LEVEL_VALUES) if (!compareState.levels.has(lv)) return true;
+  if (compareState.diffs.size !== DIFF_ORDER.length) return true;
+  for (const d of DIFF_ORDER) if (!compareState.diffs.has(d)) return true;
+  return false;
+}
+
 function getFiltered(merged) {
   let list = merged.filter(m => filters.diffs.has(m.type) && filters.levels.has(m.level));
   if (filters.search.trim()) {
@@ -992,6 +1005,12 @@ function updateCompareControls() {
   const friendUsername = (friendsList.find(f => f.uid === selectedUid) || {}).username || "相手";
   document.getElementById('compareFriendHeader').textContent = friendUsername;
   document.getElementById('compareSortSelect').value = compareState.sort;
+  const filterBtn = document.getElementById('compareFilterBtn');
+  if (filterBtn) {
+    const active = isCompareFilterActive();
+    filterBtn.classList.toggle('filter-active', active);
+    filterBtn.textContent = active ? "絞り込み中●" : "絞り込み";
+  }
   document.querySelectorAll('#compareModeToggle button').forEach(b => {
     b.classList.toggle('on', b.dataset.mode === compareState.mode);
   });
