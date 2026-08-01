@@ -106,7 +106,7 @@
   .btn { background: linear-gradient(135deg, var(--cyan), #00a8c2); color:#05070d; border:none; border-radius:8px; padding:9px 18px; font-weight:800; font-size:13px; cursor:pointer; }
   .btn:disabled { opacity:0.5; cursor:not-allowed; }
   .btn.secondary { background:var(--panel-2); color:var(--text); border:1px solid var(--border); }
-  .btn.filter-active { background:var(--cyan); color:#05070d; border-color:var(--cyan); font-weight:800; }
+  .btn.filter-active { background:var(--magenta); color:#ffffff; border-color:var(--magenta); font-weight:800; }
   .btn.danger { background:rgba(255,71,87,0.15); color:#ff4757; border:1px solid rgba(255,71,87,0.4); }
   .btn-row { display:flex; gap:8px; margin-top:10px; }
   .unmatched-box { margin-top:10px; font-size:11px; color:var(--muted); }
@@ -842,7 +842,7 @@ function buildListSkeleton() {
         <div class="modal-header">
           <h3>絞り込み</h3>
           <div style="display:flex;align-items:center;gap:14px">
-            <button class="link-btn" id="filterModalResetBtn">リセット</button>
+            <button class="link-btn" id="filterModalResetBtn">内容を初期化</button>
             <button class="modal-close" id="filterModalCloseBtn">×</button>
           </div>
         </div>
@@ -868,7 +868,11 @@ function buildListSkeleton() {
 function updateListControls() {
   document.getElementById('sortSelect').value = filters.sort;
   const filterBtn = document.getElementById('openFilterBtn');
-  if (filterBtn) filterBtn.classList.toggle('filter-active', isFilterActive());
+  if (filterBtn) {
+    const active = isFilterActive();
+    filterBtn.classList.toggle('filter-active', active);
+    filterBtn.textContent = active ? "絞り込み●" : "絞り込み";
+  }
   // 検索欄はユーザーが今まさに入力中の値そのものなので、ここでは一切触らない
 }
 
