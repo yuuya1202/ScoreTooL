@@ -104,10 +104,8 @@
   table.friend-table { width:100%; border-collapse:collapse; font-size:13px; }
   .col-title { width:260px; }
   @media (max-width: 480px) {
-    table.score-table { min-width:0; }
-    .col-title { width:150px; max-width:150px; }
-    .col-center { width:90px; padding-left:4px; padding-right:4px; }
-    .exnormal-cell { width:148px; font-size:12px; white-space:nowrap; }
+    .col-title { width:200px; }
+    .col-center { width:80px; padding-left:4px; padding-right:4px; }
   }
   table.score-table th, table.friend-table th {
     text-align:left; color:var(--muted); font-size:11px; font-weight:700; padding:8px; border-bottom:1px solid var(--border);
@@ -635,7 +633,11 @@ function getStats(merged) {
 }
 
 function exDiff(m) {
-  return (m.score && m.maxExScore) ? (m.score.exScore - m.maxExScore) : null;
+  return exDiffFor(m.score, m.maxExScore);
+}
+function exDiffFor(scoreObj, maxExScore) {
+  if (!scoreObj || !maxExScore || !scoreObj.exScore) return null;
+  return scoreObj.exScore - maxExScore;
 }
 
 function formatLevel(lv) {
@@ -825,7 +827,7 @@ function compareResultFor(m, friendScores, mode) {
   let mineVal, friendVal;
   if (mode === "ex") {
     mineVal = exDiff(m);
-    friendVal = (fs && m.maxExScore) ? (fs.exScore - m.maxExScore) : null;
+    friendVal = exDiffFor(fs, m.maxExScore);
   } else {
     mineVal = m.score ? m.score.highScore : null;
     friendVal = fs ? fs.highScore : null;
@@ -1042,7 +1044,7 @@ function updateCompareTableBody() {
       ? (exDiff(m) === null ? "-" : String(exDiff(m)))
       : (m.score ? fmtNum(m.score.highScore) : "-");
     const friendDisplay = mode === "ex"
-      ? ((fs && m.maxExScore) ? String(fs.exScore - m.maxExScore) : "-")
+      ? (exDiffFor(fs, m.maxExScore) === null ? "-" : String(exDiffFor(fs, m.maxExScore)))
       : (fs ? fmtNum(fs.highScore) : "-");
     const mineColor = result === "win" ? "color:#3B82F6" : "";
     const friendColor = result === "loss" ? "color:#FF4757" : "";
@@ -1171,7 +1173,7 @@ function buildListSkeleton() {
     <div class="panel" style="padding:0">
       <div class="table-wrap">
         <table class="score-table">
-          <thead><tr><th class="col-title">楽曲</th><th class="col-center"><span style="color:#FFD23F">EX</span>/通常</th></tr></thead>
+          <thead><tr><th class="col-title">楽曲</th><th class="col-center" style="color:#FFD23F">EXスコア</th><th class="col-center">通常スコア</th></tr></thead>
           <tbody id="scoreTbody"></tbody>
         </table>
         <div id="listEmptyState"></div>
@@ -1226,7 +1228,8 @@ function updateListTableBody(visible, filtered, merged, totalPages) {
     return `
       <tr class="${!m.score?'unplayed':''}">
         <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
-        <td class="mono col-center exnormal-cell"><span style="color:#FFD23F">${exDisplay}</span>/${normalDisplay}</td>
+        <td class="mono col-center" style="color:#FFD23F">${exDisplay}</td>
+        <td class="mono col-center">${normalDisplay}</td>
       </tr>`;
   }).join("");
 
