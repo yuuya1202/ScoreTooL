@@ -88,7 +88,7 @@
   .btn { background: linear-gradient(135deg, var(--cyan), #00a8c2); color:#05070d; border:none; border-radius:8px; padding:9px 18px; font-weight:800; font-size:13px; cursor:pointer; }
   .btn:disabled { opacity:0.5; cursor:not-allowed; }
   .btn.secondary { background:var(--panel-2); color:var(--text); border:1px solid var(--border); }
-  .btn.filter-active { background:#232c42; color:var(--text); border-color:#3a4560; font-weight:800; }
+  .btn.filter-active { background:#2e3852; color:var(--text); border-color:#4a5678; font-weight:800; }
   .btn.danger { background:rgba(255,71,87,0.15); color:#ff4757; border:1px solid rgba(255,71,87,0.4); }
   .btn-row { display:flex; gap:8px; margin-top:10px; }
   .unmatched-box { margin-top:10px; font-size:11px; color:var(--muted); }
@@ -211,7 +211,7 @@
 
   <div class="tabs">
     <button class="tab-btn active" id="tab-list" onclick="switchTab('list')">スコア一覧</button>
-    <button class="tab-btn" id="tab-data" onclick="switchTab('data')">データ管理</button>
+    <button class="tab-btn" id="tab-data" onclick="switchTab('data')">スコア登録</button>
     <button class="tab-btn" id="tab-friends" onclick="switchTab('friends')">フレンド</button>
     <button class="tab-btn" id="tab-compare" onclick="switchTab('compare')">比較</button>
   </div>
@@ -634,20 +634,11 @@ function renderDataTab() {
   document.getElementById('view-data').innerHTML = `
     ${masterError ? `<div class="panel"><h3 style="color:#ff4757">⚠ マスタ読み込みエラー</h3><p class="hint">${esc(masterError)}</p></div>` : ""}
     <div class="panel">
-      <h3>楽曲マスタデータについて</h3>
-      <p class="hint">
-        楽曲マスタ（songs.json）はこの index.html とは別ファイルとして同じフォルダに置かれています。
-        新曲追加時は songs.json だけを更新すれば、この画面のコードは変更不要です。
-        現在 <b>${songs.length}</b> 譜面を読み込み済みです。
-      </p>
-    </div>
-    <div class="panel">
       <h3>スコアCSVの取り込み</h3>
-      <p class="hint">公式アプリから書き出したスコアCSVを貼り付けてください。1行目のヘッダーは無視されます。取り込んだスコアはあなたのアカウントに紐づけてクラウド（Firestore）に保存されるため、別の端末からログインしても同じデータが見られます。</p>
+      <p class="hint">公式サイトの「PLAY DATA」→「スコアデータ/CSVダウンロード」からCSVをコピーして、下に貼り付けてください。</p>
       <textarea class="data-input" id="csvInput" placeholder="楽曲名,難易度,楽曲レベル,クリアランク,スコアグレード,ハイスコア,..."></textarea>
       <div class="btn-row">
-        <button class="btn" onclick="handleImportCsv()">CSVを取り込む</button>
-        ${Object.keys(scores).length > 0 ? `<button class="btn danger" onclick="handleClearScores()">自分のスコアを全削除</button>` : ""}
+        <button class="btn" onclick="handleImportCsv()">スコアを登録する</button>
       </div>
       ${info ? `
         <div class="unmatched-box">
