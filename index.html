@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>SDVX EX-Score Tool</title>
+<title>SDVX EX-Score</title>
 <style>
   :root {
     --bg: #05070d;
@@ -190,7 +190,7 @@
   </div>
   <details style="margin-top:14px;font-size:11px;color:var(--muted)">
     <summary style="cursor:pointer">アカウント削除・パスワードを忘れた場合</summary>
-    <p style="margin:6px 0 0">X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener">@yuuya1202</a> までご連絡ください。</p>
+    <p style="margin:6px 0 0">X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener" style="color:var(--cyan)">@yuuya1202</a> までご連絡ください。</p>
   </details>
 </div>
 
@@ -198,7 +198,7 @@
   <div class="header">
     <div class="brand">
       <div>
-        <div class="brand-title">SDVX EX-Score Tool</div>
+        <div class="brand-title">SDVX EX-Score</div>
       </div>
     </div>
     <div class="account-menu-wrap">
@@ -224,6 +224,16 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="confirmModalOverlay" style="display:none">
+  <div class="modal-box" style="max-width:340px">
+    <div class="modal-body" id="confirmModalBody" style="padding:22px 20px 6px"></div>
+    <div class="modal-footer" style="display:flex;gap:10px">
+      <button class="btn secondary" id="confirmModalCancelBtn" style="flex:1">キャンセル</button>
+      <button class="btn" id="confirmModalOkBtn" style="flex:1">OK</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ------------------------------------------------------------------ */
@@ -314,6 +324,27 @@ function formatRelativeTime(date) {
   const diffDay = Math.floor(diffHour / 24);
   return `${diffDay}日前`;
 }
+
+let _confirmResolve = null;
+function showConfirmDialog(message) {
+  return new Promise((resolve) => {
+    document.getElementById('confirmModalBody').textContent = message;
+    document.getElementById('confirmModalOverlay').style.display = 'flex';
+    _confirmResolve = resolve;
+  });
+}
+function _closeConfirmDialog(result) {
+  document.getElementById('confirmModalOverlay').style.display = 'none';
+  if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const cancelBtn = document.getElementById('confirmModalCancelBtn');
+  const okBtn = document.getElementById('confirmModalOkBtn');
+  const overlay = document.getElementById('confirmModalOverlay');
+  if (cancelBtn) cancelBtn.addEventListener('click', () => _closeConfirmDialog(false));
+  if (okBtn) okBtn.addEventListener('click', () => _closeConfirmDialog(true));
+  if (overlay) overlay.addEventListener('click', (e) => { if (e.target.id === 'confirmModalOverlay') _closeConfirmDialog(false); });
+});
 
 function showToast(msg, kind) {
   const el = document.getElementById('toast');
@@ -471,7 +502,7 @@ async function handleSendFriendRequest() {
   const input = document.getElementById('friendUsernameInput');
   const username = input.value.trim();
   if (!username) { showToast("ユーザー名を入力してください", "error"); return; }
-  if (!confirm(`${username} さんにフレンド申請を送りますか？`)) return;
+  if (!(await showConfirmDialog(`${username} さんにフレンド申請を送りますか？`))) return;
   try {
     await window.sendFriendRequest(username);
     input.value = "";
@@ -485,7 +516,7 @@ async function handleSendFriendRequest() {
 async function handleRespondRequest(id, accept) {
   const target = friendsState.incoming.find(r => r.id === id);
   const name = target ? (target.fromUsername || "相手") : "相手";
-  if (!confirm(accept ? `${name} さんの申請を承認しますか？` : `${name} さんの申請を拒否しますか？`)) return;
+  if (!(await showConfirmDialog(accept ? `${name} さんの申請を承認しますか？` : `${name} さんの申請を拒否しますか？`))) return;
   try {
     await window.respondFriendRequest(id, accept);
     showToast(accept ? `${name} さんとフレンドになりました` : `${name} さんの申請を拒否しました`, "success");
@@ -496,7 +527,7 @@ async function handleRespondRequest(id, accept) {
 }
 
 async function handleRemoveFriend(uid, username) {
-  if (!confirm(`${username} さんをフレンドから削除しますか？`)) return;
+  if (!(await showConfirmDialog(`${username} さんをフレンドから削除しますか？`))) return;
   try {
     await window.removeFriend(uid);
     showToast(`${username} さんを削除しました`, "success");
@@ -532,7 +563,7 @@ async function handleImportCsv() {
 }
 
 async function handleClearScores() {
-  if (!confirm("自分のスコアデータを全て削除しますか？この操作は取り消せません。")) return;
+  if (!(await showConfirmDialog("自分のスコアデータを全て削除しますか？この操作は取り消せません。"))) return;
   try {
     await window.saveScoresToFirestore({});
     scores = {};
@@ -820,12 +851,12 @@ function buildCompareSkeleton(friendOptionsHtml) {
         <input class="search-input" id="compareSearchInput" placeholder="曲名で検索…">
         <button class="btn secondary" id="compareFilterBtn">絞り込み</button>
         <select class="select-input" id="compareSortSelect" aria-label="並び替え">
+          <option value="score_desc">スコア高い順</option>
+          <option value="score_asc">スコア低い順</option>
           <option value="level_desc">レベル高い順</option>
           <option value="level_asc">レベル低い順</option>
           <option value="title_asc">曲名（あ～）</option>
           <option value="title_desc">曲名（ん～）</option>
-          <option value="score_desc">スコア高い順</option>
-          <option value="score_asc">スコア低い順</option>
         </select>
       </div>
       <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
@@ -1431,8 +1462,8 @@ window.handleAuthSubmit = async function () {
   }
 };
 
-window.handleLogout = function () {
-  if (!confirm("ログアウトしますか？")) return;
+window.handleLogout = async function () {
+  if (!(await window.showConfirmDialog("ログアウトしますか？"))) return;
   signOut(auth);
 };
 
