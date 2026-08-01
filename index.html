@@ -105,8 +105,9 @@
   .col-title { width:260px; }
   @media (max-width: 480px) {
     table.score-table { min-width:0; }
-    .col-title { width:auto; max-width:65%; }
+    .col-title { width:150px; max-width:150px; }
     .col-center { width:90px; padding-left:4px; padding-right:4px; }
+    .exnormal-cell { width:148px; font-size:12px; white-space:nowrap; }
   }
   table.score-table th, table.friend-table th {
     text-align:left; color:var(--muted); font-size:11px; font-weight:700; padding:8px; border-bottom:1px solid var(--border);
@@ -1225,10 +1226,7 @@ function updateListTableBody(visible, filtered, merged, totalPages) {
     return `
       <tr class="${!m.score?'unplayed':''}">
         <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
-        <td class="col-center">
-          <div class="mono" style="font-size:12px">${exDisplay}</div>
-          <div class="mono" style="font-size:11px;color:var(--muted)">${normalDisplay}</div>
-        </td>
+        <td class="mono col-center exnormal-cell">${exDisplay}/${normalDisplay}</td>
       </tr>`;
   }).join("");
 
