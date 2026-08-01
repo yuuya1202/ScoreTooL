@@ -66,7 +66,7 @@
   .account-menu-wrap { position:relative; }
   .account-avatar {
     width:38px; height:38px; border-radius:50%; border:none; cursor:pointer;
-    background: linear-gradient(135deg, var(--cyan), var(--magenta)); color:#05070d;
+    background: #4361EE; color:#ffffff;
     font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center;
   }
   .account-dropdown {
@@ -152,7 +152,6 @@
 <div id="appRoot" style="display:none">
   <div class="header">
     <div class="brand">
-      <div class="brand-mark">○</div>
       <div>
         <div class="brand-title">○○</div>
         <div class="brand-sub">SDVX EX-Score Tool</div>
@@ -162,7 +161,7 @@
       <button class="account-avatar" id="accountAvatarBtn" onclick="toggleAccountMenu()">?</button>
       <div class="account-dropdown" id="accountDropdown" style="display:none">
         <div class="account-dropdown-name" id="accountDropdownName"></div>
-        <button class="account-dropdown-item" id="themeToggleBtn" onclick="handleToggleTheme()">🌙 ダークモードに切り替え</button>
+        <button class="account-dropdown-item" id="themeToggleBtn" onclick="handleToggleTheme()">ダークモードに切り替え</button>
         <button class="account-dropdown-item danger" onclick="handleLogout()">ログアウト</button>
       </div>
     </div>
@@ -253,7 +252,7 @@ function applyTheme(theme) {
   currentTheme = theme === "dark" ? "dark" : "light";
   document.documentElement.setAttribute('data-theme', currentTheme);
   const btn = document.getElementById('themeToggleBtn');
-  if (btn) btn.textContent = currentTheme === "dark" ? "☀️ ライトモードに切り替え" : "🌙 ダークモードに切り替え";
+  if (btn) btn.textContent = currentTheme === "dark" ? "ライトモードに切り替え" : "ダークモードに切り替え";
 }
 window.applyTheme = applyTheme;
 
@@ -865,6 +864,7 @@ window.handleAuthSubmit = async function () {
 };
 
 window.handleLogout = function () {
+  if (!confirm("ログアウトしますか？")) return;
   signOut(auth);
 };
 
