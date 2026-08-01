@@ -302,6 +302,23 @@ function normalizeTitle(raw) {
 function fmtNum(n) { return (n === null || n === undefined || isNaN(n)) ? "-" : n.toLocaleString("en-US"); }
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
+function toDate(v) {
+  if (!v) return null;
+  if (typeof v.toDate === "function") return v.toDate();
+  if (v instanceof Date) return v;
+  return null;
+}
+function formatRelativeTime(date) {
+  if (!date) return "";
+  const diffMin = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (diffMin < 1) return "たった今";
+  if (diffMin < 60) return `${diffMin}分前`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}時間前`;
+  const diffDay = Math.floor(diffHour / 24);
+  return `${diffDay}日前`;
+}
+
 function showToast(msg, kind) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -478,7 +495,7 @@ async function handleSendFriendRequest() {
   try {
     await window.sendFriendRequest(username);
     input.value = "";
-    showToast("フレンド申請を送りました", "success");
+    showToast(`${username} さんにフレンド申請を送りました`, "success");
     refreshFriendsData();
   } catch (e) {
     showToast(e.message, "error");
@@ -486,9 +503,11 @@ async function handleSendFriendRequest() {
 }
 
 async function handleRespondRequest(id, accept) {
+  const target = friendsState.incoming.find(r => r.id === id);
+  const name = target ? (target.fromUsername || "相手") : "相手";
   try {
     await window.respondFriendRequest(id, accept);
-    showToast(accept ? "フレンドになりました" : "申請を拒否しました", "success");
+    showToast(accept ? `${name} さんとフレンドになりました` : `${name} さんの申請を拒否しました`, "success");
     refreshFriendsData();
   } catch (e) {
     showToast("処理に失敗しました: " + e.message, "error");
@@ -650,12 +669,11 @@ function renderFriendsTab() {
     document.getElementById('view-friends').innerHTML = `<div class="panel"><p class="hint">読み込み中...</p></div>`;
     return;
   }
-  const FRIEND_LIMIT = 30;
   const { incoming, outgoing, friends } = friendsState;
 
   const incomingRows = incoming.length ? incoming.map(r => `
     <div class="btn-row" style="justify-content:space-between;align-items:center">
-      <span>${esc(r.fromUsername || "(不明なユーザー)")} さんから申請</span>
+      <span>${esc(r.fromUsername || "(不明なユーザー)")} さんから申請 <span class="hint" style="margin-left:4px">${esc(formatRelativeTime(toDate(r.createdAt)))}</span></span>
       <span>
         <button class="btn" style="padding:6px 12px;font-size:11px" onclick="handleRespondRequest('${esc(r.id)}', true)">承認</button>
         <button class="btn secondary" style="padding:6px 12px;font-size:11px" onclick="handleRespondRequest('${esc(r.id)}', false)">拒否</button>
@@ -663,7 +681,7 @@ function renderFriendsTab() {
     </div>`).join("") : `<p class="hint">届いている申請はありません</p>`;
 
   const outgoingRows = outgoing.length ? outgoing.map(r => `
-    <div class="hint">${esc(r.toUsername || "(不明なユーザー)")} さんに申請中（相手の承認待ち）</div>`).join("") : "";
+    <div class="hint">${esc(r.toUsername || "(不明なユーザー)")} さんに申請中（相手の承認待ち・${esc(formatRelativeTime(toDate(r.createdAt)))}）</div>`).join("") : "";
 
   const friendRows = friends.length ? `
     <table class="score-table">
@@ -686,7 +704,7 @@ function renderFriendsTab() {
     </div>
     ${outgoing.length ? `<div class="panel"><h3>申請中</h3>${outgoingRows}</div>` : ""}
     <div class="panel">
-      <h3>フレンド一覧（${friends.length} / ${FRIEND_LIMIT}）</h3>
+      <h3>フレンド一覧（${friends.length}人）</h3>
       ${friendRows}
     </div>
   `;
@@ -1157,21 +1175,27 @@ window.sendFriendRequest = async function (targetUsernameRaw) {
 
   const id = sortedId(myUid, targetUid);
   const reqRef = doc(db, "friendRequests", id);
+  const payload = {
+    fromUid: myUid,
+    toUid: targetUid,
+    fromUsername: myUsername,
+    toUsername: targetUsernameRaw.trim(),
+    status: "pending",
+    createdAt: serverTimestamp(),
+  };
 
   try {
-    await setDoc(reqRef, {
-      fromUid: myUid,
-      toUid: targetUid,
-      fromUsername: myUsername,
-      toUsername: targetUsernameRaw.trim(),
-      status: "pending",
-      createdAt: serverTimestamp(),
-    });
+    await setDoc(reqRef, payload);
+    return;
   } catch (e) {
-    if (e.code === "permission-denied") {
-      throw new Error("すでに申請済み、フレンド、または過去に拒否されている可能性があります");
-    }
-    throw e;
+    if (e.code !== "permission-denied") throw e;
+  }
+
+  // 既に関係が存在する場合: 自分が送った申請が過去に拒否されていれば出し直せる
+  try {
+    await updateDoc(reqRef, { status: "pending", createdAt: serverTimestamp() });
+  } catch (e2) {
+    throw new Error("すでに申請済み、フレンド、または相手から拒否されたばかりで再申請できない状態です");
   }
 };
 
