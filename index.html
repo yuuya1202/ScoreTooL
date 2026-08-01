@@ -163,7 +163,7 @@
     border:1px solid var(--border); border-radius:20px; padding:7px 16px; font-size:12px; font-weight:700;
     cursor:pointer; background:var(--panel-2); color:var(--muted);
   }
-  .toggle-pill.on { background:var(--cyan); border-color:var(--cyan); color:#05070d; }
+  .toggle-pill.on { background:#0e7490; border-color:#0e7490; color:#ffffff; }
   .score-range-row { display:flex; align-items:center; gap:8px; }
   .score-range-input { width:90px; text-align:center; }
   .score-range-sign { color:var(--muted); font-weight:700; }
@@ -229,8 +229,8 @@
   <div class="modal-box" style="max-width:340px">
     <div class="modal-body" id="confirmModalBody" style="padding:22px 20px 6px"></div>
     <div class="modal-footer" style="display:flex;gap:10px">
-      <button class="btn secondary" id="confirmModalCancelBtn" style="flex:1">キャンセル</button>
       <button class="btn" id="confirmModalOkBtn" style="flex:1">OK</button>
+      <button class="btn secondary" id="confirmModalCancelBtn" style="flex:1">キャンセル</button>
     </div>
   </div>
 </div>
@@ -680,7 +680,7 @@ function renderDataTab() {
   document.getElementById('view-data').innerHTML = `
     ${masterError ? `<div class="panel"><h3 style="color:#ff4757">⚠ マスタ読み込みエラー</h3><p class="hint">${esc(masterError)}</p></div>` : ""}
     <div class="panel">
-      <h3>スコアCSVの取り込み</h3>
+      <h3>スコア登録</h3>
       <p class="hint">公式サイトの「PLAY DATA」→「スコアデータ/CSVダウンロード」からCSVをコピーして、下に貼り付けてください。</p>
       <textarea class="data-input" id="csvInput" placeholder="楽曲名,難易度,楽曲レベル,クリアランク,スコアグレード,ハイスコア,..."></textarea>
       <div class="btn-row">
@@ -799,7 +799,7 @@ function renderCompareTab() {
   if (friendsList.length === 0) {
     document.getElementById('view-compare').innerHTML = `
       <div class="panel">
-        <h3>比較</h3>
+        <h3>スコア比較</h3>
         <p class="hint">まだフレンドがいません。「フレンド」タブから相手を追加してください。</p>
       </div>`;
     compareSkeletonBuilt = false;
@@ -812,7 +812,7 @@ function renderCompareTab() {
   if (!selectedUid) {
     document.getElementById('view-compare').innerHTML = `
       <div class="panel">
-        <h3>比較</h3>
+        <h3>スコア比較</h3>
         <p class="hint">比較したいフレンドを選んでください</p>
         <select class="select-input" onchange="handleSelectCompareFriend(this.value)">${options}</select>
       </div>`;
@@ -823,7 +823,7 @@ function renderCompareTab() {
   if (loadingScores || friendScores === null) {
     document.getElementById('view-compare').innerHTML = `
       <div class="panel">
-        <h3>比較</h3>
+        <h3>スコア比較</h3>
         <select class="select-input" onchange="handleSelectCompareFriend(this.value)">${options}</select>
         <p class="hint" style="margin-top:10px">読み込み中...</p>
       </div>`;
@@ -842,7 +842,7 @@ function renderCompareTab() {
 function buildCompareSkeleton(friendOptionsHtml) {
   document.getElementById('view-compare').innerHTML = `
     <div class="panel">
-      <h3>比較</h3>
+      <h3>スコア比較</h3>
       <select class="select-input" id="compareFriendSelect">${friendOptionsHtml}</select>
     </div>
     <div class="panel">
@@ -1041,7 +1041,7 @@ function renderCompareFilterModalBody() {
     return `
       <label class="check-item">
         <input type="checkbox" ${compareDraftDiffs.has(d) ? "checked" : ""} onchange="toggleCompareDraftDiff('${d}', this.checked)">
-        <span class="badge-filled" style="background:${meta.color}">${meta.abbr}</span>
+        <span class="badge" style="color:${meta.color};background:${meta.color}22;border-color:${meta.color}55">${meta.abbr}</span>
       </label>`;
   }).join("");
 
@@ -1316,7 +1316,7 @@ function renderFilterModalBody() {
     return `
       <label class="check-item">
         <input type="checkbox" ${draftDiffs.has(d) ? "checked" : ""} onchange="toggleDraftDiff('${d}', this.checked)">
-        <span class="badge-filled" style="background:${meta.color}">${meta.abbr}</span>
+        <span class="badge" style="color:${meta.color};background:${meta.color}22;border-color:${meta.color}55">${meta.abbr}</span>
       </label>`;
   }).join("");
 
