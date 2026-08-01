@@ -150,8 +150,8 @@
   .modal-close { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; line-height:1; padding:2px 6px; }
   .modal-close:hover { color:var(--text); }
   .modal-body { padding:16px 18px; overflow-y:auto; flex:1; }
-  .modal-footer { padding:14px 18px; border-top:1px solid var(--border); }
-  .modal-footer .btn { width:100%; }
+  .modal-footer { padding:14px 18px; border-top:1px solid var(--border); display:flex; justify-content:center; }
+  .modal-footer .btn { width:33%; min-width:140px; }
   .filter-section { margin-bottom:18px; }
   .filter-section h4 { margin:0 0 8px; font-size:13px; color:var(--text); }
   .filter-band { margin-bottom:14px; }
@@ -166,6 +166,10 @@
     border-radius:7px; padding:5px 9px; font-size:12px; cursor:pointer;
   }
   .check-item input { margin:0; cursor:pointer; }
+  .badge-filled {
+    display:inline-block; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:800;
+    color:#ffffff; letter-spacing:0.3px;
+  }
   .table-wrap { max-height:58vh; overflow:auto; }
 </style>
 </head>
@@ -877,7 +881,7 @@ function renderFilterModalBody() {
     return `
       <label class="check-item">
         <input type="checkbox" ${draftDiffs.has(d) ? "checked" : ""} onchange="toggleDraftDiff('${d}', this.checked)">
-        <span class="badge" style="color:${meta.color};background:${meta.color}22;border-color:${meta.color}55">${meta.abbr}</span>
+        <span class="badge-filled" style="background:${meta.color}">${meta.abbr}</span>
       </label>`;
   }).join("");
 
@@ -891,6 +895,7 @@ function renderFilterModalBody() {
         <h4 style="margin:0">難易度</h4>
         <span class="filter-band-actions">
           <button class="link-btn" onclick="setAllDiffs(${JSON.stringify(diffList)}, true)">全選択</button>
+          <button class="link-btn" onclick="setAllDiffs(${JSON.stringify(diffList)}, false)">解除</button>
         </span>
       </div>
       <div class="check-grid">${diffChecksHtml}</div>
