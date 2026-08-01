@@ -215,10 +215,12 @@
     <button class="tab-btn" id="tab-compare" onclick="switchTab('compare')">スコア比較</button>
     <button class="tab-btn" id="tab-friends" onclick="switchTab('friends')">フレンド</button>
     <button class="tab-btn" id="tab-data" onclick="switchTab('data')">スコア登録</button>
+    <button class="tab-btn" id="tab-terms" onclick="switchTab('terms')">利用規約</button>
   </div>
 
   <div id="view-list"></div>
   <div id="view-data" style="display:none"></div>
+  <div id="view-terms" style="display:none"></div>
   <div id="view-friends" style="display:none"></div>
   <div id="view-compare" style="display:none"></div>
 </div>
@@ -437,7 +439,7 @@ function distinctLevels() {
 /* ------------------------------------------------------------------ */
 function switchTab(t) {
   tab = t;
-  ['list', 'data', 'friends', 'compare'].forEach(name => {
+  ['list', 'data', 'friends', 'compare', 'terms'].forEach(name => {
     document.getElementById('tab-' + name).className = 'tab-btn' + (t === name ? ' active' : '');
     document.getElementById('view-' + name).style.display = t === name ? 'block' : 'none';
   });
@@ -670,9 +672,53 @@ function render() {
     renderFriendsTab();
   } else if (tab === 'compare') {
     renderCompareTab();
+  } else if (tab === 'terms') {
+    renderTermsTab();
   } else {
     renderListTab(merged);
   }
+}
+
+function renderTermsTab() {
+  document.getElementById('view-terms').innerHTML = `
+    <div class="panel">
+      <h3>利用規約</h3>
+      <p class="hint">SDVX EX-Score をご利用いただく方に向けた規約です。</p>
+
+      <h4 style="margin-top:20px">1. サービス概要</h4>
+      <p class="hint">
+        本サービスは、株式会社コナミアミューズメントが提供する音楽ゲーム「SOUND VOLTEX」のプレイ結果をもとに、
+        フレンドとスコアを見比べられるようにした、非公式の個人開発ツールです。運営元は個人であり、
+        コナミアミューズメントおよびその関連会社とのつながりは一切ありません。
+      </p>
+
+      <h4 style="margin-top:20px">2. 免責について</h4>
+      <ul class="hint" style="margin:0;padding-left:20px">
+        <li>表示されるデータの正確さや、常に最新の状態であることを保証するものではありません。</li>
+        <li>本サービスを利用したことにより生じた不利益（記録の消失、端末への影響等）について、運営者は責任を負いかねます。</li>
+        <li>サービス内容の変更・停止・終了は、事前の告知なく行われることがあります。</li>
+      </ul>
+
+      <h4 style="margin-top:20px">3. 禁止する行為</h4>
+      <ul class="hint" style="margin:0;padding-left:20px">
+        <li>サービスの運営に支障をきたすような使い方</li>
+        <li>他人になりすます、または他人のアカウントを無断で使う行為</li>
+        <li>承認を得ていないフレンドのスコア情報を外部に漏らす行為</li>
+        <li>その他、運営者が不適切と考える行為</li>
+      </ul>
+
+      <h4 style="margin-top:20px">4. データの扱いについて</h4>
+      <p class="hint">
+        登録されたスコア情報は、比較機能を提供する目的でGoogle Firebase（Firestore）に保管されます。
+        閲覧できるのは本人と、本人が承認したフレンドに限られます。
+      </p>
+
+      <h4 style="margin-top:20px">5. 規約の見直し</h4>
+      <p class="hint">
+        必要に応じて本規約の内容を更新することがあります。更新した規約は、本ページに反映された時点から適用されます。
+      </p>
+    </div>
+  `;
 }
 
 function renderDataTab() {
