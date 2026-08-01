@@ -575,20 +575,12 @@ async function handleImportCsv() {
   if (!text.trim()) { showToast("CSVを貼り付けてください", "error"); return; }
   try {
     const { records, parsedCount } = parseScoreCsv(text);
-    const masterKeys = new Set(songs.map(s => songKey(s.title, s.type)));
-    let matched = 0, unmatched = 0;
-    const unmatchedTitles = [];
-    for (const key of Object.keys(records)) {
-      if (masterKeys.has(key)) matched++;
-      else { unmatched++; if (unmatchedTitles.length < 30) unmatchedTitles.push(records[key].title + " / " + records[key].type); }
-    }
     const merged = Object.assign({}, scores, records);
     await window.saveScoresToFirestore(merged);
     scores = merged;
     scoresUpdatedAt = new Date();
     ta.value = "";
     showToast("スコアを登録しました", "success");
-    window._lastImportInfo = { parsedCount, matched, unmatched, unmatchedTitles };
     render();
   } catch (e) {
     showToast("取り込みに失敗しました: " + e.message, "error");
@@ -753,7 +745,6 @@ function renderTermsTab() {
 }
 
 function renderDataTab() {
-  const info = window._lastImportInfo;
   document.getElementById('view-data').innerHTML = `
     ${masterError ? `<div class="panel"><h3 style="color:#ff4757">⚠ マスタ読み込みエラー</h3><p class="hint">${esc(masterError)}</p></div>` : ""}
     <div class="panel">
@@ -764,11 +755,6 @@ function renderDataTab() {
       <div class="btn-row">
         <button class="btn" onclick="handleImportCsv()">スコアを登録する</button>
       </div>
-      ${info ? `
-        <div class="unmatched-box">
-          取り込み ${info.parsedCount}件 / マスタ一致 ${info.matched}件 / 未一致 ${info.unmatched}件
-          ${info.unmatchedTitles.length ? `<div>未一致の例:</div><ul>${info.unmatchedTitles.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>` : ""}
-        </div>` : ""}
     </div>
   `;
 }
