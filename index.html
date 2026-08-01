@@ -43,12 +43,8 @@
   .brand-title {
     font-size:20px; font-weight:800; letter-spacing:2px; text-transform:uppercase;
   }
-  .brand-title-sdvx {
-    background: linear-gradient(90deg, #b8860b, #ffe066, #d4af37, #fff3b0); -webkit-background-clip:text; background-clip:text; color:transparent;
-  }
-  .brand-title-exscore {
-    background: linear-gradient(90deg, #b8860b, #ffe066, #d4af37, #fff3b0); -webkit-background-clip:text; background-clip:text; color:transparent;
-  }
+  .brand-title-sdvx { color:#FFD23F; }
+  .brand-title-exscore { color:#FFD23F; }
   .brand-sub { font-size:11px; color:var(--muted); letter-spacing:0.5px; margin-top:2px; }
   .account-menu-wrap { position:relative; }
   .account-avatar {
@@ -270,8 +266,8 @@ const GRADE_RANK = Object.fromEntries(GRADE_ORDER.map((g,i)=>[g,i]));
 const CLEAR_META = {
   "PLAYED":             { label: "PLAYED", color: "#8B93A8" },
   "COMPLETE":           { label: "CLEAR",  color: "#2DD4BF" },
-  "EXCESSIVE COMPLETE": { label: "EXC",    color: "#FF6B35" },
-  "MAXXIVE COMPLETE":   { label: "MXV",    color: "#8B94AC" },
+  "EXCESSIVE COMPLETE": { label: "EXC",    color: "#FF8C1A" },
+  "MAXXIVE COMPLETE":   { label: "MXV",    color: "#DDE1EA" },
   "ULTIMATE CHAIN":     { label: "UC",     color: "#C79BFF" },
   "PERFECT":            { label: "PUC",    color: "#FFD23F" },
 };
@@ -958,7 +954,7 @@ function buildCompareSkeleton(friendOptionsHtml) {
     <div class="panel" style="padding:0">
       <div class="table-wrap">
         <table class="score-table">
-          <thead><tr><th class="col-title">楽曲</th><th>Lv</th><th>自分</th><th id="compareFriendHeader">相手</th></tr></thead>
+          <thead><tr><th class="col-title">楽曲</th><th>自分</th><th id="compareFriendHeader">相手</th></tr></thead>
           <tbody id="compareTbody"></tbody>
         </table>
         <div id="compareEmptyState"></div>
@@ -1047,7 +1043,6 @@ function updateCompareTableBody() {
     const friendColor = result === "loss" ? "color:#FF4757" : "";
     return `<tr>
       <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
-      <td class="level-num">${formatLevel(m.level)}</td>
       <td class="mono" style="${mineColor}">${mineDisplay}</td>
       <td class="mono" style="${friendColor}">${friendDisplay}</td>
     </tr>`;
@@ -1171,7 +1166,7 @@ function buildListSkeleton() {
     <div class="panel" style="padding:0">
       <div class="table-wrap">
         <table class="score-table">
-          <thead><tr><th class="col-title">楽曲</th><th>Lv</th><th>クリア</th><th>EXスコア</th><th>通常スコア</th></tr></thead>
+          <thead><tr><th class="col-title">楽曲</th><th>クリア</th><th>EXスコア</th><th>通常スコア</th></tr></thead>
           <tbody id="scoreTbody"></tbody>
         </table>
         <div id="listEmptyState"></div>
@@ -1224,7 +1219,6 @@ function updateListTableBody(visible, filtered, merged, totalPages) {
     return `
       <tr class="${!m.score?'unplayed':''}">
         <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
-        <td class="level-num">${formatLevel(m.level)}</td>
         <td>${clearMeta ? `<span class="badge" style="color:${clearMeta.color};background:${clearMeta.color}22;border-color:${clearMeta.color}55">${clearMeta.label}</span>` : `<span class="badge badge-dim">未プレイ</span>`}</td>
         <td class="mono">${(() => {
 const diff=exDiff(m);
