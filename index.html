@@ -9,24 +9,6 @@
 <title>○○ - SDVX EX-Score Tool</title>
 <style>
   :root {
-    --bg: #f4f5f9;
-    --bg-glow: #e9edfa;
-    --panel: #ffffff;
-    --panel-2: #f0f2f8;
-    --border: #dde1ec;
-    --text: #1a1f2e;
-    --muted: #6b7280;
-    --row-border: rgba(0,0,0,0.06);
-    --row-hover: rgba(0,0,0,0.03);
-    --dim-bg: rgba(0,0,0,0.035);
-    --cyan: #0891a8;
-    --magenta: #c81f74;
-    --gold: #b8860b;
-    --nov: #33409E; --adv: #CA8A04; --exh: #DC2626; --inf: #C2478A;
-    --mxm: #374151; --grv: #9A3412; --hvn: #0284C7; --vvd: #A61155;
-    --xcd: #1E3FA8; --nbl: #0F6B31; --ult: #78350F;
-  }
-  [data-theme="dark"] {
     --bg: #05070d;
     --bg-glow: #0d1830;
     --panel: #10141f;
@@ -106,7 +88,7 @@
   .btn { background: linear-gradient(135deg, var(--cyan), #00a8c2); color:#05070d; border:none; border-radius:8px; padding:9px 18px; font-weight:800; font-size:13px; cursor:pointer; }
   .btn:disabled { opacity:0.5; cursor:not-allowed; }
   .btn.secondary { background:var(--panel-2); color:var(--text); border:1px solid var(--border); }
-  .btn.filter-active { background:var(--magenta); color:#ffffff; border-color:var(--magenta); font-weight:800; }
+  .btn.filter-active { background:#232c42; color:var(--text); border-color:#3a4560; font-weight:800; }
   .btn.danger { background:rgba(255,71,87,0.15); color:#ff4757; border:1px solid rgba(255,71,87,0.4); }
   .btn-row { display:flex; gap:8px; margin-top:10px; }
   .unmatched-box { margin-top:10px; font-size:11px; color:var(--muted); }
@@ -222,7 +204,6 @@
       <button class="account-avatar" id="accountAvatarBtn" onclick="toggleAccountMenu()">?</button>
       <div class="account-dropdown" id="accountDropdown" style="display:none">
         <div class="account-dropdown-name" id="accountDropdownName"></div>
-        <button class="account-dropdown-item" id="themeToggleBtn" onclick="handleToggleTheme()">ダークモードに切り替え</button>
         <button class="account-dropdown-item danger" onclick="handleLogout()">ログアウト</button>
       </div>
     </div>
@@ -333,25 +314,6 @@ function showToast(msg, kind) {
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => { el.style.display = 'none'; }, 3200);
 }
-
-let currentTheme = "light";
-function applyTheme(theme) {
-  currentTheme = theme === "dark" ? "dark" : "light";
-  document.documentElement.setAttribute('data-theme', currentTheme);
-  const btn = document.getElementById('themeToggleBtn');
-  if (btn) btn.textContent = currentTheme === "dark" ? "ライトモードに切り替え" : "ダークモードに切り替え";
-}
-window.applyTheme = applyTheme;
-
-window.handleToggleTheme = async function () {
-  const next = currentTheme === "dark" ? "light" : "dark";
-  applyTheme(next);
-  try {
-    await window.saveThemeToFirestore(next);
-  } catch (e) {
-    showToast("テーマ設定の保存に失敗しました: " + e.message, "error");
-  }
-};
 
 window.toggleAccountMenu = function () {
   const dd = document.getElementById('accountDropdown');
@@ -871,7 +833,7 @@ function updateListControls() {
   if (filterBtn) {
     const active = isFilterActive();
     filterBtn.classList.toggle('filter-active', active);
-    filterBtn.textContent = active ? "絞り込み●" : "絞り込み";
+    filterBtn.textContent = active ? "絞り込み中●" : "絞り込み";
   }
   // 検索欄はユーザーが今まさに入力中の値そのものなので、ここでは一切触らない
 }
@@ -1307,32 +1269,23 @@ window.getUserScores = async function (uid) {
   return snap.exists() ? (snap.data().scores || {}) : {};
 };
 
-window.saveThemeToFirestore = async function (theme) {
-  if (!auth.currentUser) return;
-  await setDoc(doc(db, "users", auth.currentUser.uid), { theme }, { merge: true });
-};
-
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     let username = "";
-    let theme = "light";
     try {
       const snap = await getDoc(doc(db, "users", user.uid));
       if (snap.exists()) {
         username = snap.data().username || "";
-        theme = snap.data().theme || "light";
       }
     } catch (e) {
       console.error("ユーザー情報の取得に失敗:", e);
     }
-    window.applyTheme(theme);
     document.getElementById('authGate').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
     document.getElementById('accountDropdownName').textContent = username ? (username + " でログイン中") : "";
     document.getElementById('accountAvatarBtn').textContent = username ? username.charAt(0).toUpperCase() : "?";
     window.loadAll();
   } else {
-    window.applyTheme("light");
     document.getElementById('appRoot').style.display = 'none';
     document.getElementById('authGate').style.display = 'block';
   }
