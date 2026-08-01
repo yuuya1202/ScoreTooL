@@ -717,7 +717,7 @@ function renderCompareTab() {
   document.getElementById('view-compare').innerHTML = `
     <div class="panel">
       <h3>比較</h3>
-      <p class="hint">フレンドを選んで、お互いのハイスコアを見比べられます。</p>
+      <p class="hint">フレンドを選んで、お互いの通常スコアを見比べられます。</p>
       <select class="select-input" onchange="handleSelectCompareFriend(this.value)">${options}</select>
     </div>
     ${bodyHtml}
@@ -748,7 +748,7 @@ function buildListSkeleton() {
     <div class="panel" style="padding:0">
       <div class="table-wrap">
         <table class="score-table">
-          <thead><tr><th style="width:260px">楽曲</th><th>Lv</th><th>ハイスコア</th><th>EXスコア</th><th>クリア</th></tr></thead>
+          <thead><tr><th style="width:260px">楽曲</th><th>Lv</th><th>クリア</th><th>EXスコア</th><th>通常スコア</th></tr></thead>
           <tbody id="scoreTbody"></tbody>
         </table>
         <div id="listEmptyState"></div>
@@ -792,12 +792,12 @@ function updateListTableBody(visible, filtered, merged) {
       <tr class="${!m.score?'unplayed':''}">
         <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
         <td class="level-num">${m.level}</td>
-        <td class="mono">${m.score?fmtNum(m.score.highScore):"-"}</td>
+        <td>${clearMeta ? `<span class="badge" style="color:${clearMeta.color};background:${clearMeta.color}22;border-color:${clearMeta.color}55">${clearMeta.label}</span>` : `<span class="badge badge-dim">未プレイ</span>`}</td>
         <td class="mono">${(() => {
 const diff=exDiff(m);
 return diff===null?"-":String(diff);
 })()}</td>
-        <td>${clearMeta ? `<span class="badge" style="color:${clearMeta.color};background:${clearMeta.color}22;border-color:${clearMeta.color}55">${clearMeta.label}</span>` : `<span class="badge badge-dim">未プレイ</span>`}</td>
+        <td class="mono">${m.score?fmtNum(m.score.highScore):"-"}</td>
       </tr>`;
   }).join("");
 
