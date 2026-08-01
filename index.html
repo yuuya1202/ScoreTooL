@@ -132,6 +132,40 @@
   .toast.error { background:#2a1620; color:#ff4757; border:1px solid #ff4757; }
   .show-more { text-align:center; margin-top:12px; }
   .footnote { font-size:11px; color:var(--muted); text-align:center; margin-top:18px; }
+
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100;
+    align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-box {
+    background:var(--panel); border:1px solid var(--border); border-radius:14px;
+    width:100%; max-width:520px; max-height:85vh; display:flex; flex-direction:column;
+    box-shadow:0 20px 60px rgba(0,0,0,0.4);
+  }
+  .modal-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 18px; border-bottom:1px solid var(--border);
+  }
+  .modal-header h3 { margin:0; font-size:15px; }
+  .modal-close { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; line-height:1; padding:2px 6px; }
+  .modal-close:hover { color:var(--text); }
+  .modal-body { padding:16px 18px; overflow-y:auto; flex:1; }
+  .modal-footer { padding:14px 18px; border-top:1px solid var(--border); }
+  .modal-footer .btn { width:100%; }
+  .filter-section { margin-bottom:18px; }
+  .filter-section h4 { margin:0 0 8px; font-size:13px; color:var(--text); }
+  .filter-band { margin-bottom:14px; }
+  .filter-band-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .filter-band-label { font-size:12px; color:var(--muted); font-weight:700; }
+  .filter-band-actions { display:flex; gap:10px; }
+  .link-btn { background:none; border:none; color:var(--cyan); font-size:11px; cursor:pointer; padding:0; }
+  .link-btn:hover { text-decoration:underline; }
+  .check-grid { display:flex; flex-wrap:wrap; gap:8px; }
+  .check-item {
+    display:flex; align-items:center; gap:5px; background:var(--panel-2); border:1px solid var(--border);
+    border-radius:7px; padding:5px 9px; font-size:12px; cursor:pointer;
+  }
+  .check-item input { margin:0; cursor:pointer; }
   .table-wrap { max-height:58vh; overflow:auto; }
 </style>
 </head>
@@ -219,7 +253,9 @@ let scores = {};
 let masterError = null;
 let tab = "list";
 let visibleCount = 200;
-let filters = { search: "", diffs: new Set(DIFF_ORDER), levelMin: null, levelMax: null, status: "all", sort: "level_desc" };
+let filters = { search: "", diffs: new Set(DIFF_ORDER), levels: new Set(), status: "all", sort: "level_desc" };
+let draftLevels = new Set();
+let draftDiffs = new Set();
 let friendsState = { loading: false, incoming: [], outgoing: [], friends: [] };
 let compareState = { loadingFriends: false, friendsList: [], selectedUid: "", loadingScores: false, friendScores: null };
 
@@ -334,7 +370,7 @@ async function loadAll() {
   }
 
   const bounds = distinctLevels();
-  if (bounds.length) { filters.levelMin = bounds[0]; filters.levelMax = bounds[bounds.length - 1]; }
+  filters.levels = new Set(bounds);
 
   render();
 }
@@ -469,14 +505,8 @@ async function handleClearScores() {
   }
 }
 
-function toggleDiff(type) {
-  if (filters.diffs.has(type)) filters.diffs.delete(type); else filters.diffs.add(type);
-  render();
-}
-
 function updateFilter(key, value) {
   filters[key] = value;
-  if (key === 'levelMin' || key === 'levelMax') filters[key] = parseFloat(value);
   render();
 }
 
@@ -501,10 +531,7 @@ function getStats(merged) {
 }
 
 function getFiltered(merged) {
-  let list = merged.filter(m => filters.diffs.has(m.type));
-  if (filters.levelMin !== null && filters.levelMax !== null) {
-    list = list.filter(m => m.level >= filters.levelMin && m.level <= filters.levelMax);
-  }
+  let list = merged.filter(m => filters.diffs.has(m.type) && filters.levels.has(m.level));
   if (filters.search.trim()) {
     const q = filters.search.trim().toLowerCase();
     list = list.filter(m => m.title.toLowerCase().includes(q) || (m.reading || "").includes(q));
@@ -683,35 +710,75 @@ function renderCompareTab() {
 }
 
 
-function renderListTab(merged) {
-  if (songs.length === 0) {
-    document.getElementById('view-list').innerHTML = `
-      <div class="empty-state">
-        <div class="big">楽曲マスタデータを読み込めませんでした</div>
-        <div>${esc(masterError || "songs.json を確認してください。")}</div>
-      </div>`;
-    return;
-  }
+let listSkeletonBuilt = false;
 
-  const filtered = getFiltered(merged);
-  const visible = filtered.slice(0, visibleCount);
-  const levels = distinctLevels();
+function buildListSkeleton() {
+  document.getElementById('view-list').innerHTML = `
+    <div class="panel">
+      <div class="filter-bar">
+        <input class="search-input" id="searchInput" placeholder="曲名で検索…">
+        <button class="btn secondary" id="openFilterBtn">絞り込み</button>
+        <select class="select-input" id="statusSelect">
+          <option value="all">すべて</option>
+          <option value="played">プレー済のみ</option>
+          <option value="unplayed">未プレイのみ</option>
+          <option value="not_aaa">未AAA</option>
+          <option value="not_s">未S</option>
+          <option value="not_puc">未PUC</option>
+        </select>
+        <select class="select-input" id="sortSelect">
+          <option value="level_desc">レベル高い順</option>
+          <option value="level_asc">レベル低い順</option>
+          <option value="title_asc">曲名順</option>
+          <option value="score_desc">スコア高い順</option>
+          <option value="score_asc">スコア低い順</option>
+        </select>
+      </div>
+    </div>
+    <div class="panel" style="padding:0">
+      <div class="table-wrap">
+        <table class="score-table">
+          <thead><tr><th style="width:300px">楽曲</th><th>難易度</th><th>Lv</th><th>クリア</th><th>ハイスコア</th><th>EXスコア</th></tr></thead>
+          <tbody id="scoreTbody"></tbody>
+        </table>
+        <div id="listEmptyState"></div>
+      </div>
+    </div>
+    <div id="listFooterArea"></div>
+    <div class="modal-overlay" id="filterModalOverlay" style="display:none">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3>絞り込み</h3>
+          <button class="modal-close" id="filterModalCloseBtn">×</button>
+        </div>
+        <div class="modal-body" id="filterModalBody"></div>
+        <div class="modal-footer">
+          <button class="btn" id="filterModalApplyBtn">この条件で絞り込む</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('searchInput').value = filters.search;
+  document.getElementById('searchInput').addEventListener('input', (e) => updateFilter('search', e.target.value));
+  document.getElementById('statusSelect').addEventListener('change', (e) => updateFilter('status', e.target.value));
+  document.getElementById('sortSelect').addEventListener('change', (e) => updateFilter('sort', e.target.value));
+  document.getElementById('openFilterBtn').addEventListener('click', openFilterModal);
+  document.getElementById('filterModalCloseBtn').addEventListener('click', closeFilterModal);
+  document.getElementById('filterModalApplyBtn').addEventListener('click', applyFilterModal);
+  document.getElementById('filterModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'filterModalOverlay') closeFilterModal();
+  });
+}
 
-  const diffChips = DIFF_ORDER.filter(d => songs.some(s => s.type === d)).map(d => {
-    const meta = DIFF_META[d];
-    const on = filters.diffs.has(d);
-    return `<button class="diff-toggle ${on?'on':''}" style="${on?`background:${meta.color};border-color:${meta.color}`:''}" onclick="toggleDiff('${d}')">${meta.abbr}</button>`;
-  }).join("");
+function updateListControls() {
+  document.getElementById('statusSelect').value = filters.status;
+  document.getElementById('sortSelect').value = filters.sort;
+  // 検索欄はユーザーが今まさに入力中の値そのものなので、ここでは一切触らない
+}
 
-  const levelOptions = levels.map(lv => `<option value="${lv}">${lv}</option>`).join("");
-
+function updateListTableBody(visible, filtered, merged) {
   const rows = visible.map(m => {
     const meta = DIFF_META[m.type] || { abbr: (m.type||"?").slice(0,3).toUpperCase(), color: "#888" };
-    const gradeInfo = m.score ? (() => {
-      const isTop = m.score.grade === "S";
-      const isHigh = GRADE_RANK[m.score.grade] >= GRADE_RANK["AAA"];
-      return isTop ? "#FFD23F" : isHigh ? "#5FE0A0" : "#8B93A8";
-    })() : null;
     const clearMeta = m.score ? CLEAR_META[m.score.clearRank] : null;
     return `
       <tr class="${!m.score?'unplayed':''}">
@@ -727,51 +794,133 @@ return diff===null?"-":String(diff);
       </tr>`;
   }).join("");
 
-  document.getElementById('view-list').innerHTML = `
-    <div class="panel">
-      <div class="filter-bar">
-        <input class="search-input" placeholder="曲名で検索…" value="${esc(filters.search)}" oninput="updateFilter('search', this.value)">
-        <select class="select-input" onchange="updateFilter('levelMin', this.value)">${levelOptions.replace(`value="${filters.levelMin}"`, `value="${filters.levelMin}" selected`)}</select>
-        <span style="color:var(--muted);font-size:12px">〜</span>
-        <select class="select-input" onchange="updateFilter('levelMax', this.value)">${levelOptions.replace(`value="${filters.levelMax}"`, `value="${filters.levelMax}" selected`)}</select>
-        <select class="select-input" onchange="updateFilter('status', this.value)">
-          <option value="all">すべて</option>
-          <option value="played">プレー済のみ</option>
-          <option value="unplayed">未プレイのみ</option>
-          <option value="not_aaa">未AAA</option>
-          <option value="not_s">未S</option>
-          <option value="not_puc">未PUC</option>
-        </select>
-        <select class="select-input" onchange="updateFilter('sort', this.value)">
-          <option value="level_desc">レベル高い順</option>
-          <option value="level_asc">レベル低い順</option>
-          <option value="title_asc">曲名順</option>
-          <option value="score_desc">スコア高い順</option>
-          <option value="score_asc">スコア低い順</option>
-        </select>
-      </div>
-      <div class="diff-toggle-row">${diffChips}</div>
-    </div>
-    <div class="panel" style="padding:0">
-      <div class="table-wrap">
-        <table class="score-table">
-          <thead><tr><th style="width:300px">楽曲</th><th>難易度</th><th>Lv</th><th>クリア</th><th>ハイスコア</th><th>EXスコア</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-        ${filtered.length===0?`<div class="empty-state">条件に一致する楽曲がありません</div>`:""}
-      </div>
-    </div>
+  document.getElementById('scoreTbody').innerHTML = rows;
+  document.getElementById('listEmptyState').innerHTML = filtered.length === 0
+    ? `<div class="empty-state">条件に一致する楽曲がありません</div>` : "";
+  document.getElementById('listFooterArea').innerHTML = `
     ${filtered.length > visible.length ? `<div class="show-more"><button class="btn secondary" onclick="showMore()">さらに表示（残り ${filtered.length-visible.length}件）</button></div>` : ""}
     <p class="footnote">${filtered.length} / ${merged.length} 件を表示中</p>
   `;
+}
 
-  // re-apply select values (rebuilt via innerHTML, so set again post-render to be safe)
-  const minSel = document.querySelectorAll('.select-input')[0];
-  const maxSel = document.querySelectorAll('.select-input')[1];
-  if (minSel) minSel.value = filters.levelMin;
-  if (maxSel) maxSel.value = filters.levelMax;
-  const sInput=document.querySelector('.search-input');
-  if(sInput){const active=document.activeElement===sInput;sInput.value=filters.search;if(active){sInput.focus();sInput.setSelectionRange(filters.search.length,filters.search.length);}}
+const LEVEL_BANDS = [
+  { label: "1〜16", test: lv => lv < 17 },
+  { label: "17 / 17.5", test: lv => lv >= 17 && lv < 18 },
+  { label: "18.0〜18.9", test: lv => lv >= 18 && lv < 19 },
+  { label: "19.0〜19.9", test: lv => lv >= 19 && lv < 20 },
+  { label: "20.0", test: lv => lv >= 20 },
+];
+
+function openFilterModal() {
+  draftLevels = new Set(filters.levels);
+  draftDiffs = new Set(filters.diffs);
+  renderFilterModalBody();
+  document.getElementById('filterModalOverlay').style.display = 'flex';
+}
+
+function closeFilterModal() {
+  document.getElementById('filterModalOverlay').style.display = 'none';
+}
+
+function applyFilterModal() {
+  filters.levels = new Set(draftLevels);
+  filters.diffs = new Set(draftDiffs);
+  closeFilterModal();
+  render();
+}
+
+function toggleDraftLevel(level, checked) {
+  if (checked) draftLevels.add(level); else draftLevels.delete(level);
+}
+function setBandLevels(levelsInBand, on) {
+  levelsInBand.forEach(lv => on ? draftLevels.add(lv) : draftLevels.delete(lv));
+  renderFilterModalBody();
+}
+function toggleDraftDiff(type, checked) {
+  if (checked) draftDiffs.add(type); else draftDiffs.delete(type);
+}
+function setAllDiffs(diffList, on) {
+  diffList.forEach(d => on ? draftDiffs.add(d) : draftDiffs.delete(d));
+  renderFilterModalBody();
+}
+window.toggleDraftLevel = toggleDraftLevel;
+window.setBandLevels = setBandLevels;
+window.toggleDraftDiff = toggleDraftDiff;
+window.setAllDiffs = setAllDiffs;
+
+function renderFilterModalBody() {
+  const allLevels = distinctLevels();
+  const levelSectionsHtml = LEVEL_BANDS.map(band => {
+    const levelsInBand = allLevels.filter(band.test);
+    if (levelsInBand.length === 0) return "";
+    const checksHtml = levelsInBand.map(lv => `
+      <label class="check-item">
+        <input type="checkbox" ${draftLevels.has(lv) ? "checked" : ""} onchange="toggleDraftLevel(${lv}, this.checked)">
+        <span>${lv}</span>
+      </label>`).join("");
+    return `
+      <div class="filter-band">
+        <div class="filter-band-head">
+          <span class="filter-band-label">${band.label}</span>
+          <span class="filter-band-actions">
+            <button class="link-btn" onclick="setBandLevels(${JSON.stringify(levelsInBand)}, true)">全選択</button>
+            <button class="link-btn" onclick="setBandLevels(${JSON.stringify(levelsInBand)}, false)">解除</button>
+          </span>
+        </div>
+        <div class="check-grid">${checksHtml}</div>
+      </div>`;
+  }).join("");
+
+  const diffList = DIFF_ORDER.filter(d => songs.some(s => s.type === d));
+  const diffChecksHtml = diffList.map(d => {
+    const meta = DIFF_META[d];
+    return `
+      <label class="check-item">
+        <input type="checkbox" ${draftDiffs.has(d) ? "checked" : ""} onchange="toggleDraftDiff('${d}', this.checked)">
+        <span class="badge" style="color:${meta.color};background:${meta.color}22;border-color:${meta.color}55">${meta.abbr}</span>
+      </label>`;
+  }).join("");
+
+  document.getElementById('filterModalBody').innerHTML = `
+    <div class="filter-section">
+      <h4>レベル</h4>
+      ${levelSectionsHtml}
+    </div>
+    <div class="filter-section">
+      <div class="filter-band-head">
+        <h4 style="margin:0">難易度</h4>
+        <span class="filter-band-actions">
+          <button class="link-btn" onclick="setAllDiffs(${JSON.stringify(diffList)}, true)">全選択</button>
+        </span>
+      </div>
+      <div class="check-grid">${diffChecksHtml}</div>
+    </div>
+  `;
+}
+window.openFilterModal = openFilterModal;
+window.closeFilterModal = closeFilterModal;
+window.applyFilterModal = applyFilterModal;
+
+function renderListTab(merged) {
+  if (songs.length === 0) {
+    document.getElementById('view-list').innerHTML = `
+      <div class="empty-state">
+        <div class="big">楽曲マスタデータを読み込めませんでした</div>
+        <div>${esc(masterError || "songs.json を確認してください。")}</div>
+      </div>`;
+    listSkeletonBuilt = false;
+    return;
+  }
+
+  const filtered = getFiltered(merged);
+  const visible = filtered.slice(0, visibleCount);
+
+  if (!listSkeletonBuilt) {
+    buildListSkeleton();
+    listSkeletonBuilt = true;
+  }
+  updateListControls();
+  updateListTableBody(visible, filtered, merged);
 }
 
 /* loadAll() はログイン確認後、下部のFirebase用scriptから呼び出す */
