@@ -492,6 +492,7 @@ async function handleSendFriendRequest() {
   const input = document.getElementById('friendUsernameInput');
   const username = input.value.trim();
   if (!username) { showToast("ユーザー名を入力してください", "error"); return; }
+  if (!confirm(`${username} さんにフレンド申請を送りますか？`)) return;
   try {
     await window.sendFriendRequest(username);
     input.value = "";
@@ -505,12 +506,24 @@ async function handleSendFriendRequest() {
 async function handleRespondRequest(id, accept) {
   const target = friendsState.incoming.find(r => r.id === id);
   const name = target ? (target.fromUsername || "相手") : "相手";
+  if (!confirm(accept ? `${name} さんの申請を承認しますか？` : `${name} さんの申請を拒否しますか？`)) return;
   try {
     await window.respondFriendRequest(id, accept);
     showToast(accept ? `${name} さんとフレンドになりました` : `${name} さんの申請を拒否しました`, "success");
     refreshFriendsData();
   } catch (e) {
     showToast("処理に失敗しました: " + e.message, "error");
+  }
+}
+
+async function handleRemoveFriend(uid, username) {
+  if (!confirm(`${username} さんをフレンドから削除しますか？`)) return;
+  try {
+    await window.removeFriend(uid);
+    showToast(`${username} さんを削除しました`, "success");
+    refreshFriendsData();
+  } catch (e) {
+    showToast("削除に失敗しました: " + e.message, "error");
   }
 }
 
@@ -681,12 +694,12 @@ function renderFriendsTab() {
     </div>`).join("") : `<p class="hint">届いている申請はありません</p>`;
 
   const outgoingRows = outgoing.length ? outgoing.map(r => `
-    <div class="hint">${esc(r.toUsername || "(不明なユーザー)")} さんに申請中（相手の承認待ち・${esc(formatRelativeTime(toDate(r.createdAt)))}）</div>`).join("") : "";
+    <div class="hint">${esc(r.toUsername || "(不明なユーザー)")} さんに申請中（相手の承認待ち）</div>`).join("") : "";
 
   const friendRows = friends.length ? `
     <table class="score-table">
-      <thead><tr><th>ユーザー名</th></tr></thead>
-      <tbody>${friends.map(f => `<tr><td>${esc(f.username || "(不明なユーザー)")}</td></tr>`).join("")}</tbody>
+      <thead><tr><th>ユーザー名</th><th style="width:80px"></th></tr></thead>
+      <tbody>${friends.map(f => `<tr><td>${esc(f.username || "(不明なユーザー)")}</td><td><button class="link-btn" style="color:#ff4757" onclick="handleRemoveFriend('${esc(f.uid)}', '${esc((f.username||"").replace(/'/g,"")) }')">削除</button></td></tr>`).join("")}</tbody>
     </table>` : `<p class="hint">フレンドがまだいません</p>`;
 
   document.getElementById('view-friends').innerHTML = `
@@ -1059,7 +1072,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, getDoc, serverTimestamp,
-  collection, query, where, getDocs, updateDoc
+  collection, query, where, getDocs, updateDoc, deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1227,6 +1240,12 @@ window.getFriends = async function () {
 window.respondFriendRequest = async function (id, accept) {
   const reqRef = doc(db, "friendRequests", id);
   await updateDoc(reqRef, { status: accept ? "accepted" : "rejected" });
+};
+
+window.removeFriend = async function (otherUid) {
+  if (!auth.currentUser) throw new Error("ログインしていません");
+  const id = sortedId(auth.currentUser.uid, otherUid);
+  await deleteDoc(doc(db, "friendRequests", id));
 };
 
 window.getUserScores = async function (uid) {
