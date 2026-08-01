@@ -77,6 +77,7 @@
   .hint { color:var(--muted); font-size:12px; margin:4px 0 10px; line-height:1.6; }
   .filter-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
   .search-input, .select-input { background:var(--panel-2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:7px 10px; font-size:13px; outline:none; }
+  .search-input::placeholder { color:var(--muted); opacity:0.55; }
   .search-input { flex:1; min-width:160px; }
   @media (max-width: 480px) {
     .search-input { flex-basis:100%; }
@@ -210,10 +211,10 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" id="tab-list" onclick="switchTab('list')">スコア一覧</button>
-    <button class="tab-btn" id="tab-data" onclick="switchTab('data')">スコア登録</button>
+    <button class="tab-btn active" id="tab-list" onclick="switchTab('list')">ホーム</button>
+    <button class="tab-btn" id="tab-compare" onclick="switchTab('compare')">スコア比較</button>
     <button class="tab-btn" id="tab-friends" onclick="switchTab('friends')">フレンド</button>
-    <button class="tab-btn" id="tab-compare" onclick="switchTab('compare')">比較</button>
+    <button class="tab-btn" id="tab-data" onclick="switchTab('data')">スコア登録</button>
   </div>
 
   <div id="view-list"></div>
@@ -275,7 +276,7 @@ let friendsState = { loading: false, incoming: [], outgoing: [], friends: [] };
 let compareState = {
   loadingFriends: false, friendsList: [], selectedUid: "",
   loadingScores: false, friendScores: null,
-  search: "", mode: "ex", resultFilter: "all",
+  search: "", mode: "ex", resultFilter: "all", sort: "level_desc",
   levels: new Set(), diffs: new Set(DIFF_ORDER),
 };
 let compareSkeletonBuilt = false;
@@ -730,13 +731,30 @@ function compareResultFor(m, friendScores, mode) {
   return "draw";
 }
 
+function compareMineValue(m, mode) {
+  if (mode === "ex") {
+    const d = exDiff(m);
+    return d === null ? -Infinity : d;
+  }
+  return m.score ? m.score.highScore : -1;
+}
+
 function getCompareFiltered(merged, friendScores) {
   let list = merged.filter(m => (m.score || friendScores[m.key]) && compareState.diffs.has(m.type) && compareState.levels.has(m.level));
   if (compareState.search.trim()) {
     const q = compareState.search.trim().toLowerCase();
     list = list.filter(m => m.title.toLowerCase().includes(q) || (m.reading || "").includes(q));
   }
-  return list.sort((a, b) => (b.level - a.level) || a.title.localeCompare(b.title, "ja"));
+  const mode = compareState.mode;
+  const cmp = {
+    level_desc: (a, b) => b.level - a.level || a.title.localeCompare(b.title, "ja"),
+    level_asc: (a, b) => a.level - b.level || a.title.localeCompare(b.title, "ja"),
+    title_asc: (a, b) => (a.reading || a.title).localeCompare(b.reading || b.title, "ja"),
+    title_desc: (a, b) => (b.reading || b.title).localeCompare(a.reading || a.title, "ja"),
+    score_desc: (a, b) => compareMineValue(b, mode) - compareMineValue(a, mode),
+    score_asc: (a, b) => compareMineValue(a, mode) - compareMineValue(b, mode),
+  }[compareState.sort] || ((a, b) => b.level - a.level || a.title.localeCompare(b.title, "ja"));
+  return list.slice().sort(cmp);
 }
 
 function renderCompareTab() {
@@ -800,6 +818,14 @@ function buildCompareSkeleton(friendOptionsHtml) {
       <div class="filter-bar">
         <input class="search-input" id="compareSearchInput" placeholder="曲名で検索…">
         <button class="btn secondary" id="compareFilterBtn">絞り込み</button>
+        <select class="select-input" id="compareSortSelect" aria-label="並び替え">
+          <option value="level_desc">レベル高い順</option>
+          <option value="level_asc">レベル低い順</option>
+          <option value="title_asc">曲名（あ～）</option>
+          <option value="title_desc">曲名（ん～）</option>
+          <option value="score_desc">スコア高い順</option>
+          <option value="score_asc">スコア低い順</option>
+        </select>
       </div>
       <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
         <div>
@@ -848,6 +874,7 @@ function buildCompareSkeleton(friendOptionsHtml) {
   `;
   document.getElementById('compareFriendSelect').addEventListener('change', (e) => handleSelectCompareFriend(e.target.value));
   document.getElementById('compareSearchInput').addEventListener('input', (e) => { compareState.search = e.target.value; render(); });
+  document.getElementById('compareSortSelect').addEventListener('change', (e) => { compareState.sort = e.target.value; render(); });
   document.getElementById('compareModeToggle').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-mode]');
     if (btn) { compareState.mode = btn.dataset.mode; render(); }
@@ -869,6 +896,7 @@ function updateCompareControls() {
   const { friendsList, selectedUid } = compareState;
   const friendUsername = (friendsList.find(f => f.uid === selectedUid) || {}).username || "相手";
   document.getElementById('compareFriendHeader').textContent = friendUsername;
+  document.getElementById('compareSortSelect').value = compareState.sort;
   document.querySelectorAll('#compareModeToggle button').forEach(b => {
     b.classList.toggle('on', b.dataset.mode === compareState.mode);
   });
@@ -914,7 +942,7 @@ function updateCompareTableBody() {
   document.getElementById('compareTbody').innerHTML = rows;
   document.getElementById('compareEmptyState').innerHTML = visible.length === 0
     ? `<div class="empty-state">比較できるスコアがありません</div>` : "";
-  document.getElementById('compareTally').innerHTML = `<span style="font-size:22px;font-weight:800;color:var(--text)">${win}勝${loss}敗${draw}分け</span>`;
+  document.getElementById('compareTally').innerHTML = `<span style="font-size:17px;font-weight:700;color:var(--text)">${win}勝${loss}敗${draw}分け</span>`;
 }
 
 function openCompareFilterModal() {
