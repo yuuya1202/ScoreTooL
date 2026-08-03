@@ -188,7 +188,10 @@
 </head>
 <body>
 
-<div id="authGate" class="panel" style="max-width:360px;margin:60px auto;display:none">
+<div style="max-width:360px;margin:60px auto 0;text-align:center;display:none" id="authBrand">
+  <div class="brand-title" style="font-size:24px"><span class="brand-title-sdvx">SDVX</span> <span class="brand-title-exscore">EX-Score</span></div>
+</div>
+<div id="authGate" class="panel" style="max-width:360px;margin:16px auto;display:none">
   <h3 id="authTitle">ログイン</h3>
   <p class="hint" id="authHint">アカウント名とパスワードを入力してください。</p>
   <input class="search-input" id="authUsername" placeholder="アカウント名（半角英数字・3〜20文字）" style="width:100%;margin-bottom:8px;box-sizing:border-box;">
@@ -1664,6 +1667,7 @@ onAuthStateChanged(auth, async (user) => {
       console.error("ユーザー情報の取得に失敗:", e);
     }
     document.getElementById('authGate').style.display = 'none';
+    document.getElementById('authBrand').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
     document.getElementById('accountDropdownName').textContent = username ? (username + " でログイン中") : "";
     document.getElementById('accountAvatarBtn').textContent = username ? username.charAt(0).toUpperCase() : "?";
@@ -1671,6 +1675,7 @@ onAuthStateChanged(auth, async (user) => {
   } else {
     document.getElementById('appRoot').style.display = 'none';
     document.getElementById('authGate').style.display = 'block';
+    document.getElementById('authBrand').style.display = 'block';
   }
 });
 
