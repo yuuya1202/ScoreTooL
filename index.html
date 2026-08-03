@@ -218,7 +218,7 @@
       <button class="account-avatar" id="accountAvatarBtn" onclick="toggleAccountMenu()">?</button>
       <div class="account-dropdown" id="accountDropdown" style="display:none">
         <div class="account-dropdown-name" id="accountDropdownName"></div>
-        <button class="account-dropdown-item" onclick="openChangeUsernameModal(); toggleAccountMenu();">表示名を変更</button>
+        <button class="account-dropdown-item" onclick="openChangeUsernameModal(); toggleAccountMenu();">アカウント名を変更</button>
         <button class="account-dropdown-item" onclick="switchTab('terms'); toggleAccountMenu();">利用規約</button>
         <button class="account-dropdown-item danger" onclick="handleLogout()">ログアウト</button>
       </div>
@@ -254,12 +254,12 @@
 <div class="modal-overlay" id="usernameModalOverlay" style="display:none">
   <div class="modal-box" style="max-width:360px">
     <div class="modal-header">
-      <h3>表示名を変更</h3>
+      <h3>アカウント名を変更</h3>
       <button class="modal-close" id="usernameModalCloseBtn">×</button>
     </div>
     <div class="modal-body">
-      <p class="hint">現在の表示名: <span id="usernameModalCurrent"></span></p>
-      <p class="hint" style="margin-top:10px">新しい表示名</p>
+      <p class="hint">現在のアカウント名: <span id="usernameModalCurrent"></span></p>
+      <p class="hint" style="margin-top:10px">新しいアカウント名</p>
       <input class="search-input" id="usernameModalNew" placeholder="半角英数字・3〜20文字" style="width:100%;box-sizing:border-box;margin-bottom:4px;">
       <p class="hint" id="usernameModalError" style="color:#ff4757;min-height:16px"></p>
     </div>
@@ -410,14 +410,14 @@ async function submitChangeUsername() {
   const newName = document.getElementById('usernameModalNew').value.trim();
   const errEl = document.getElementById('usernameModalError');
   errEl.textContent = "";
-  if (!newName) { errEl.textContent = "新しい表示名を入力してください"; return; }
+  if (!newName) { errEl.textContent = "新しいアカウント名を入力してください"; return; }
   try {
     const updated = await window.changeDisplayName(newName);
     window.currentUsername = updated;
     document.getElementById('accountDropdownName').textContent = updated + " でログイン中";
     document.getElementById('accountAvatarBtn').textContent = updated.charAt(0).toUpperCase();
     closeChangeUsernameModal();
-    showToast("表示名を変更しました", "success");
+    showToast("アカウント名を変更しました", "success");
   } catch (e) {
     errEl.textContent = e.message;
   }
@@ -1619,27 +1619,27 @@ window.changeDisplayName = async function (newNameRaw) {
   if (!auth.currentUser) throw new Error("ログインしていません");
   const newName = newNameRaw.trim();
   if (!/^[a-zA-Z0-9_]{3,20}$/.test(newName)) {
-    throw new Error("表示名は半角英数字とアンダースコアで3〜20文字にしてください");
+    throw new Error("アカウント名は半角英数字とアンダースコアで3〜20文字にしてください");
   }
 
   const myUid = auth.currentUser.uid;
   const mySnap = await getDoc(doc(db, "users", myUid));
   const oldName = mySnap.exists() ? (mySnap.data().displayName || mySnap.data().username || "") : "";
   if (newName.toLowerCase() === oldName.toLowerCase()) {
-    throw new Error("現在と同じ表示名です");
+    throw new Error("現在と同じアカウント名です");
   }
 
   try {
     await setDoc(doc(db, "usernames", newName.toLowerCase()), { uid: myUid });
   } catch (e) {
-    throw new Error("その表示名は既に使われています");
+    throw new Error("そのアカウント名は既に使われています");
   }
 
   await setDoc(doc(db, "users", myUid), { displayName: newName }, { merge: true });
   try {
     await deleteDoc(doc(db, "usernames", oldName.toLowerCase()));
   } catch (e) {
-    console.error("旧表示名の削除に失敗:", e);
+    console.error("旧アカウント名の削除に失敗:", e);
   }
 
   return newName;
