@@ -862,7 +862,6 @@ function renderFriendsTab() {
 
   const friendRows = friends.length ? `
     <table class="friend-table">
-      <thead><tr><th>ユーザー名</th><th style="width:80px"></th></tr></thead>
       <tbody>${friends.map(f => `<tr><td>${esc(f.username || "(不明なユーザー)")}</td><td><button class="link-btn" style="color:#ff4757" onclick="handleRemoveFriend('${esc(f.uid)}', '${esc((f.username||"").replace(/'/g,"")) }')">削除</button></td></tr>`).join("")}</tbody>
     </table>` : `<p class="hint">フレンドがまだいません</p>`;
 
@@ -1024,7 +1023,7 @@ function buildCompareSkeleton(friendOptionsHtml) {
         </div>
       </div>
     </div>
-    <div class="panel" style="padding:0">
+    <div class="panel" style="padding:0;overflow:hidden">
       <div class="table-wrap">
         <table class="score-table">
           <thead><tr><th class="col-title">楽曲</th><th class="col-center">自分</th><th class="col-center" id="compareFriendHeader">相手</th></tr></thead>
@@ -1236,7 +1235,7 @@ function buildListSkeleton() {
       </div>
     </div>
     <div id="listTopInfo" class="footnote" style="margin:2px 0 10px;text-align:left"></div>
-    <div class="panel" style="padding:0">
+    <div class="panel" style="padding:0;overflow:hidden">
       <div class="table-wrap">
         <table class="score-table">
           <thead><tr><th class="col-title">楽曲</th><th class="col-center" style="color:#FFD23F">EXスコア</th><th class="col-center">通常スコア</th></tr></thead>
