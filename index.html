@@ -80,7 +80,7 @@
   }
   .panel { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:14px; }
   .panel h3 { margin:0 0 10px; font-size:14px; letter-spacing:0.5px; }
-  .hint { color:var(--muted); font-size:12px; margin:4px 0 10px; line-height:1.6; }
+  .hint { color:var(--text); font-size:12px; margin:4px 0 10px; line-height:1.6; }
   .filter-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
   .search-input, .select-input { background:var(--panel-2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:7px 10px; font-size:13px; outline:none; }
   .search-input::placeholder { color:var(--muted); opacity:0.55; }
@@ -203,7 +203,7 @@
   </div>
   <details style="margin-top:14px;font-size:11px;color:var(--muted)">
     <summary style="cursor:pointer">アカウント削除・パスワードを忘れた場合</summary>
-    <p style="margin:6px 0 0">X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener" style="color:var(--cyan)">@yuuya1202</a> までご連絡ください。</p>
+    <p style="margin:6px 0 0">X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener" style="color:#3B82F6">@yuuya1202</a> までご連絡ください。</p>
   </details>
 </div>
 
@@ -836,7 +836,7 @@ function renderDataTab() {
     ${masterError ? `<div class="panel"><h3 style="color:#ff4757">⚠ マスタ読み込みエラー</h3><p class="hint">${esc(masterError)}</p></div>` : ""}
     <div class="panel">
       <h3>スコア登録</h3>
-      <p class="hint">公式サイトの「PLAY DATA」→「<a href="#" onclick="handleOpenOfficialSite();return false;" style="color:#FFD23F">スコアデータ/CSVダウンロード</a>」からCSVをコピーして、下に貼り付けてください。</p>
+      <p class="hint">公式サイトの「PLAY DATA」→「<a href="#" onclick="handleOpenOfficialSite();return false;" style="color:#3B82F6">スコアデータ/CSVダウンロード</a>」からCSVをコピーして、下に貼り付けてください。</p>
       ${scoresUpdatedAt ? `<p class="hint">最終登録日時: ${esc(formatDateTime(scoresUpdatedAt))}</p>` : ""}
       <textarea class="data-input" id="csvInput" placeholder="楽曲名,難易度,楽曲レベル,クリアランク,スコアグレード,ハイスコア,..."></textarea>
       <div class="btn-row">
