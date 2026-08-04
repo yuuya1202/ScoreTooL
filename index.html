@@ -1404,10 +1404,11 @@ function renderCompareFilterModalBody() {
 /* ------------------------------------------------------------------ */
 
 // TODO: 有志の方からURLをいただいたら、ここに設定する
-const RANKING_DATA_URL = "https://vaddict.b35.jp/file/yuya/data.json";
-// Vaddict側にCORS許可ヘッダーが無いため、無料の公開プロキシを経由して取得する。
-// 将来的にVaddict側でCORSが許可された場合や、自前のプロキシに切り替える場合は、この行を空文字 "" にすればOK。
-const RANKING_CORS_PROXY = "https://api.allorigins.win/raw?url=";
+// 有志の方から共有いただいた元データ: https://vaddict.b35.jp/file/yuya/data.json
+// ↑はCORS未対応のため、自前のCloudflare Workerを経由して取得する
+const RANKING_DATA_URL = "https://wild-bonus-8d0b.yuuya1202taiko.workers.dev/";
+// Cloudflare Worker側で access-control-allow-origin を付与済みのため、追加のプロキシは不要
+const RANKING_CORS_PROXY = "";
 const RANKING_CACHE_KEY = "sdvxRankingCache_v1";
 const RANKING_MIN_LEVEL = 17;
 
