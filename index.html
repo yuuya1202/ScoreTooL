@@ -147,7 +147,7 @@
   .title-text { white-space:normal; word-break:break-word; line-height:1.35; min-width:0; flex:1; }
   .ranking-song-list { display:flex; flex-direction:column; font-size:13px; }
   .ranking-song-row {
-    display:grid; grid-template-columns:minmax(0,1fr) 64px 64px; align-items:center; gap:10px;
+    display:grid; grid-template-columns:minmax(0,1fr) 64px 64px 90px; align-items:center; gap:10px;
     padding:10px 6px; border-bottom:1px solid var(--row-border); cursor:pointer; border-radius:6px;
   }
   .ranking-song-row:hover { background:var(--row-hover); }
@@ -390,7 +390,7 @@ const PAGE_SIZE = 100;
 let currentPage = 1;
 const SCORE_DEFAULTS = { minEx: 0, maxEx: 99999, minNormal: 0, maxNormal: 10000000 };
 let filters = {
-  search: "", diffs: new Set(DIFF_ORDER), levels: new Set(), sort: "exscore_desc",
+  search: "", diffs: new Set(DIFF_ORDER), levels: new Set(), sort: "date_desc",
   scoreMode: "ex",
   scoreMinEx: SCORE_DEFAULTS.minEx, scoreMaxEx: SCORE_DEFAULTS.maxEx,
   scoreMinNormal: SCORE_DEFAULTS.minNormal, scoreMaxNormal: SCORE_DEFAULTS.maxNormal,
@@ -403,7 +403,7 @@ let friendsState = { loading: false, incoming: [], outgoing: [], friends: [] };
 let compareState = {
   loadingFriends: false, friendsList: [], selectedUid: "",
   loadingScores: false, friendScores: null,
-  search: "", mode: "ex", resultFilter: "all", sort: "level_desc",
+  search: "", mode: "ex", resultFilter: "all", sort: "date_desc",
   levels: new Set(), diffs: new Set(DIFF_ORDER),
 };
 let compareSkeletonBuilt = false;
@@ -879,6 +879,8 @@ function getFiltered(merged) {
   }
 
   const cmp = {
+    date_desc:  (a,b) => (b.date||"").localeCompare(a.date||"") || a.title.localeCompare(b.title, "ja"),
+    date_asc:   (a,b) => (a.date||"").localeCompare(b.date||"") || a.title.localeCompare(b.title, "ja"),
     level_desc: (a,b) => b.level - a.level || a.title.localeCompare(b.title),
     level_asc:  (a,b) => a.level - b.level || a.title.localeCompare(b.title),
     title_asc:  (a,b) => (a.reading||a.title).localeCompare(b.reading||b.title, "ja"),
@@ -1043,23 +1045,31 @@ function compareMineValue(m, mode) {
   return m.score ? m.score.highScore : -1;
 }
 
+function hasComparablePlay(scoreObj, mode) {
+  if (!scoreObj) return false;
+  if (mode === "ex") return !!scoreObj.exScore;
+  return !!scoreObj;
+}
+
 function getCompareFiltered(merged, friendScores) {
+  const mode = compareState.mode;
   let list = compareFilterMode === "simple"
-    ? merged.filter(m => (m.score && friendScores[m.key]) && compareSimpleLevels.has(m.level))
-    : merged.filter(m => (m.score && friendScores[m.key]) && compareState.diffs.has(m.type) && compareState.levels.has(m.level));
+    ? merged.filter(m => (hasComparablePlay(m.score, mode) && hasComparablePlay(friendScores[m.key], mode)) && compareSimpleLevels.has(m.level))
+    : merged.filter(m => (hasComparablePlay(m.score, mode) && hasComparablePlay(friendScores[m.key], mode)) && compareState.diffs.has(m.type) && compareState.levels.has(m.level));
   if (compareState.search.trim()) {
     const q = compareState.search.trim().toLowerCase();
     list = list.filter(m => m.title.toLowerCase().includes(q) || (m.reading || "").includes(q));
   }
-  const mode = compareState.mode;
   const cmp = {
+    date_desc: (a, b) => (b.date||"").localeCompare(a.date||"") || a.title.localeCompare(b.title, "ja"),
+    date_asc: (a, b) => (a.date||"").localeCompare(b.date||"") || a.title.localeCompare(b.title, "ja"),
     level_desc: (a, b) => b.level - a.level || a.title.localeCompare(b.title, "ja"),
     level_asc: (a, b) => a.level - b.level || a.title.localeCompare(b.title, "ja"),
     title_asc: (a, b) => (a.reading || a.title).localeCompare(b.reading || b.title, "ja"),
     title_desc: (a, b) => (b.reading || b.title).localeCompare(a.reading || a.title, "ja"),
     score_desc: (a, b) => compareMineValue(b, mode) - compareMineValue(a, mode),
     score_asc: (a, b) => compareMineValue(a, mode) - compareMineValue(b, mode),
-  }[compareState.sort] || ((a, b) => b.level - a.level || a.title.localeCompare(b.title, "ja"));
+  }[compareState.sort] || ((a, b) => (b.date||"").localeCompare(a.date||"") || a.title.localeCompare(b.title, "ja"));
   return list.slice().sort(cmp);
 }
 
@@ -1137,6 +1147,8 @@ function buildCompareSkeleton(friendOptionsHtml) {
         <button class="btn" id="compareFilterBtn">絞り込み条件を設定する</button>
       </div>
       <select class="select-input" id="compareSortSelect" aria-label="並び替え" style="margin-top:10px">
+        <option value="date_desc">収録順（新しい順）</option>
+        <option value="date_asc">収録順（古い順）</option>
         <option value="score_desc">スコア高い順</option>
         <option value="score_asc">スコア低い順</option>
         <option value="level_desc">レベル高い順</option>
@@ -1399,6 +1411,24 @@ const RANKING_MIN_LEVEL = 17;
 const DIFF_ABBR_TO_TYPE = Object.fromEntries(
   Object.entries(DIFF_META).map(([type, meta]) => [meta.abbr.toUpperCase(), type])
 );
+// ランキングは公式データの都合上 NOV / ADV が存在しないため対象から外す
+const RANKING_DIFF_ORDER = DIFF_ORDER.filter(t => t !== "novice" && t !== "advanced");
+// レベル1〜16の帯は使わないので、呼び出し時に LEVEL_BANDS から動的に除外する
+function getRankingLevelBands() { return LEVEL_BANDS.slice(1); }
+
+let rankingFilterMode = "simple";       // "simple" | "advanced"
+let rankingSimpleLevels = new Set();    // 「表示対象」バッジ用
+let rankingFilters = { levels: new Set(), diffs: new Set() }; // 「高度な絞り込み」用
+let rankingDraftLevels = new Set();
+let rankingDraftDiffs = new Set();
+let rankingFiltersInitialized = false;
+function initRankingFilterDefaults() {
+  if (rankingFiltersInitialized) return;
+  rankingFiltersInitialized = true;
+  rankingSimpleLevels = new Set(DEFAULT_LEVEL_VALUES);
+  rankingFilters.levels = new Set(DEFAULT_LEVEL_VALUES);
+  rankingFilters.diffs = new Set(RANKING_DIFF_ORDER);
+}
 
 let rankingState = {
   status: "idle",          // idle | loading | loaded | error
@@ -1408,6 +1438,7 @@ let rankingState = {
   subView: "all",          // "all" | "mine"
   activeKey: null,         // 詳細表示中のエントリキー（nullなら一覧表示）
   search: "",
+  sort: "date_desc",
 };
 
 function rankingEntryKey(e) {
@@ -1484,6 +1515,7 @@ function buildRankingEntries(rawList) {
       level,
       jacket: matchedSong ? matchedSong.jacket : "",
       maxExScore: matchedSong ? matchedSong.maxExScore : 0,
+      date: matchedSong ? (matchedSong.date || "") : "",
       matched: !!matchedSong,
       rankingData,
     });
@@ -1493,6 +1525,7 @@ function buildRankingEntries(rawList) {
 }
 
 async function ensureRankingLoaded(force) {
+  initRankingFilterDefaults();
   if (rankingState.status === "loading") return;
   if (!force && rankingState.status === "loaded") { render(); return; }
 
@@ -1576,6 +1609,21 @@ function renderRankingTab() {
       </div>
       ${activeEntry ? renderRankingDetailHtml(activeEntry) : renderRankingListHtml()}
     </div>
+    <div class="modal-overlay" id="rankingFilterModalOverlay" style="display:none">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3>高度な絞り込み</h3>
+          <div style="display:flex;align-items:center;gap:14px">
+            <button class="link-btn" id="rankingFilterModalResetBtn">内容を初期化</button>
+            <button class="modal-close" id="rankingFilterModalCloseBtn">×</button>
+          </div>
+        </div>
+        <div class="modal-body" id="rankingFilterModalBody"></div>
+        <div class="modal-footer">
+          <button class="btn" id="rankingFilterModalApplyBtn">この条件で絞り込む</button>
+        </div>
+      </div>
+    </div>
   `;
 
   if (!activeEntry) {
@@ -1603,9 +1651,47 @@ function renderRankingTab() {
       clearBtn.style.display = rankingState.search ? 'flex' : 'none';
       clearBtn.addEventListener('click', () => { rankingState.search = ""; render(); });
     }
+    const modeToggle = document.getElementById('rankingFilterModeToggle');
+    if (modeToggle) {
+      modeToggle.querySelectorAll('button[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === rankingFilterMode));
+      modeToggle.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-mode]');
+        if (!btn) return;
+        rankingFilterMode = btn.dataset.mode;
+        render();
+      });
+    }
+    const shortcutRow = document.getElementById('rankingLevelShortcutRow');
+    if (shortcutRow) {
+      shortcutRow.style.display = rankingFilterMode === "simple" ? "flex" : "none";
+      shortcutRow.innerHTML = renderLevelShortcuts(rankingSimpleLevels);
+      shortcutRow.addEventListener('click', (e) => {
+        const btn = e.target.closest('.level-shortcut');
+        if (!btn) return;
+        const idx = parseInt(btn.dataset.idx, 10);
+        toggleLevelBand(rankingSimpleLevels, LEVEL_SHORTCUTS[idx].values);
+        render();
+      });
+    }
+    const advRow = document.getElementById('rankingAdvancedFilterRow');
+    if (advRow) advRow.style.display = rankingFilterMode === "advanced" ? "block" : "none";
+    const rankingFilterBtn = document.getElementById('rankingFilterBtn');
+    if (rankingFilterBtn) rankingFilterBtn.addEventListener('click', openRankingFilterModal);
+    const rankingSortSelect = document.getElementById('rankingSortSelect');
+    if (rankingSortSelect) {
+      rankingSortSelect.value = rankingState.sort;
+      rankingSortSelect.addEventListener('change', (e) => { rankingState.sort = e.target.value; render(); });
+    }
   } else {
     document.getElementById('rankingBackBtn').addEventListener('click', closeRankingEntry);
   }
+
+  document.getElementById('rankingFilterModalCloseBtn').addEventListener('click', closeRankingFilterModal);
+  document.getElementById('rankingFilterModalResetBtn').addEventListener('click', resetRankingFilterModal);
+  document.getElementById('rankingFilterModalApplyBtn').addEventListener('click', applyRankingFilterModal);
+  document.getElementById('rankingFilterModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'rankingFilterModalOverlay') closeRankingFilterModal();
+  });
 }
 
 function renderRankingListHtml() {
@@ -1630,6 +1716,22 @@ function renderRankingListHtml() {
     list = list.filter(e => e.musicName.toLowerCase().includes(q));
   }
 
+  if (rankingFilterMode === "simple") {
+    list = list.filter(e => rankingSimpleLevels.has(e.level));
+  } else {
+    list = list.filter(e => rankingFilters.levels.has(e.level) && (e.type ? rankingFilters.diffs.has(e.type) : true));
+  }
+
+  const rankingCmp = {
+    date_desc:  (a,b) => (b.date||"").localeCompare(a.date||"") || a.musicName.localeCompare(b.musicName, "ja"),
+    date_asc:   (a,b) => (a.date||"").localeCompare(b.date||"") || a.musicName.localeCompare(b.musicName, "ja"),
+    level_desc: (a,b) => b.level - a.level || a.musicName.localeCompare(b.musicName, "ja"),
+    level_asc:  (a,b) => a.level - b.level || a.musicName.localeCompare(b.musicName, "ja"),
+    title_asc:  (a,b) => a.musicName.localeCompare(b.musicName, "ja"),
+    title_desc: (a,b) => b.musicName.localeCompare(a.musicName, "ja"),
+  }[rankingState.sort] || ((a,b) => (b.date||"").localeCompare(a.date||"") || a.musicName.localeCompare(b.musicName, "ja"));
+  list = list.slice().sort(rankingCmp);
+
   const rowsHtml = list.map(e => {
     const meta = DIFF_META[e.type] || { abbr: e.diffAbbr, color: "#888" };
     const myRow = myId ? e.rankingData.find(r => (r.playerId || "").toUpperCase() === myId) : null;
@@ -1644,6 +1746,7 @@ function renderRankingListHtml() {
         </div>
         <div class="col-center hint">Lv.${e.level}</div>
         <div class="col-center" style="color:${meta.color};font-weight:800;font-size:12px">${esc(meta.abbr)}</div>
+        <div class="col-center hint">${esc(e.date || "-")}</div>
       </div>
     `;
   }).join("") || `<p class="hint">該当する曲がありません。</p>`;
@@ -1657,11 +1760,28 @@ function renderRankingListHtml() {
       <input class="search-input" id="rankingSearchInput" placeholder="曲名で検索…">
       <button type="button" class="search-clear-btn" id="rankingSearchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
     </div>
+    <div class="toggle-group segmented-toggle" id="rankingFilterModeToggle" style="margin-bottom:10px">
+      <button class="toggle-pill" data-mode="simple">表示対象</button>
+      <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
+    </div>
+    <div class="level-shortcut-row" id="rankingLevelShortcutRow" style="margin-bottom:12px"></div>
+    <div id="rankingAdvancedFilterRow" style="display:none;margin-bottom:12px">
+      <button class="btn" id="rankingFilterBtn">絞り込み条件を設定する</button>
+    </div>
+    <select class="select-input" id="rankingSortSelect" aria-label="並び替え" style="margin-bottom:12px">
+      <option value="date_desc">収録順（新しい順）</option>
+      <option value="date_asc">収録順（古い順）</option>
+      <option value="level_desc">レベル高い順</option>
+      <option value="level_asc">レベル低い順</option>
+      <option value="title_asc">五十音順（あ→ん）</option>
+      <option value="title_desc">五十音順（ん→あ）</option>
+    </select>
     <div class="ranking-song-list" id="rankingSongListWrap">
       <div class="ranking-song-row ranking-song-header">
         <div>楽曲</div>
         <div class="col-center">レベル</div>
         <div class="col-center">難易度</div>
+        <div class="col-center">収録日</div>
       </div>
       ${rowsHtml}
     </div>
@@ -1705,6 +1825,93 @@ function renderRankingDetailHtml(entry) {
   `;
 }
 
+function openRankingFilterModal() {
+  rankingDraftLevels = new Set(rankingFilters.levels);
+  rankingDraftDiffs = new Set(rankingFilters.diffs);
+  renderRankingFilterModalBody();
+  document.getElementById('rankingFilterModalOverlay').style.display = 'flex';
+}
+function closeRankingFilterModal() {
+  document.getElementById('rankingFilterModalOverlay').style.display = 'none';
+}
+function resetRankingFilterModal() {
+  rankingDraftLevels = new Set(DEFAULT_LEVEL_VALUES);
+  rankingDraftDiffs = new Set(RANKING_DIFF_ORDER);
+  renderRankingFilterModalBody();
+}
+function applyRankingFilterModal() {
+  rankingFilters.levels = new Set(rankingDraftLevels);
+  rankingFilters.diffs = new Set(rankingDraftDiffs);
+  closeRankingFilterModal();
+  render();
+}
+function toggleRankingDraftLevel(level, checked) {
+  if (checked) rankingDraftLevels.add(level); else rankingDraftLevels.delete(level);
+}
+function setRankingBandLevels(levelsInBand, on) {
+  levelsInBand.forEach(lv => on ? rankingDraftLevels.add(lv) : rankingDraftLevels.delete(lv));
+  renderRankingFilterModalBody();
+}
+function toggleRankingDraftDiff(type, checked) {
+  if (checked) rankingDraftDiffs.add(type); else rankingDraftDiffs.delete(type);
+}
+function setRankingAllDiffs(diffList, on) {
+  diffList.forEach(d => on ? rankingDraftDiffs.add(d) : rankingDraftDiffs.delete(d));
+  renderRankingFilterModalBody();
+}
+window.toggleRankingDraftLevel = toggleRankingDraftLevel;
+window.setRankingBandLevels = setRankingBandLevels;
+window.toggleRankingDraftDiff = toggleRankingDraftDiff;
+window.setRankingAllDiffs = setRankingAllDiffs;
+
+function renderRankingFilterModalBody() {
+  const levelSectionsHtml = getRankingLevelBands().map(band => {
+    const checksHtml = band.values.map(lv => `
+      <label class="check-item">
+        <input type="checkbox" ${rankingDraftLevels.has(lv) ? "checked" : ""} onchange="toggleRankingDraftLevel(${lv}, this.checked)">
+        <span>${formatLevel(lv)}</span>
+      </label>`).join("");
+    return `
+      <div class="filter-band">
+        <div class="filter-band-head">
+          <span class="filter-band-label">${band.label}</span>
+          <span class="filter-band-actions">
+            <button class="link-btn" onclick="setRankingBandLevels(${JSON.stringify(band.values)}, true)">全選択</button>
+            <button class="link-btn" onclick="setRankingBandLevels(${JSON.stringify(band.values)}, false)">解除</button>
+          </span>
+        </div>
+        <div class="check-grid">${checksHtml}</div>
+      </div>`;
+  }).join("");
+
+  const diffChecksHtml = RANKING_DIFF_ORDER.map(d => {
+    const meta = DIFF_META[d];
+    return `
+      <label class="check-item">
+        <input type="checkbox" ${rankingDraftDiffs.has(d) ? "checked" : ""} onchange="toggleRankingDraftDiff('${d}', this.checked)">
+        <span class="badge" style="color:${meta.color};background:${meta.color}22;border-color:${meta.color}55">${meta.abbr}</span>
+      </label>`;
+  }).join("");
+
+  document.getElementById('rankingFilterModalBody').innerHTML = `
+    <p class="hint" style="margin-top:0">ランキングデータの対象外（Lv.1〜16 / NOV・ADV）は表示していません。</p>
+    <div class="filter-section">
+      <h4>レベル</h4>
+      ${levelSectionsHtml}
+    </div>
+    <div class="filter-section">
+      <div class="filter-band-head">
+        <h4 style="margin:0">難易度</h4>
+        <span class="filter-band-actions">
+          <button class="link-btn" onclick='setRankingAllDiffs(${JSON.stringify(RANKING_DIFF_ORDER)}, true)'>全選択</button>
+          <button class="link-btn" onclick='setRankingAllDiffs(${JSON.stringify(RANKING_DIFF_ORDER)}, false)'>解除</button>
+        </span>
+      </div>
+      <div class="check-grid">${diffChecksHtml}</div>
+    </div>
+  `;
+}
+
 
 let listSkeletonBuilt = false;
 
@@ -1726,6 +1933,8 @@ function buildListSkeleton() {
         <button class="btn" id="openFilterBtn">絞り込み条件を設定する</button>
       </div>
       <select class="select-input" id="sortSelect" aria-label="並び替え" style="margin-top:10px">
+        <option value="date_desc">収録順（新しい順）</option>
+        <option value="date_asc">収録順（古い順）</option>
         <option value="exscore_desc">スコア高い順（EX）</option>
         <option value="exscore_asc">スコア低い順（EX）</option>
         <option value="score_desc">スコア高い順（通常）</option>
