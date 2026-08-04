@@ -97,14 +97,13 @@
     cursor:pointer; background:var(--panel-2); color:var(--muted); letter-spacing:0.3px;
     transition: background-color .15s ease, color .15s ease, border-color .15s ease;
   }
-  .level-shortcut:hover { border-color: var(--gold); color: var(--text); }
-  .level-shortcut.on { background: var(--gold); border-color: var(--gold); color:#05070d; }
-  .level-shortcut.partial { border-color: var(--gold); color: var(--gold); background: var(--panel-2); }
+  .level-shortcut.on { background: rgba(255,210,63,0.14); border-color: rgba(255,210,63,0.55); color: var(--gold); }
+  .level-shortcut.partial { border-color: rgba(255,210,63,0.4); color: rgba(255,210,63,0.75); background: var(--panel-2); }
   textarea.data-input { width:100%; min-height:110px; background:var(--panel-2); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:10px; font-size:12px; font-family:ui-monospace,"SF Mono",monospace; resize:vertical; }
   .btn { background: linear-gradient(135deg, var(--cyan), #00a8c2); color:#05070d; border:none; border-radius:8px; padding:9px 18px; font-weight:800; font-size:13px; cursor:pointer; }
   .btn:disabled { opacity:0.5; cursor:not-allowed; }
   .btn.secondary { background:var(--panel-2); color:var(--text); border:1px solid var(--border); }
-  .btn.filter-active { background:var(--nov); color:#ffffff; border-color:var(--nov); font-weight:800; }
+  .btn.filter-active { background:var(--magenta); color:#ffffff; border-color:var(--magenta); font-weight:800; box-shadow: 0 0 14px rgba(255,46,154,0.55); }
   .btn.danger { background:rgba(255,71,87,0.15); color:#ff4757; border:1px solid rgba(255,71,87,0.4); }
   .btn-row { display:flex; gap:8px; margin-top:10px; }
   .unmatched-box { margin-top:10px; font-size:11px; color:var(--muted); }
@@ -1035,7 +1034,7 @@ function buildCompareSkeleton(friendOptionsHtml) {
       </div>
       <div class="level-shortcut-row" id="compareLevelShortcutRow"></div>
       <div id="compareAdvancedFilterRow" style="display:none">
-        <button class="btn secondary" id="compareFilterBtn">絞り込み条件を開く</button>
+        <button class="btn" id="compareFilterBtn">絞り込み条件を開く</button>
       </div>
       <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
         <div>
@@ -1293,7 +1292,7 @@ function buildListSkeleton() {
       </div>
       <div class="level-shortcut-row" id="levelShortcutRow"></div>
       <div id="advancedFilterRow" style="display:none">
-        <button class="btn secondary" id="openFilterBtn">絞り込み条件を開く</button>
+        <button class="btn" id="openFilterBtn">絞り込み条件を開く</button>
       </div>
     </div>
     <div id="listTopInfo" class="footnote" style="margin:2px 0 10px;text-align:left"></div>
