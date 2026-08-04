@@ -1405,6 +1405,9 @@ function renderCompareFilterModalBody() {
 
 // TODO: 有志の方からURLをいただいたら、ここに設定する
 const RANKING_DATA_URL = "https://vaddict.b35.jp/file/yuya/data.json";
+// Vaddict側にCORS許可ヘッダーが無いため、無料の公開プロキシを経由して取得する。
+// 将来的にVaddict側でCORSが許可された場合や、自前のプロキシに切り替える場合は、この行を空文字 "" にすればOK。
+const RANKING_CORS_PROXY = "https://api.allorigins.win/raw?url=";
 const RANKING_CACHE_KEY = "sdvxRankingCache_v1";
 const RANKING_MIN_LEVEL = 17;
 
@@ -1560,7 +1563,8 @@ async function ensureRankingLoaded(force) {
     let raw;
     let fetchedAt;
     if (RANKING_DATA_URL) {
-      const res = await fetch(RANKING_DATA_URL, { cache: "no-store" });
+      const fetchUrl = RANKING_CORS_PROXY ? (RANKING_CORS_PROXY + encodeURIComponent(RANKING_DATA_URL)) : RANKING_DATA_URL;
+      const res = await fetch(fetchUrl, { cache: "no-store" });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const json = await res.json();
       // 実データは { created_at: "...", data: [...] } の形で来る
