@@ -100,7 +100,6 @@
   .search-clear-btn:hover { background:rgba(0,0,0,0.15); color:#1a1a1a; }
   @media (max-width: 480px) {
     .search-input { flex-basis:100%; }
-    .tab-btn { padding:10px 12px; font-size:12px; }
   }
   .diff-toggle-row { display:flex; gap:6px; flex-wrap:wrap; }
   .diff-toggle { border:1px solid var(--border); border-radius:7px; padding:4px 9px; font-size:11px; font-weight:700; cursor:pointer; background:var(--panel-2); color:var(--muted); }
@@ -264,6 +263,7 @@
         <div class="account-dropdown-name" id="accountDropdownName"></div>
         <button class="account-dropdown-item" onclick="openChangeUsernameModal(); toggleAccountMenu();">アカウント名を変更</button>
         <button class="account-dropdown-item" onclick="openPlayerIdModal(); toggleAccountMenu();">プレイヤーIDを設定</button>
+        <button class="account-dropdown-item" onclick="switchTab('data'); toggleAccountMenu();">スコア登録</button>
         <button class="account-dropdown-item" onclick="switchTab('terms'); toggleAccountMenu();">利用規約</button>
         <button class="account-dropdown-item danger" onclick="handleLogout()">ログアウト</button>
       </div>
@@ -275,7 +275,6 @@
     <button class="tab-btn" id="tab-ranking" onclick="switchTab('ranking')">ランキング</button>
     <button class="tab-btn" id="tab-compare" onclick="switchTab('compare')">スコア比較</button>
     <button class="tab-btn" id="tab-friends" onclick="switchTab('friends')">フレンド</button>
-    <button class="tab-btn" id="tab-data" onclick="switchTab('data')">スコア登録</button>
   </div>
 
   <div id="view-list"></div>
@@ -1118,7 +1117,11 @@ function buildCompareSkeleton(friendOptionsHtml) {
         <button class="toggle-pill" data-mode="simple">表示対象</button>
         <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
       </div>
-      <select class="select-input" id="compareSortSelect" aria-label="並び替え" style="margin-bottom:10px">
+      <div class="level-shortcut-row" id="compareLevelShortcutRow"></div>
+      <div id="compareAdvancedFilterRow" style="display:none">
+        <button class="btn" id="compareFilterBtn">絞り込み条件を設定する</button>
+      </div>
+      <select class="select-input" id="compareSortSelect" aria-label="並び替え" style="margin-top:10px">
         <option value="score_desc">スコア高い順</option>
         <option value="score_asc">スコア低い順</option>
         <option value="level_desc">レベル高い順</option>
@@ -1126,10 +1129,6 @@ function buildCompareSkeleton(friendOptionsHtml) {
         <option value="title_asc">五十音順（あ→ん）</option>
         <option value="title_desc">五十音順（ん→あ）</option>
       </select>
-      <div class="level-shortcut-row" id="compareLevelShortcutRow"></div>
-      <div id="compareAdvancedFilterRow" style="display:none">
-        <button class="btn" id="compareFilterBtn">絞り込み条件を設定する</button>
-      </div>
       <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
         <div>
           <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">勝負基準</div>
@@ -1699,7 +1698,11 @@ function buildListSkeleton() {
         <button class="toggle-pill" data-mode="simple">表示対象</button>
         <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
       </div>
-      <select class="select-input" id="sortSelect" aria-label="並び替え" style="margin-bottom:10px">
+      <div class="level-shortcut-row" id="levelShortcutRow"></div>
+      <div id="advancedFilterRow" style="display:none">
+        <button class="btn" id="openFilterBtn">絞り込み条件を設定する</button>
+      </div>
+      <select class="select-input" id="sortSelect" aria-label="並び替え" style="margin-top:10px">
         <option value="exscore_desc">スコア高い順（EX）</option>
         <option value="exscore_asc">スコア低い順（EX）</option>
         <option value="score_desc">スコア高い順（通常）</option>
@@ -1709,10 +1712,6 @@ function buildListSkeleton() {
         <option value="title_asc">五十音順（あ→ん）</option>
         <option value="title_desc">五十音順（ん→あ）</option>
       </select>
-      <div class="level-shortcut-row" id="levelShortcutRow"></div>
-      <div id="advancedFilterRow" style="display:none">
-        <button class="btn" id="openFilterBtn">絞り込み条件を設定する</button>
-      </div>
     </div>
     <div id="listTopInfo" class="footnote" style="margin:2px 0 10px;text-align:left"></div>
     <div class="panel" style="padding:0;overflow:hidden">
