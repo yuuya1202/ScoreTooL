@@ -1627,7 +1627,7 @@ function renderRankingTab() {
 
   container.innerHTML = `
     <div class="panel">
-      <p class="hint" style="margin-top:0">Lv.1〜16 / NOV・ADV は対象外です</p>
+      <p class="footnote" style="margin:0 0 10px;text-align:left">※Lv.1〜16は対象外です</p>
       ${activeEntry ? renderRankingDetailHtml(activeEntry) : renderRankingListHtml()}
     </div>
     <div class="modal-overlay" id="rankingFilterModalOverlay" style="display:none">
@@ -1652,6 +1652,10 @@ function renderRankingTab() {
       const btn = e.target.closest('button[data-mode]');
       if (!btn) return;
       rankingState.subView = btn.dataset.mode;
+      const mineOnlySorts = ["rank_asc", "rank_desc"];
+      const allOnlySorts = ["top1_desc", "top1_asc", "top100_desc", "top100_asc"];
+      if (rankingState.subView === "mine" && allOnlySorts.includes(rankingState.sort)) rankingState.sort = "date_desc";
+      if (rankingState.subView === "all" && mineOnlySorts.includes(rankingState.sort)) rankingState.sort = "date_desc";
       render();
     });
     const listWrap = document.getElementById('rankingSongListWrap');
@@ -1665,7 +1669,17 @@ function renderRankingTab() {
     const searchEl = document.getElementById('rankingSearchInput');
     if (searchEl) {
       searchEl.value = rankingState.search;
-      searchEl.addEventListener('input', (e) => { rankingState.search = e.target.value; render(); });
+      searchEl.addEventListener('compositionstart', () => { searchEl.dataset.composing = "1"; });
+      searchEl.addEventListener('compositionend', (e) => {
+        searchEl.dataset.composing = "";
+        rankingState.search = e.target.value;
+        render();
+      });
+      searchEl.addEventListener('input', (e) => {
+        rankingState.search = e.target.value;
+        if (searchEl.dataset.composing === "1") return; // IME変換中は再描画しない（変換が中断されるため）
+        render();
+      });
       if (focusedId === 'rankingSearchInput') {
         searchEl.focus();
         if (focusedSelStart != null) searchEl.setSelectionRange(focusedSelStart, focusedSelStart);
@@ -1747,6 +1761,11 @@ function renderRankingListHtml() {
     list = list.filter(e => rankingFilters.levels.has(e.level) && (e.type ? rankingFilters.diffs.has(e.type) : true));
   }
 
+  function myRankOf(e) {
+    if (!myId) return null;
+    const r = e.rankingData.find(row => (row.playerId || "").toUpperCase() === myId);
+    return r ? r.rank : null;
+  }
   const rankingCmp = {
     date_desc:  (a,b) => (b.date||"").localeCompare(a.date||"") || a.musicName.localeCompare(b.musicName, "ja"),
     date_asc:   (a,b) => (a.date||"").localeCompare(b.date||"") || a.musicName.localeCompare(b.musicName, "ja"),
@@ -1754,6 +1773,12 @@ function renderRankingListHtml() {
     level_asc:  (a,b) => a.level - b.level || a.musicName.localeCompare(b.musicName, "ja"),
     title_asc:  (a,b) => a.musicName.localeCompare(b.musicName, "ja"),
     title_desc: (a,b) => b.musicName.localeCompare(a.musicName, "ja"),
+    rank_asc:   (a,b) => (myRankOf(a) ?? 9999) - (myRankOf(b) ?? 9999),
+    rank_desc:  (a,b) => (myRankOf(b) ?? -1) - (myRankOf(a) ?? -1),
+    top1_desc:  (a,b) => (b.rankingData[0]?.score ?? -1) - (a.rankingData[0]?.score ?? -1),
+    top1_asc:   (a,b) => (a.rankingData[0]?.score ?? Infinity) - (b.rankingData[0]?.score ?? Infinity),
+    top100_desc:(a,b) => (b.rankingData[b.rankingData.length-1]?.score ?? -1) - (a.rankingData[a.rankingData.length-1]?.score ?? -1),
+    top100_asc: (a,b) => (a.rankingData[a.rankingData.length-1]?.score ?? Infinity) - (b.rankingData[b.rankingData.length-1]?.score ?? Infinity),
   }[rankingState.sort] || ((a,b) => (b.date||"").localeCompare(a.date||"") || a.musicName.localeCompare(b.musicName, "ja"));
   list = list.slice().sort(rankingCmp);
 
@@ -1766,6 +1791,9 @@ function renderRankingListHtml() {
       if (!row) return "-";
       return e.matched ? formatExDiff(row.score - e.maxExScore) : String(row.score);
     };
+    const scoreColor = (display) => display === "-0" ? "#FFD23F" : "var(--text)";
+    const top1Display = scoreDisplay(top1);
+    const top100Display = scoreDisplay(top100);
     return `
       <div class="ranking-song-row" data-key="${esc(rankingEntryKey(e))}">
         <div class="ranking-song-title-cell">
@@ -1775,8 +1803,8 @@ function renderRankingListHtml() {
           </div>
           <div class="title-text">${esc(e.musicName)}${e.matched ? "" : `<span class="hint" style="margin-left:6px">（未マッチ）</span>`}</div>
         </div>
-        <div class="col-center mono" style="color:#FFD23F">${scoreDisplay(top1)}</div>
-        <div class="col-center mono hint">${scoreDisplay(top100)}</div>
+        <div class="col-center mono" style="color:${scoreColor(top1Display)}">${top1Display}</div>
+        <div class="col-center mono" style="color:${scoreColor(top100Display)}">${top100Display}</div>
       </div>
     `;
   }).join("") || `<p class="hint">該当する曲がありません。</p>`;
@@ -1805,13 +1833,21 @@ function renderRankingListHtml() {
       <option value="level_asc">レベル低い順</option>
       <option value="title_asc">五十音順（あ→ん）</option>
       <option value="title_desc">五十音順（ん→あ）</option>
+      ${rankingState.subView === "mine" ? `
+      <option value="rank_asc">順位（高い順）</option>
+      <option value="rank_desc">順位（低い順）</option>` : ""}
+      ${rankingState.subView === "all" ? `
+      <option value="top1_desc">1位スコア（高い順）</option>
+      <option value="top1_asc">1位スコア（低い順）</option>
+      <option value="top100_desc">100位スコア（高い順）</option>
+      <option value="top100_asc">100位スコア（低い順）</option>` : ""}
     </select>
-    <p class="footnote" style="margin:0 0 8px">${list.length} 件を表示中</p>
+    <p class="footnote" style="margin:0 0 8px;text-align:left">${list.length} 件を表示中</p>
     <div class="ranking-song-list" id="rankingSongListWrap">
       <div class="ranking-song-row ranking-song-header">
         <div>楽曲</div>
-        <div class="col-center">1位のスコア</div>
-        <div class="col-center">100位のスコア</div>
+        <div class="col-center">1位</div>
+        <div class="col-center">100位</div>
       </div>
       ${rowsHtml}
     </div>
