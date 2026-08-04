@@ -325,6 +325,8 @@ let filters = {
   scoreMinEx: SCORE_DEFAULTS.minEx, scoreMaxEx: SCORE_DEFAULTS.maxEx,
   scoreMinNormal: SCORE_DEFAULTS.minNormal, scoreMaxNormal: SCORE_DEFAULTS.maxNormal,
 };
+let filterMode = "simple"; // "simple" | "advanced"（リストタブ）
+let simpleLevels = new Set(); // 「絞り込み」タブのLv.17〜20バッジ用（詳細フィルタとは独立管理）
 let draftLevels = new Set();
 let draftDiffs = new Set();
 let friendsState = { loading: false, incoming: [], outgoing: [], friends: [] };
@@ -337,6 +339,8 @@ let compareState = {
 let compareSkeletonBuilt = false;
 let compareDraftLevels = new Set();
 let compareDraftDiffs = new Set();
+let compareFilterMode = "simple"; // "simple" | "advanced"（比較タブ）
+let compareSimpleLevels = new Set(); // 比較タブの「絞り込み」バッジ用（詳細フィルタとは独立管理）
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                              */
@@ -511,8 +515,12 @@ async function loadAll() {
     showToast("スコアデータの読み込みに失敗しました: " + e.message, "error");
   }
 
-  filters.levels = new Set(DEFAULT_LEVEL_VALUES);
-  compareState.levels = new Set(DEFAULT_LEVEL_VALUES);
+  filters.levels = new Set(ALL_LEVEL_VALUES);
+  compareState.levels = new Set(ALL_LEVEL_VALUES);
+  filterMode = "simple";
+  compareFilterMode = "simple";
+  simpleLevels = new Set(DEFAULT_LEVEL_VALUES);
+  compareSimpleLevels = new Set(DEFAULT_LEVEL_VALUES);
 
   render();
   refreshFriendBadgeOnly();
@@ -749,12 +757,14 @@ function isCompareFilterActive() {
 }
 
 function getFiltered(merged) {
-  let list = merged.filter(m => filters.diffs.has(m.type) && filters.levels.has(m.level));
+  let list = filterMode === "simple"
+    ? merged.filter(m => simpleLevels.has(m.level))
+    : merged.filter(m => filters.diffs.has(m.type) && filters.levels.has(m.level));
   if (filters.search.trim()) {
     const q = filters.search.trim().toLowerCase();
     list = list.filter(m => m.title.toLowerCase().includes(q) || (m.reading || "").includes(q));
   }
-  if (isScoreFilterActive()) {
+  if (filterMode === "advanced" && isScoreFilterActive()) {
     if (filters.scoreMode === "ex") {
       list = list.filter(m => {
         const d = exDiff(m);
@@ -930,7 +940,9 @@ function compareMineValue(m, mode) {
 }
 
 function getCompareFiltered(merged, friendScores) {
-  let list = merged.filter(m => (m.score && friendScores[m.key]) && compareState.diffs.has(m.type) && compareState.levels.has(m.level));
+  let list = compareFilterMode === "simple"
+    ? merged.filter(m => (m.score && friendScores[m.key]) && compareSimpleLevels.has(m.level))
+    : merged.filter(m => (m.score && friendScores[m.key]) && compareState.diffs.has(m.type) && compareState.levels.has(m.level));
   if (compareState.search.trim()) {
     const q = compareState.search.trim().toLowerCase();
     list = list.filter(m => m.title.toLowerCase().includes(q) || (m.reading || "").includes(q));
@@ -1008,7 +1020,6 @@ function buildCompareSkeleton(friendOptionsHtml) {
       <p class="footnote" id="compareTally" style="text-align:left;margin:0 0 12px"></p>
       <div class="filter-bar">
         <input class="search-input" id="compareSearchInput" placeholder="曲名で検索…">
-        <button class="btn secondary" id="compareFilterBtn">絞り込み</button>
         <select class="select-input" id="compareSortSelect" aria-label="並び替え">
           <option value="score_desc">スコア高い順</option>
           <option value="score_asc">スコア低い順</option>
@@ -1018,7 +1029,14 @@ function buildCompareSkeleton(friendOptionsHtml) {
           <option value="title_desc">五十音順（ん→あ）</option>
         </select>
       </div>
+      <div class="toggle-group" id="compareFilterModeToggle" style="margin-bottom:10px">
+        <button class="toggle-pill" data-mode="simple">絞り込み</button>
+        <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
+      </div>
       <div class="level-shortcut-row" id="compareLevelShortcutRow"></div>
+      <div id="compareAdvancedFilterRow" style="display:none">
+        <button class="btn secondary" id="compareFilterBtn">絞り込み条件を開く</button>
+      </div>
       <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
         <div>
           <div class="filter-band-label" style="margin-bottom:6px">勝負基準</div>
@@ -1050,7 +1068,7 @@ function buildCompareSkeleton(friendOptionsHtml) {
     <div class="modal-overlay" id="compareFilterModalOverlay" style="display:none">
       <div class="modal-box">
         <div class="modal-header">
-          <h3>絞り込み</h3>
+          <h3>高度な絞り込み</h3>
           <div style="display:flex;align-items:center;gap:14px">
             <button class="link-btn" id="compareFilterResetBtn">内容を初期化</button>
             <button class="modal-close" id="compareFilterCloseBtn">×</button>
@@ -1074,11 +1092,17 @@ function buildCompareSkeleton(friendOptionsHtml) {
     const btn = e.target.closest('button[data-result]');
     if (btn) { compareState.resultFilter = btn.dataset.result; render(); }
   });
+  document.getElementById('compareFilterModeToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-mode]');
+    if (!btn) return;
+    compareFilterMode = btn.dataset.mode;
+    render();
+  });
   document.getElementById('compareLevelShortcutRow').addEventListener('click', (e) => {
     const btn = e.target.closest('.level-shortcut');
     if (!btn) return;
     const idx = parseInt(btn.dataset.idx, 10);
-    toggleLevelBand(compareState.levels, LEVEL_SHORTCUTS[idx].values);
+    toggleLevelBand(compareSimpleLevels, LEVEL_SHORTCUTS[idx].values);
     render();
   });
   document.getElementById('compareFilterBtn').addEventListener('click', openCompareFilterModal);
@@ -1095,14 +1119,21 @@ function updateCompareControls() {
   const friendUsername = (friendsList.find(f => f.uid === selectedUid) || {}).username || "相手";
   document.getElementById('compareFriendHeader').textContent = friendUsername;
   document.getElementById('compareSortSelect').value = compareState.sort;
+  document.querySelectorAll('#compareFilterModeToggle button').forEach(b => {
+    b.classList.toggle('on', b.dataset.mode === compareFilterMode);
+  });
+  const compareLevelShortcutRow = document.getElementById('compareLevelShortcutRow');
+  const compareAdvancedFilterRow = document.getElementById('compareAdvancedFilterRow');
+  if (compareLevelShortcutRow) compareLevelShortcutRow.style.display = compareFilterMode === "simple" ? "flex" : "none";
+  if (compareAdvancedFilterRow) compareAdvancedFilterRow.style.display = compareFilterMode === "advanced" ? "block" : "none";
   const filterBtn = document.getElementById('compareFilterBtn');
   if (filterBtn) {
     const active = isCompareFilterActive();
     filterBtn.classList.toggle('filter-active', active);
-    filterBtn.textContent = active ? "絞り込み中●" : "絞り込み";
+    filterBtn.textContent = active ? "絞り込み条件を開く（設定中●）" : "絞り込み条件を開く";
   }
   const compareShortcutRow = document.getElementById('compareLevelShortcutRow');
-  if (compareShortcutRow) compareShortcutRow.innerHTML = renderLevelShortcuts(compareState.levels);
+  if (compareShortcutRow) compareShortcutRow.innerHTML = renderLevelShortcuts(compareSimpleLevels);
   document.querySelectorAll('#compareModeToggle button').forEach(b => {
     b.classList.toggle('on', b.dataset.mode === compareState.mode);
   });
@@ -1245,7 +1276,6 @@ function buildListSkeleton() {
     <div class="panel">
       <div class="filter-bar">
         <input class="search-input" id="searchInput" placeholder="曲名で検索…">
-        <button class="btn secondary" id="openFilterBtn">絞り込み</button>
         <select class="select-input" id="sortSelect" aria-label="並び替え">
           <option value="exscore_desc">スコア高い順（EX）</option>
           <option value="exscore_asc">スコア低い順（EX）</option>
@@ -1257,7 +1287,14 @@ function buildListSkeleton() {
           <option value="title_desc">五十音順（ん→あ）</option>
         </select>
       </div>
+      <div class="toggle-group" id="filterModeToggle" style="margin-bottom:10px">
+        <button class="toggle-pill" data-mode="simple">絞り込み</button>
+        <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
+      </div>
       <div class="level-shortcut-row" id="levelShortcutRow"></div>
+      <div id="advancedFilterRow" style="display:none">
+        <button class="btn secondary" id="openFilterBtn">絞り込み条件を開く</button>
+      </div>
     </div>
     <div id="listTopInfo" class="footnote" style="margin:2px 0 10px;text-align:left"></div>
     <div class="panel" style="padding:0;overflow:hidden">
@@ -1273,7 +1310,7 @@ function buildListSkeleton() {
     <div class="modal-overlay" id="filterModalOverlay" style="display:none">
       <div class="modal-box">
         <div class="modal-header">
-          <h3>絞り込み</h3>
+          <h3>高度な絞り込み</h3>
           <div style="display:flex;align-items:center;gap:14px">
             <button class="link-btn" id="filterModalResetBtn">内容を初期化</button>
             <button class="modal-close" id="filterModalCloseBtn">×</button>
@@ -1289,12 +1326,19 @@ function buildListSkeleton() {
   document.getElementById('searchInput').value = filters.search;
   document.getElementById('searchInput').addEventListener('input', (e) => updateFilter('search', e.target.value));
   document.getElementById('sortSelect').addEventListener('change', (e) => updateFilter('sort', e.target.value));
+  document.getElementById('filterModeToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-mode]');
+    if (!btn) return;
+    filterMode = btn.dataset.mode;
+    currentPage = 1;
+    render();
+  });
   document.getElementById('openFilterBtn').addEventListener('click', openFilterModal);
   document.getElementById('levelShortcutRow').addEventListener('click', (e) => {
     const btn = e.target.closest('.level-shortcut');
     if (!btn) return;
     const idx = parseInt(btn.dataset.idx, 10);
-    toggleLevelBand(filters.levels, LEVEL_SHORTCUTS[idx].values);
+    toggleLevelBand(simpleLevels, LEVEL_SHORTCUTS[idx].values);
     currentPage = 1;
     render();
   });
@@ -1308,14 +1352,21 @@ function buildListSkeleton() {
 
 function updateListControls() {
   document.getElementById('sortSelect').value = filters.sort;
+  document.querySelectorAll('#filterModeToggle button').forEach(b => {
+    b.classList.toggle('on', b.dataset.mode === filterMode);
+  });
+  const levelShortcutRow = document.getElementById('levelShortcutRow');
+  const advancedFilterRow = document.getElementById('advancedFilterRow');
+  if (levelShortcutRow) levelShortcutRow.style.display = filterMode === "simple" ? "flex" : "none";
+  if (advancedFilterRow) advancedFilterRow.style.display = filterMode === "advanced" ? "block" : "none";
   const filterBtn = document.getElementById('openFilterBtn');
   if (filterBtn) {
     const active = isFilterActive();
     filterBtn.classList.toggle('filter-active', active);
-    filterBtn.textContent = active ? "絞り込み中●" : "絞り込み";
+    filterBtn.textContent = active ? "絞り込み条件を開く（設定中●）" : "絞り込み条件を開く";
   }
   const shortcutRow = document.getElementById('levelShortcutRow');
-  if (shortcutRow) shortcutRow.innerHTML = renderLevelShortcuts(filters.levels);
+  if (shortcutRow) shortcutRow.innerHTML = renderLevelShortcuts(simpleLevels);
   // 検索欄はユーザーが今まさに入力中の値そのものなので、ここでは一切触らない
 }
 
