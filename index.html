@@ -139,6 +139,12 @@
   .jacket-thumb { width:34px; height:34px; border-radius:6px; object-fit:cover; background:#1c2338; flex-shrink:0; border:2px solid var(--border); box-sizing:border-box; }
   .title-cell { display:flex; align-items:center; gap:10px; }
   .title-text { white-space:normal; word-break:break-word; line-height:1.35; min-width:0; flex:1; }
+  .ranking-song-list { display:flex; flex-direction:column; gap:2px; }
+  .ranking-song-row {
+    display:flex; align-items:center; gap:10px; padding:10px 6px; border-bottom:1px solid var(--row-border);
+    cursor:pointer; border-radius:6px;
+  }
+  .ranking-song-row:hover { background:var(--row-hover); }
   .level-num { font-variant-numeric:tabular-nums; color:var(--text); }
   .mono { font-family:ui-monospace,"SF Mono",monospace; font-variant-numeric:tabular-nums; }
   .score-cell-small { font-size:12px; }
@@ -227,6 +233,10 @@
   <p class="hint" id="authHint">アカウント名とパスワードを入力してください。</p>
   <input class="search-input" id="authUsername" placeholder="アカウント名（半角英数字・3〜20文字）" style="width:100%;margin-bottom:8px;box-sizing:border-box;">
   <input class="search-input" id="authPassword" type="text" placeholder="パスワード（6文字以上）" style="width:100%;margin-bottom:4px;box-sizing:border-box;">
+  <div id="authPlayerIdWrap" style="display:none;margin-top:8px">
+    <input class="search-input" id="authPlayerId" placeholder="プレイヤーID（任意・例: SV-9900-0000）" style="width:100%;box-sizing:border-box;">
+    <p class="hint" style="margin-top:4px">入力しておくと、ランキング機能で自分の順位が見つけやすくなります。</p>
+  </div>
   <p class="hint" id="authError" style="color:#ff4757;min-height:16px"></p>
   <div class="btn-row">
     <button class="btn" id="authSubmitBtn" onclick="handleAuthSubmit()">ログイン</button>
@@ -250,6 +260,7 @@
       <div class="account-dropdown" id="accountDropdown" style="display:none">
         <div class="account-dropdown-name" id="accountDropdownName"></div>
         <button class="account-dropdown-item" onclick="openChangeUsernameModal(); toggleAccountMenu();">アカウント名を変更</button>
+        <button class="account-dropdown-item" onclick="openPlayerIdModal(); toggleAccountMenu();">プレイヤーIDを設定</button>
         <button class="account-dropdown-item" onclick="switchTab('terms'); toggleAccountMenu();">利用規約</button>
         <button class="account-dropdown-item danger" onclick="handleLogout()">ログアウト</button>
       </div>
@@ -258,12 +269,14 @@
 
   <div class="tabs">
     <button class="tab-btn active" id="tab-list" onclick="switchTab('list')">ホーム</button>
+    <button class="tab-btn" id="tab-ranking" onclick="switchTab('ranking')">ランキング</button>
     <button class="tab-btn" id="tab-compare" onclick="switchTab('compare')">スコア比較</button>
     <button class="tab-btn" id="tab-friends" onclick="switchTab('friends')">フレンド</button>
     <button class="tab-btn" id="tab-data" onclick="switchTab('data')">スコア登録</button>
   </div>
 
   <div id="view-list"></div>
+  <div id="view-ranking" style="display:none"></div>
   <div id="view-data" style="display:none"></div>
   <div id="view-terms" style="display:none"></div>
   <div id="view-friends" style="display:none"></div>
@@ -297,6 +310,24 @@
     <div class="modal-footer" style="display:flex;gap:10px">
       <button class="btn" id="usernameModalSubmitBtn" style="flex:1">変更する</button>
       <button class="btn secondary" id="usernameModalCancelBtn" style="flex:1">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="playerIdModalOverlay" style="display:none">
+  <div class="modal-box" style="max-width:360px">
+    <div class="modal-header">
+      <h3>プレイヤーIDを設定</h3>
+      <button class="modal-close" id="playerIdModalCloseBtn">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="hint">SDVXのプレイヤーID（例: SV-9900-0000）を登録しておくと、ランキング機能で自分の順位を探せるようになります。</p>
+      <input class="search-input" id="playerIdModalInput" placeholder="例: SV-9900-0000" style="width:100%;box-sizing:border-box;margin:10px 0 4px;">
+      <p class="hint" id="playerIdModalError" style="color:#ff4757;min-height:16px"></p>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px">
+      <button class="btn" id="playerIdModalSubmitBtn" style="flex:1">保存する</button>
+      <button class="btn secondary" id="playerIdModalCancelBtn" style="flex:1">キャンセル</button>
     </div>
   </div>
 </div>
@@ -430,7 +461,38 @@ document.addEventListener('DOMContentLoaded', () => {
   if (uCancelBtn) uCancelBtn.addEventListener('click', closeChangeUsernameModal);
   if (uSubmitBtn) uSubmitBtn.addEventListener('click', submitChangeUsername);
   if (uOverlay) uOverlay.addEventListener('click', (e) => { if (e.target.id === 'usernameModalOverlay') closeChangeUsernameModal(); });
+
+  const pCloseBtn = document.getElementById('playerIdModalCloseBtn');
+  const pCancelBtn = document.getElementById('playerIdModalCancelBtn');
+  const pSubmitBtn = document.getElementById('playerIdModalSubmitBtn');
+  const pOverlay = document.getElementById('playerIdModalOverlay');
+  if (pCloseBtn) pCloseBtn.addEventListener('click', closePlayerIdModal);
+  if (pCancelBtn) pCancelBtn.addEventListener('click', closePlayerIdModal);
+  if (pSubmitBtn) pSubmitBtn.addEventListener('click', submitPlayerId);
+  if (pOverlay) pOverlay.addEventListener('click', (e) => { if (e.target.id === 'playerIdModalOverlay') closePlayerIdModal(); });
 });
+
+function openPlayerIdModal() {
+  document.getElementById('playerIdModalInput').value = window.currentPlayerId || "";
+  document.getElementById('playerIdModalError').textContent = "";
+  document.getElementById('playerIdModalOverlay').style.display = 'flex';
+}
+function closePlayerIdModal() {
+  document.getElementById('playerIdModalOverlay').style.display = 'none';
+}
+async function submitPlayerId() {
+  const raw = document.getElementById('playerIdModalInput').value.trim();
+  const errEl = document.getElementById('playerIdModalError');
+  errEl.textContent = "";
+  try {
+    const saved = await window.savePlayerId(raw);
+    window.currentPlayerId = saved;
+    closePlayerIdModal();
+    showToast(saved ? "プレイヤーIDを保存しました" : "プレイヤーIDを削除しました", "success");
+  } catch (e) {
+    errEl.textContent = e.message;
+  }
+}
 
 function openChangeUsernameModal() {
   document.getElementById('usernameModalCurrent').textContent = window.currentUsername || "";
@@ -557,7 +619,7 @@ function distinctLevels() {
 /* ------------------------------------------------------------------ */
 function switchTab(t) {
   tab = t;
-  ['list', 'data', 'friends', 'compare', 'terms'].forEach(name => {
+  ['list', 'ranking', 'data', 'friends', 'compare', 'terms'].forEach(name => {
     const btn = document.getElementById('tab-' + name);
     if (btn) btn.className = 'tab-btn' + (t === name ? ' active' : '');
     document.getElementById('view-' + name).style.display = t === name ? 'block' : 'none';
@@ -565,6 +627,7 @@ function switchTab(t) {
   render();
   if (t === 'friends') refreshFriendsData();
   if (t === 'compare') refreshCompareFriends();
+  if (t === 'ranking') ensureRankingLoaded();
 }
 
 async function refreshCompareFriends() {
@@ -819,6 +882,8 @@ function render() {
 
   if (tab === 'data') {
     renderDataTab();
+  } else if (tab === 'ranking') {
+    renderRankingTab();
   } else if (tab === 'friends') {
     renderFriendsTab();
   } else if (tab === 'compare') {
@@ -1303,6 +1368,319 @@ function renderCompareFilterModalBody() {
 }
 
 
+
+/* ------------------------------------------------------------------ */
+/* ランキングタブ                                                        */
+/* ------------------------------------------------------------------ */
+
+// TODO: 有志の方からURLをいただいたら、ここに設定する
+const RANKING_DATA_URL = "";
+const RANKING_CACHE_KEY = "sdvxRankingCache_v1";
+const RANKING_MIN_LEVEL = 17;
+
+// difficulty略称 -> 内部type のマップ（DIFF_METAの逆引き）
+const DIFF_ABBR_TO_TYPE = Object.fromEntries(
+  Object.entries(DIFF_META).map(([type, meta]) => [meta.abbr.toUpperCase(), type])
+);
+
+let rankingState = {
+  status: "idle",          // idle | loading | loaded | error
+  errorMessage: "",
+  fetchedAt: "",           // データの生成/取得日時（表示用の文字列）
+  entries: [],             // 曲×難易度ごとのエントリ一覧
+  subView: "all",          // "all" | "mine"
+  activeKey: null,         // 詳細表示中のエントリキー（nullなら一覧表示）
+  search: "",
+};
+
+function rankingEntryKey(e) {
+  return e.musicName + "___" + e.diffAbbr;
+}
+
+// MOCK: 有志のURLがまだ無いので、実データが来るまでの見た目確認用のサンプルデータ。
+// URLが判明したら RANKING_DATA_URL を設定すればこちらは自動的に使われなくなる。
+const MOCK_RANKING_JSON = [
+  {
+    music_name: "Everlasting Message",
+    difficulty: "ULT",
+    level: 20.9,
+    ranking_data: [
+      ["ふくちゃん", "SV-9900-0000", 11264, "2026-08-03 04:00"],
+      ["yuuya", "SV-9900-0001", 11258, "2026-08-03 04:00"],
+      ["GUEST-03", "SV-9900-0002", 11201, "2026-08-03 04:00"],
+      ["GUEST-04", "SV-9900-0003", 11150, "2026-08-03 04:00"],
+      ["GUEST-05", "SV-9900-0004", 11089, "2026-08-03 04:00"],
+    ],
+  },
+  {
+    music_name: "地球防衛乙女パンナコッター",
+    difficulty: "MXM",
+    level: 16,
+    ranking_data: [
+      ["GUEST-01", "SV-9900-0010", 3447, "2026-08-03 04:00"],
+      ["GUEST-02", "SV-9900-0011", 3440, "2026-08-03 04:00"],
+    ],
+  },
+  {
+    // わざと songs.json に存在しないタイトルにして、未マッチ時の表示確認用
+    music_name: "サンプル未マッチ曲（テスト用）",
+    difficulty: "ULT",
+    level: 19,
+    ranking_data: [
+      ["GUEST-06", "SV-9900-0020", 9800, "2026-08-03 04:00"],
+      ["GUEST-07", "SV-9900-0021", 9750, "2026-08-03 04:00"],
+    ],
+  },
+];
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function buildRankingEntries(rawList) {
+  const songLookup = new Map();
+  for (const s of songs) songLookup.set(s.title + "___" + s.type, s);
+
+  const entries = [];
+  for (const item of rawList) {
+    const musicName = String(item.music_name || "");
+    const diffAbbr = String(item.difficulty || "").toUpperCase();
+    const mappedType = DIFF_ABBR_TO_TYPE[diffAbbr] || null;
+    const matchedSong = mappedType ? songLookup.get(musicName + "___" + mappedType) : null;
+
+    const level = matchedSong ? matchedSong.level : (typeof item.level === "number" ? item.level : parseFloat(item.level));
+    if (!(level >= RANKING_MIN_LEVEL)) continue; // Lv.17未満は対象外
+
+    const rankingData = (item.ranking_data || []).map((row, i) => ({
+      rank: i + 1,
+      name: row[0],
+      playerId: row[1],
+      score: row[2],
+      updatedAt: row[3],
+    }));
+
+    entries.push({
+      musicName,
+      diffAbbr,
+      type: mappedType,
+      level,
+      jacket: matchedSong ? matchedSong.jacket : "",
+      maxExScore: matchedSong ? matchedSong.maxExScore : 0,
+      matched: !!matchedSong,
+      rankingData,
+    });
+  }
+  entries.sort((a, b) => b.level - a.level || a.musicName.localeCompare(b.musicName, "ja"));
+  return entries;
+}
+
+async function ensureRankingLoaded(force) {
+  if (rankingState.status === "loading") return;
+  if (!force && rankingState.status === "loaded") { render(); return; }
+
+  // キャッシュ確認（同日中なら再取得しない）
+  if (!force) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(RANKING_CACHE_KEY) || "null");
+      if (cached && cached.date === todayStr()) {
+        rankingState.status = "loaded";
+        rankingState.fetchedAt = cached.fetchedAt;
+        rankingState.entries = buildRankingEntries(cached.raw);
+        render();
+        return;
+      }
+    } catch (e) { /* キャッシュ破損時は無視して再取得 */ }
+  }
+
+  rankingState.status = "loading";
+  rankingState.errorMessage = "";
+  render();
+
+  try {
+    let raw;
+    let fetchedAt;
+    if (RANKING_DATA_URL) {
+      const res = await fetch(RANKING_DATA_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      raw = await res.json();
+      fetchedAt = new Date().toLocaleString("ja-JP");
+    } else {
+      // URL未設定の間はサンプルデータで見た目だけ確認できるようにしておく
+      raw = MOCK_RANKING_JSON;
+      fetchedAt = "サンプルデータ（実データURL未設定）";
+    }
+    rankingState.entries = buildRankingEntries(raw);
+    rankingState.fetchedAt = fetchedAt;
+    rankingState.status = "loaded";
+    try {
+      localStorage.setItem(RANKING_CACHE_KEY, JSON.stringify({ date: todayStr(), fetchedAt, raw }));
+    } catch (e) { /* 容量オーバー等は無視 */ }
+  } catch (e) {
+    rankingState.status = "error";
+    rankingState.errorMessage = e.message;
+  }
+  render();
+}
+
+function openRankingEntry(key) {
+  rankingState.activeKey = key;
+  render();
+}
+function closeRankingEntry() {
+  rankingState.activeKey = null;
+  render();
+}
+
+function renderRankingTab() {
+  const container = document.getElementById('view-ranking');
+  if (rankingState.status === "idle" || rankingState.status === "loading") {
+    container.innerHTML = `<div class="panel"><p class="hint">ランキングデータを読み込み中…</p></div>`;
+    return;
+  }
+  if (rankingState.status === "error") {
+    container.innerHTML = `
+      <div class="panel">
+        <p class="hint" style="color:#ff4757">ランキングデータの取得に失敗しました: ${esc(rankingState.errorMessage)}</p>
+        <button class="btn secondary" onclick="ensureRankingLoaded(true)" style="margin-top:10px">再試行</button>
+      </div>`;
+    return;
+  }
+
+  const activeEntry = rankingState.activeKey
+    ? rankingState.entries.find(e => rankingEntryKey(e) === rankingState.activeKey)
+    : null;
+
+  container.innerHTML = `
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <p class="footnote" style="margin:0">${esc(rankingState.fetchedAt)}時点のデータです</p>
+        <button class="link-btn" onclick="ensureRankingLoaded(true)">今すぐ更新</button>
+      </div>
+      ${activeEntry ? renderRankingDetailHtml(activeEntry) : renderRankingListHtml()}
+    </div>
+  `;
+
+  if (!activeEntry) {
+    document.getElementById('rankingSubTabToggle').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-mode]');
+      if (!btn) return;
+      rankingState.subView = btn.dataset.mode;
+      render();
+    });
+    const listWrap = document.getElementById('rankingSongListWrap');
+    if (listWrap) {
+      listWrap.addEventListener('click', (e) => {
+        const row = e.target.closest('.ranking-song-row');
+        if (!row) return;
+        openRankingEntry(row.dataset.key);
+      });
+    }
+    const searchEl = document.getElementById('rankingSearchInput');
+    if (searchEl) {
+      searchEl.value = rankingState.search;
+      searchEl.addEventListener('input', (e) => { rankingState.search = e.target.value; render(); });
+    }
+    const clearBtn = document.getElementById('rankingSearchClearBtn');
+    if (clearBtn) {
+      clearBtn.style.display = rankingState.search ? 'flex' : 'none';
+      clearBtn.addEventListener('click', () => { rankingState.search = ""; render(); });
+    }
+  } else {
+    document.getElementById('rankingBackBtn').addEventListener('click', closeRankingEntry);
+  }
+}
+
+function renderRankingListHtml() {
+  const myId = (window.currentPlayerId || "").toUpperCase();
+  let list = rankingState.entries;
+
+  if (rankingState.subView === "mine") {
+    if (!myId) {
+      return `
+        <div class="toggle-group segmented-toggle" id="rankingSubTabToggle" style="margin-bottom:14px">
+          <button class="toggle-pill${rankingState.subView === "all" ? " on" : ""}" data-mode="all">全曲一覧</button>
+          <button class="toggle-pill${rankingState.subView === "mine" ? " on" : ""}" data-mode="mine">自分がランクイン中</button>
+        </div>
+        <p class="hint">プレイヤーIDが未登録です。アカウントメニューの「プレイヤーIDを設定」から登録すると、自分がランクインしている曲を確認できます。</p>
+      `;
+    }
+    list = list.filter(e => e.rankingData.some(r => (r.playerId || "").toUpperCase() === myId));
+  }
+
+  if (rankingState.search.trim()) {
+    const q = rankingState.search.trim().toLowerCase();
+    list = list.filter(e => e.musicName.toLowerCase().includes(q));
+  }
+
+  const rowsHtml = list.map(e => {
+    const meta = DIFF_META[e.type] || { abbr: e.diffAbbr, color: "#888" };
+    const myRow = myId ? e.rankingData.find(r => (r.playerId || "").toUpperCase() === myId) : null;
+    return `
+      <div class="ranking-song-row" data-key="${esc(rankingEntryKey(e))}">
+        ${e.jacket ? `<img class="jacket-thumb" src="${esc(e.jacket)}" loading="lazy" style="border-color:${meta.color}">` : `<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}
+        <div style="flex:1;min-width:0">
+          <div class="title-text">${esc(e.musicName)}${e.matched ? "" : `<span class="hint" style="margin-left:6px">（未マッチ）</span>`}</div>
+          <div class="hint" style="margin-top:2px">
+            <span style="color:${meta.color};font-weight:800">${esc(meta.abbr)}</span> Lv.${e.level}
+            ${myRow ? `<span style="color:#FFD23F;font-weight:800;margin-left:8px">自分: ${myRow.rank}位</span>` : ""}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("") || `<p class="hint">該当する曲がありません。</p>`;
+
+  return `
+    <div class="toggle-group segmented-toggle" id="rankingSubTabToggle" style="margin-bottom:10px">
+      <button class="toggle-pill${rankingState.subView === "all" ? " on" : ""}" data-mode="all">全曲一覧</button>
+      <button class="toggle-pill${rankingState.subView === "mine" ? " on" : ""}" data-mode="mine">自分がランクイン中</button>
+    </div>
+    <div class="search-wrap" style="margin-bottom:12px">
+      <input class="search-input" id="rankingSearchInput" placeholder="曲名で検索…">
+      <button type="button" class="search-clear-btn" id="rankingSearchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
+    </div>
+    <div class="ranking-song-list" id="rankingSongListWrap">${rowsHtml}</div>
+  `;
+}
+
+function renderRankingDetailHtml(entry) {
+  const meta = DIFF_META[entry.type] || { abbr: entry.diffAbbr, color: "#888" };
+  const myId = (window.currentPlayerId || "").toUpperCase();
+  const rowsHtml = entry.rankingData.map(r => {
+    const isMine = myId && (r.playerId || "").toUpperCase() === myId;
+    const diff = entry.matched ? formatExDiff(r.score - entry.maxExScore) : "-";
+    return `
+      <tr${isMine ? ' style="background:rgba(255,210,63,0.12)"' : ""}>
+        <td class="col-center mono">${r.rank}</td>
+        <td>${esc(r.name)}${isMine ? ' <span style="color:#FFD23F;font-weight:800">(自分)</span>' : ""}</td>
+        <td class="mono" style="font-size:12px;color:var(--muted)">${esc(r.playerId)}</td>
+        <td class="mono col-center">${esc(String(r.score))}</td>
+        <td class="mono col-center" style="color:#FFD23F">${diff}</td>
+        <td class="hint col-center">${esc(r.updatedAt)}</td>
+      </tr>
+    `;
+  }).join("");
+
+  return `
+    <button class="link-btn" id="rankingBackBtn" style="margin-bottom:10px">← 曲一覧に戻る</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      ${entry.jacket ? `<img class="jacket-thumb" src="${esc(entry.jacket)}" style="width:56px;height:56px;border-color:${meta.color}">` : ""}
+      <div>
+        <div class="title-text" style="font-size:16px">${esc(entry.musicName)}</div>
+        <div class="hint" style="margin-top:2px"><span style="color:${meta.color};font-weight:800">${esc(meta.abbr)}</span> Lv.${entry.level}</div>
+      </div>
+    </div>
+    ${!entry.matched ? `<p class="hint" style="margin-bottom:10px">この曲は楽曲マスタと自動で一致しなかったため、EXスコアの理論値差分は表示していません。</p>` : ""}
+    <div class="table-wrap">
+      <table class="score-table">
+        <thead><tr><th class="col-center">順位</th><th>プレイヤー名</th><th>プレイヤーID</th><th class="col-center">スコア</th><th class="col-center">差分</th><th class="col-center">更新日時</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+
 let listSkeletonBuilt = false;
 
 function buildListSkeleton() {
@@ -1728,6 +2106,7 @@ function renderAuthGate() {
   document.getElementById('authSubmitBtn').textContent = authMode === "login" ? "ログイン" : "登録する";
   document.querySelector('#authGate .btn.secondary').textContent = authMode === "login" ? "新規登録はこちら" : "戻る";
   document.getElementById('authError').textContent = "";
+  document.getElementById('authPlayerIdWrap').style.display = authMode === "signup" ? "block" : "none";
 }
 window.toggleAuthMode = function () {
   authMode = authMode === "login" ? "signup" : "login";
@@ -1750,11 +2129,12 @@ window.handleAuthSubmit = async function () {
   }
 
   const email = usernameToEmail(username);
+  const playerId = (document.getElementById('authPlayerId').value || "").trim();
   try {
     if (authMode === "signup") {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await setDoc(doc(db, "users", cred.user.uid), {
-        username, displayName: username, createdAt: serverTimestamp(), scores: {}
+        username, displayName: username, createdAt: serverTimestamp(), scores: {}, playerId: playerId || null
       });
       await setDoc(doc(db, "usernames", username.toLowerCase()), { uid: cred.user.uid });
     } else {
@@ -1768,6 +2148,16 @@ window.handleAuthSubmit = async function () {
 window.handleLogout = async function () {
   if (!(await window.showConfirmDialog("ログアウトしますか？"))) return;
   signOut(auth);
+};
+
+window.savePlayerId = async function (rawId) {
+  if (!auth.currentUser) throw new Error("ログインしていません");
+  const id = (rawId || "").trim().toUpperCase();
+  if (id && !/^SV-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(id)) {
+    throw new Error("プレイヤーIDの形式が正しくありません（例: SV-9900-0000）");
+  }
+  await setDoc(doc(db, "users", auth.currentUser.uid), { playerId: id || null }, { merge: true });
+  return id;
 };
 
 window.changeDisplayName = async function (newNameRaw) {
@@ -1914,10 +2304,12 @@ window.getUserScores = async function (uid) {
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     let username = "";
+    let playerId = "";
     try {
       const snap = await getDoc(doc(db, "users", user.uid));
       if (snap.exists()) {
         username = snap.data().displayName || snap.data().username || "";
+        playerId = snap.data().playerId || "";
       }
     } catch (e) {
       console.error("ユーザー情報の取得に失敗:", e);
@@ -1927,6 +2319,7 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById('appRoot').style.display = 'block';
     document.getElementById('accountDropdownName').textContent = username ? (username + " でログイン中") : "";
     window.currentUsername = username;
+    window.currentPlayerId = playerId;
     document.getElementById('accountAvatarBtn').textContent = username ? username.charAt(0).toUpperCase() : "?";
     window.loadAll();
   } else {
