@@ -145,10 +145,15 @@
   .jacket-thumb { width:40px; height:40px; border-radius:6px; object-fit:cover; background:#1c2338; flex-shrink:0; border:2px solid var(--border); box-sizing:border-box; }
   .title-cell { display:flex; align-items:center; gap:10px; }
   .title-text { white-space:normal; word-break:break-word; line-height:1.35; min-width:0; flex:1; }
-  .ranking-song-list { display:flex; flex-direction:column; font-size:13px; }
+  .ranking-song-list-wrap { overflow-x:auto; }
+  .ranking-song-list { display:flex; flex-direction:column; font-size:13px; min-width:568px; }
   .ranking-song-row {
-    display:grid; grid-template-columns:64px minmax(0,1fr) 84px 84px; align-items:center; gap:10px;
+    display:grid; grid-template-columns:260px 84px 84px 64px; align-items:center; gap:10px;
     padding:10px 6px; border-bottom:1px solid var(--row-border); cursor:pointer; border-radius:6px;
+  }
+  @media (max-width: 480px) {
+    .ranking-song-list { min-width:458px; }
+    .ranking-song-row { grid-template-columns:150px 84px 84px 64px; }
   }
   .ranking-song-row:hover { background:var(--row-hover); }
   .ranking-song-header {
@@ -1445,6 +1450,7 @@ let rankingState = {
   entries: [],             // 曲×難易度ごとのエントリ一覧
   subView: "all",          // "all" | "mine"
   activeKey: null,         // 詳細表示中のエントリキー（nullなら一覧表示）
+  listScrollY: 0,          // 一覧タブでのスクロール位置（詳細から戻ったときに復元する）
   search: "",
   sort: "date_desc",
 };
@@ -1593,12 +1599,15 @@ async function ensureRankingLoaded(force) {
 }
 
 function openRankingEntry(key) {
+  rankingState.listScrollY = window.scrollY;
   rankingState.activeKey = key;
   render();
+  window.scrollTo(0, 0);
 }
 function closeRankingEntry() {
   rankingState.activeKey = null;
   render();
+  window.scrollTo(0, rankingState.listScrollY || 0);
 }
 
 function renderRankingTab() {
@@ -1805,7 +1814,6 @@ function renderRankingListHtml() {
     const mineDisplay = (myScoreEntry && myScoreEntry.exScore) ? formatExDiff(myScoreEntry.exScore - e.maxExScore) : "-";
     return `
       <div class="ranking-song-row" data-key="${esc(rankingEntryKey(e))}">
-        <div class="col-center mono" style="color:${scoreColor(mineDisplay)}">${mineDisplay}</div>
         <div class="ranking-song-title-cell">
           <div class="jacket-thumb-wrap">
             ${e.jacket ? `<img class="jacket-thumb" src="${esc(e.jacket)}" loading="lazy" style="border-color:${meta.color}">` : `<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}
@@ -1815,6 +1823,7 @@ function renderRankingListHtml() {
         </div>
         <div class="col-center mono" style="color:${scoreColor(top1Display)}">${top1Display}</div>
         <div class="col-center mono" style="color:${scoreColor(top100Display)}">${top100Display}</div>
+        <div class="col-center mono" style="color:${scoreColor(mineDisplay)}">${mineDisplay}</div>
       </div>
     `;
   }).join("") || `<p class="hint">該当する曲がありません。</p>`;
@@ -1853,14 +1862,16 @@ function renderRankingListHtml() {
       <option value="top100_asc">100位スコア（低い順）</option>` : ""}
     </select>
     <p class="footnote" style="margin:0 0 8px;text-align:left">${list.length} 件を表示中</p>
-    <div class="ranking-song-list" id="rankingSongListWrap">
-      <div class="ranking-song-row ranking-song-header">
-        <div class="col-center">自分</div>
-        <div>楽曲</div>
-        <div class="col-center">1位</div>
-        <div class="col-center">100位</div>
+    <div class="ranking-song-list-wrap">
+      <div class="ranking-song-list" id="rankingSongListWrap">
+        <div class="ranking-song-row ranking-song-header">
+          <div>楽曲</div>
+          <div class="col-center">1位</div>
+          <div class="col-center">100位</div>
+          <div class="col-center">自分</div>
+        </div>
+        ${rowsHtml}
       </div>
-      ${rowsHtml}
     </div>
   `;
 }
