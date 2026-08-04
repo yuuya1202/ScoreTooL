@@ -91,6 +91,15 @@
   .diff-toggle-row { display:flex; gap:6px; flex-wrap:wrap; }
   .diff-toggle { border:1px solid var(--border); border-radius:7px; padding:4px 9px; font-size:11px; font-weight:700; cursor:pointer; background:var(--panel-2); color:var(--muted); }
   .diff-toggle.on { color:#05070d; }
+  .level-shortcut-row { display:flex; gap:6px; flex-wrap:wrap; margin:-4px 0 12px; }
+  .level-shortcut {
+    border:1px solid var(--border); border-radius:7px; padding:5px 13px; font-size:12px; font-weight:800;
+    cursor:pointer; background:var(--panel-2); color:var(--muted); letter-spacing:0.3px;
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .level-shortcut:hover { border-color: var(--gold); color: var(--text); }
+  .level-shortcut.on { background: var(--gold); border-color: var(--gold); color:#05070d; }
+  .level-shortcut.partial { border-color: var(--gold); color: var(--gold); background: var(--panel-2); }
   textarea.data-input { width:100%; min-height:110px; background:var(--panel-2); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:10px; font-size:12px; font-family:ui-monospace,"SF Mono",monospace; resize:vertical; }
   .btn { background: linear-gradient(135deg, var(--cyan), #00a8c2); color:#05070d; border:none; border-radius:8px; padding:9px 18px; font-weight:800; font-size:13px; cursor:pointer; }
   .btn:disabled { opacity:0.5; cursor:not-allowed; }
@@ -502,8 +511,8 @@ async function loadAll() {
     showToast("スコアデータの読み込みに失敗しました: " + e.message, "error");
   }
 
-  filters.levels = new Set(ALL_LEVEL_VALUES);
-  compareState.levels = new Set(ALL_LEVEL_VALUES);
+  filters.levels = new Set(DEFAULT_LEVEL_VALUES);
+  compareState.levels = new Set(DEFAULT_LEVEL_VALUES);
 
   render();
   refreshFriendBadgeOnly();
@@ -704,6 +713,11 @@ function exDiff(m) {
 function exDiffFor(scoreObj, maxExScore) {
   if (!scoreObj || !maxExScore || !scoreObj.exScore) return null;
   return scoreObj.exScore - maxExScore;
+}
+function formatExDiff(d) {
+  if (d === null) return "-";
+  if (d === 0) return "-0";
+  return String(d);
 }
 
 function formatLevel(lv) {
@@ -916,7 +930,7 @@ function compareMineValue(m, mode) {
 }
 
 function getCompareFiltered(merged, friendScores) {
-  let list = merged.filter(m => (m.score || friendScores[m.key]) && compareState.diffs.has(m.type) && compareState.levels.has(m.level));
+  let list = merged.filter(m => (m.score && friendScores[m.key]) && compareState.diffs.has(m.type) && compareState.levels.has(m.level));
   if (compareState.search.trim()) {
     const q = compareState.search.trim().toLowerCase();
     list = list.filter(m => m.title.toLowerCase().includes(q) || (m.reading || "").includes(q));
@@ -1004,6 +1018,7 @@ function buildCompareSkeleton(friendOptionsHtml) {
           <option value="title_desc">五十音順（ん→あ）</option>
         </select>
       </div>
+      <div class="level-shortcut-row" id="compareLevelShortcutRow"></div>
       <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
         <div>
           <div class="filter-band-label" style="margin-bottom:6px">勝負基準</div>
@@ -1059,6 +1074,13 @@ function buildCompareSkeleton(friendOptionsHtml) {
     const btn = e.target.closest('button[data-result]');
     if (btn) { compareState.resultFilter = btn.dataset.result; render(); }
   });
+  document.getElementById('compareLevelShortcutRow').addEventListener('click', (e) => {
+    const btn = e.target.closest('.level-shortcut');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.idx, 10);
+    toggleLevelBand(compareState.levels, LEVEL_SHORTCUTS[idx].values);
+    render();
+  });
   document.getElementById('compareFilterBtn').addEventListener('click', openCompareFilterModal);
   document.getElementById('compareFilterCloseBtn').addEventListener('click', closeCompareFilterModal);
   document.getElementById('compareFilterResetBtn').addEventListener('click', resetCompareFilterModal);
@@ -1079,6 +1101,8 @@ function updateCompareControls() {
     filterBtn.classList.toggle('filter-active', active);
     filterBtn.textContent = active ? "絞り込み中●" : "絞り込み";
   }
+  const compareShortcutRow = document.getElementById('compareLevelShortcutRow');
+  if (compareShortcutRow) compareShortcutRow.innerHTML = renderLevelShortcuts(compareState.levels);
   document.querySelectorAll('#compareModeToggle button').forEach(b => {
     b.classList.toggle('on', b.dataset.mode === compareState.mode);
   });
@@ -1106,10 +1130,10 @@ function updateCompareTableBody() {
     const fs = friendScores[m.key] || null;
     const meta = DIFF_META[m.type] || { abbr: (m.type || "?").slice(0, 3).toUpperCase(), color: "#888" };
     const mineDisplay = mode === "ex"
-      ? (exDiff(m) === null ? "-" : String(exDiff(m)))
+      ? formatExDiff(exDiff(m))
       : (m.score ? fmtNum(m.score.highScore) : "-");
     const friendDisplay = mode === "ex"
-      ? (exDiffFor(fs, m.maxExScore) === null ? "-" : String(exDiffFor(fs, m.maxExScore)))
+      ? formatExDiff(exDiffFor(fs, m.maxExScore))
       : (fs ? fmtNum(fs.highScore) : "-");
     const mineColor = result === "win" ? "color:#3B82F6" : "";
     const friendColor = result === "loss" ? "color:#FF4757" : "";
@@ -1233,6 +1257,7 @@ function buildListSkeleton() {
           <option value="title_desc">五十音順（ん→あ）</option>
         </select>
       </div>
+      <div class="level-shortcut-row" id="levelShortcutRow"></div>
     </div>
     <div id="listTopInfo" class="footnote" style="margin:2px 0 10px;text-align:left"></div>
     <div class="panel" style="padding:0;overflow:hidden">
@@ -1265,6 +1290,14 @@ function buildListSkeleton() {
   document.getElementById('searchInput').addEventListener('input', (e) => updateFilter('search', e.target.value));
   document.getElementById('sortSelect').addEventListener('change', (e) => updateFilter('sort', e.target.value));
   document.getElementById('openFilterBtn').addEventListener('click', openFilterModal);
+  document.getElementById('levelShortcutRow').addEventListener('click', (e) => {
+    const btn = e.target.closest('.level-shortcut');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.idx, 10);
+    toggleLevelBand(filters.levels, LEVEL_SHORTCUTS[idx].values);
+    currentPage = 1;
+    render();
+  });
   document.getElementById('filterModalCloseBtn').addEventListener('click', closeFilterModal);
   document.getElementById('filterModalResetBtn').addEventListener('click', resetFilterModal);
   document.getElementById('filterModalApplyBtn').addEventListener('click', applyFilterModal);
@@ -1281,14 +1314,15 @@ function updateListControls() {
     filterBtn.classList.toggle('filter-active', active);
     filterBtn.textContent = active ? "絞り込み中●" : "絞り込み";
   }
+  const shortcutRow = document.getElementById('levelShortcutRow');
+  if (shortcutRow) shortcutRow.innerHTML = renderLevelShortcuts(filters.levels);
   // 検索欄はユーザーが今まさに入力中の値そのものなので、ここでは一切触らない
 }
 
 function updateListTableBody(visible, filtered, merged, totalPages) {
   const rows = visible.map(m => {
     const meta = DIFF_META[m.type] || { abbr: (m.type||"?").slice(0,3).toUpperCase(), color: "#888" };
-    const exVal = exDiff(m);
-    const exDisplay = exVal === null ? "-" : String(exVal);
+    const exDisplay = formatExDiff(exDiff(m));
     const normalDisplay = m.score ? fmtNum(m.score.highScore) : "-";
     return `
       <tr class="${!m.score?'unplayed':''}">
@@ -1328,6 +1362,31 @@ const LEVEL_BANDS = [
   { label: "20.0〜20.9", values: buildDecimalRange(20.0, 20.9, 0.1) },
 ];
 const ALL_LEVEL_VALUES = LEVEL_BANDS.flatMap(b => b.values);
+const DEFAULT_LEVEL_VALUES = LEVEL_BANDS.slice(1).flatMap(b => b.values); // 17〜20のみ
+const LEVEL_SHORTCUTS = [
+  { label: "Lv.17", values: LEVEL_BANDS[1].values },
+  { label: "Lv.18", values: LEVEL_BANDS[2].values },
+  { label: "Lv.19", values: LEVEL_BANDS[3].values },
+  { label: "Lv.20", values: LEVEL_BANDS[4].values },
+];
+function levelBandState(levelsSet, values) {
+  let count = 0;
+  for (const v of values) if (levelsSet.has(v)) count++;
+  if (count === 0) return "off";
+  if (count === values.length) return "on";
+  return "partial";
+}
+function toggleLevelBand(levelsSet, values) {
+  const state = levelBandState(levelsSet, values);
+  if (state === "on") values.forEach(v => levelsSet.delete(v));
+  else values.forEach(v => levelsSet.add(v));
+}
+function renderLevelShortcuts(levelsSet) {
+  return LEVEL_SHORTCUTS.map((b, i) => {
+    const state = levelBandState(levelsSet, b.values);
+    return `<button type="button" class="level-shortcut ${state}" data-idx="${i}">${b.label}</button>`;
+  }).join("");
+}
 
 let draftScoreMode = "ex";
 let draftScoreMinEx = SCORE_DEFAULTS.minEx;
