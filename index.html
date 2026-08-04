@@ -130,6 +130,7 @@
   .title-text { white-space:normal; word-break:break-word; line-height:1.35; min-width:0; flex:1; }
   .level-num { font-variant-numeric:tabular-nums; color:var(--text); }
   .mono { font-family:ui-monospace,"SF Mono",monospace; font-variant-numeric:tabular-nums; }
+  .score-cell-small { font-size:12px; }
   .badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:800; border:1px solid; letter-spacing:0.3px; }
   .badge-dim { color:var(--muted); background:var(--dim-bg); border-color:var(--border); }
   .empty-state { text-align:center; padding:50px 20px; color:var(--muted); }
@@ -1037,7 +1038,7 @@ function buildCompareSkeleton(friendOptionsHtml) {
         </select>
       </div>
       <div class="toggle-group segmented-toggle" id="compareFilterModeToggle" style="margin-bottom:10px">
-        <button class="toggle-pill" data-mode="simple">絞り込み</button>
+        <button class="toggle-pill" data-mode="simple">表示対象</button>
         <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
       </div>
       <div class="level-shortcut-row" id="compareLevelShortcutRow"></div>
@@ -1046,15 +1047,15 @@ function buildCompareSkeleton(friendOptionsHtml) {
       </div>
       <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
         <div>
-          <div class="filter-band-label" style="margin-bottom:6px">勝負基準</div>
-          <div class="toggle-group" id="compareModeToggle">
+          <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">勝負基準</div>
+          <div class="toggle-group segmented-toggle" id="compareModeToggle">
             <button class="toggle-pill" data-mode="ex">EX</button>
             <button class="toggle-pill" data-mode="normal">通常</button>
           </div>
         </div>
         <div>
-          <div class="filter-band-label" style="margin-bottom:6px">表示形式</div>
-          <div class="toggle-group" id="compareResultToggle">
+          <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">表示形式</div>
+          <div class="toggle-group segmented-toggle" id="compareResultToggle">
             <button class="toggle-pill" data-result="all">すべて</button>
             <button class="toggle-pill" data-result="win">勝利</button>
             <button class="toggle-pill" data-result="loss">敗北</button>
@@ -1175,10 +1176,11 @@ function updateCompareTableBody() {
       : (fs ? fmtNum(fs.highScore) : "-");
     const mineColor = result === "win" ? "color:#3B82F6" : "";
     const friendColor = result === "loss" ? "color:#FF4757" : "";
+    const cellSizeClass = mode === "normal" ? " score-cell-small" : "";
     return `<tr>
       <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
-      <td class="mono col-center" style="${mineColor}">${mineDisplay}</td>
-      <td class="mono col-center" style="${friendColor}">${friendDisplay}</td>
+      <td class="mono col-center${cellSizeClass}" style="${mineColor}">${mineDisplay}</td>
+      <td class="mono col-center${cellSizeClass}" style="${friendColor}">${friendDisplay}</td>
     </tr>`;
   }).join("");
 
@@ -1295,7 +1297,7 @@ function buildListSkeleton() {
         </select>
       </div>
       <div class="toggle-group segmented-toggle" id="filterModeToggle" style="margin-bottom:10px">
-        <button class="toggle-pill" data-mode="simple">絞り込み</button>
+        <button class="toggle-pill" data-mode="simple">表示対象</button>
         <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
       </div>
       <div class="level-shortcut-row" id="levelShortcutRow"></div>
@@ -1386,7 +1388,7 @@ function updateListTableBody(visible, filtered, merged, totalPages) {
       <tr class="${!m.score?'unplayed':''}">
         <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
         <td class="mono col-center" style="color:#FFD23F">${exDisplay}</td>
-        <td class="mono col-center">${normalDisplay}</td>
+        <td class="mono col-center score-cell-small">${normalDisplay}</td>
       </tr>`;
   }).join("");
 
