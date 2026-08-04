@@ -83,7 +83,7 @@
   .hint { color:var(--text); font-size:12px; margin:4px 0 10px; line-height:1.6; }
   .filter-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
   .search-input, .select-input { border:1px solid var(--border); color:var(--text); border-radius:8px; padding:7px 10px; font-size:13px; outline:none; }
-  .search-input { background:#232c45; }
+  .search-input { background:#3a3d45; }
   .select-input { background:var(--panel-2); }
   .search-input::placeholder { color:var(--muted); opacity:0.55; }
   .search-input { flex:1; min-width:160px; }
@@ -1045,19 +1045,19 @@ function buildCompareSkeleton(friendOptionsHtml) {
           <input class="search-input" id="compareSearchInput" placeholder="曲名で検索…">
           <button type="button" class="search-clear-btn" id="compareSearchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
         </div>
-        <select class="select-input" id="compareSortSelect" aria-label="並び替え">
-          <option value="score_desc">スコア高い順</option>
-          <option value="score_asc">スコア低い順</option>
-          <option value="level_desc">レベル高い順</option>
-          <option value="level_asc">レベル低い順</option>
-          <option value="title_asc">五十音順（あ→ん）</option>
-          <option value="title_desc">五十音順（ん→あ）</option>
-        </select>
       </div>
       <div class="toggle-group segmented-toggle" id="compareFilterModeToggle" style="margin-bottom:10px">
         <button class="toggle-pill" data-mode="simple">表示対象</button>
         <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
       </div>
+      <select class="select-input" id="compareSortSelect" aria-label="並び替え" style="margin-bottom:10px">
+        <option value="score_desc">スコア高い順</option>
+        <option value="score_asc">スコア低い順</option>
+        <option value="level_desc">レベル高い順</option>
+        <option value="level_asc">レベル低い順</option>
+        <option value="title_asc">五十音順（あ→ん）</option>
+        <option value="title_desc">五十音順（ん→あ）</option>
+      </select>
       <div class="level-shortcut-row" id="compareLevelShortcutRow"></div>
       <div id="compareAdvancedFilterRow" style="display:none">
         <button class="btn" id="compareFilterBtn">絞り込み条件を設定する</button>
@@ -1313,21 +1313,21 @@ function buildListSkeleton() {
           <input class="search-input" id="searchInput" placeholder="曲名で検索…">
           <button type="button" class="search-clear-btn" id="searchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
         </div>
-        <select class="select-input" id="sortSelect" aria-label="並び替え">
-          <option value="exscore_desc">スコア高い順（EX）</option>
-          <option value="exscore_asc">スコア低い順（EX）</option>
-          <option value="score_desc">スコア高い順（通常）</option>
-          <option value="score_asc">スコア低い順（通常）</option>
-          <option value="level_desc">レベル高い順</option>
-          <option value="level_asc">レベル低い順</option>
-          <option value="title_asc">五十音順（あ→ん）</option>
-          <option value="title_desc">五十音順（ん→あ）</option>
-        </select>
       </div>
       <div class="toggle-group segmented-toggle" id="filterModeToggle" style="margin-bottom:10px">
         <button class="toggle-pill" data-mode="simple">表示対象</button>
         <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
       </div>
+      <select class="select-input" id="sortSelect" aria-label="並び替え" style="margin-bottom:10px">
+        <option value="exscore_desc">スコア高い順（EX）</option>
+        <option value="exscore_asc">スコア低い順（EX）</option>
+        <option value="score_desc">スコア高い順（通常）</option>
+        <option value="score_asc">スコア低い順（通常）</option>
+        <option value="level_desc">レベル高い順</option>
+        <option value="level_asc">レベル低い順</option>
+        <option value="title_asc">五十音順（あ→ん）</option>
+        <option value="title_desc">五十音順（ん→あ）</option>
+      </select>
       <div class="level-shortcut-row" id="levelShortcutRow"></div>
       <div id="advancedFilterRow" style="display:none">
         <button class="btn" id="openFilterBtn">絞り込み条件を設定する</button>
