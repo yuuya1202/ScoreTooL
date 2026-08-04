@@ -147,7 +147,7 @@
   .title-text { white-space:normal; word-break:break-word; line-height:1.35; min-width:0; flex:1; }
   .ranking-song-list { display:flex; flex-direction:column; font-size:13px; }
   .ranking-song-row {
-    display:grid; grid-template-columns:minmax(0,1fr) 84px 84px; align-items:center; gap:10px;
+    display:grid; grid-template-columns:64px minmax(0,1fr) 84px 84px; align-items:center; gap:10px;
     padding:10px 6px; border-bottom:1px solid var(--row-border); cursor:pointer; border-radius:6px;
   }
   .ranking-song-row:hover { background:var(--row-hover); }
@@ -1801,8 +1801,11 @@ function renderRankingListHtml() {
     const scoreColor = (display) => display === "-0" ? "#FFD23F" : "var(--text)";
     const top1Display = scoreDisplay(top1);
     const top100Display = scoreDisplay(top100);
+    const myScoreEntry = e.matched ? scores[songKey(e.musicName, e.type)] : null;
+    const mineDisplay = (myScoreEntry && myScoreEntry.exScore) ? formatExDiff(myScoreEntry.exScore - e.maxExScore) : "-";
     return `
       <div class="ranking-song-row" data-key="${esc(rankingEntryKey(e))}">
+        <div class="col-center mono" style="color:${scoreColor(mineDisplay)}">${mineDisplay}</div>
         <div class="ranking-song-title-cell">
           <div class="jacket-thumb-wrap">
             ${e.jacket ? `<img class="jacket-thumb" src="${esc(e.jacket)}" loading="lazy" style="border-color:${meta.color}">` : `<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}
@@ -1852,6 +1855,7 @@ function renderRankingListHtml() {
     <p class="footnote" style="margin:0 0 8px;text-align:left">${list.length} 件を表示中</p>
     <div class="ranking-song-list" id="rankingSongListWrap">
       <div class="ranking-song-row ranking-song-header">
+        <div class="col-center">自分</div>
         <div>楽曲</div>
         <div class="col-center">1位</div>
         <div class="col-center">100位</div>
