@@ -1627,7 +1627,7 @@ function renderRankingTab() {
 
   container.innerHTML = `
     <div class="panel">
-      <p class="footnote" style="margin:0 0 10px;text-align:left">※Lv.1〜16は対象外です</p>
+      ${activeEntry ? "" : `<p class="footnote" style="margin:0 0 10px;text-align:left">※Lv.1〜16は対象外です</p>`}
       ${activeEntry ? renderRankingDetailHtml(activeEntry) : renderRankingListHtml()}
     </div>
     <div class="modal-overlay" id="rankingFilterModalOverlay" style="display:none">
@@ -1766,6 +1766,13 @@ function renderRankingListHtml() {
     const r = e.rankingData.find(row => (row.playerId || "").toUpperCase() === myId);
     return r ? r.rank : null;
   }
+  function topDiffValue(e, idx) {
+    // 生スコアだと曲ごとの理論値（ノーツ数）差が支配的になり公平な比較にならないため、
+    // 理論値との差分（0が最良、マイナスに大きいほど遠い）で比較する
+    const row = e.rankingData[idx];
+    if (!row || !e.matched) return -Infinity;
+    return row.score - e.maxExScore;
+  }
   const rankingCmp = {
     date_desc:  (a,b) => (b.date||"").localeCompare(a.date||"") || a.musicName.localeCompare(b.musicName, "ja"),
     date_asc:   (a,b) => (a.date||"").localeCompare(b.date||"") || a.musicName.localeCompare(b.musicName, "ja"),
@@ -1775,10 +1782,10 @@ function renderRankingListHtml() {
     title_desc: (a,b) => b.musicName.localeCompare(a.musicName, "ja"),
     rank_asc:   (a,b) => (myRankOf(a) ?? 9999) - (myRankOf(b) ?? 9999),
     rank_desc:  (a,b) => (myRankOf(b) ?? -1) - (myRankOf(a) ?? -1),
-    top1_desc:  (a,b) => (b.rankingData[0]?.score ?? -1) - (a.rankingData[0]?.score ?? -1),
-    top1_asc:   (a,b) => (a.rankingData[0]?.score ?? Infinity) - (b.rankingData[0]?.score ?? Infinity),
-    top100_desc:(a,b) => (b.rankingData[b.rankingData.length-1]?.score ?? -1) - (a.rankingData[a.rankingData.length-1]?.score ?? -1),
-    top100_asc: (a,b) => (a.rankingData[a.rankingData.length-1]?.score ?? Infinity) - (b.rankingData[b.rankingData.length-1]?.score ?? Infinity),
+    top1_desc:  (a,b) => topDiffValue(b, 0) - topDiffValue(a, 0),
+    top1_asc:   (a,b) => topDiffValue(a, 0) - topDiffValue(b, 0),
+    top100_desc:(a,b) => topDiffValue(b, b.rankingData.length-1) - topDiffValue(a, a.rankingData.length-1),
+    top100_asc: (a,b) => topDiffValue(a, a.rankingData.length-1) - topDiffValue(b, b.rankingData.length-1),
   }[rankingState.sort] || ((a,b) => (b.date||"").localeCompare(a.date||"") || a.musicName.localeCompare(b.musicName, "ja"));
   list = list.slice().sort(rankingCmp);
 
@@ -1859,14 +1866,16 @@ function renderRankingDetailHtml(entry) {
   const myId = (window.currentPlayerId || "").toUpperCase();
   const rowsHtml = entry.rankingData.map(r => {
     const isMine = myId && (r.playerId || "").toUpperCase() === myId;
-    const diff = entry.matched ? formatExDiff(r.score - entry.maxExScore) : "-";
+    const diff = entry.matched ? formatExDiff(r.score - entry.maxExScore) : String(r.score);
+    const diffColor = diff === "-0" ? "#FFD23F" : "var(--text)";
     return `
       <tr${isMine ? ' style="background:rgba(255,210,63,0.12)"' : ""}>
         <td class="col-center mono">${r.rank}</td>
-        <td>${esc(r.name)}${isMine ? ' <span style="color:#FFD23F;font-weight:800">(自分)</span>' : ""}</td>
-        <td class="mono" style="font-size:12px;color:var(--muted)">${esc(r.playerId)}</td>
-        <td class="mono col-center">${esc(String(r.score))}</td>
-        <td class="mono col-center" style="color:#FFD23F">${diff}</td>
+        <td>
+          <div class="mono" style="font-size:11px;color:var(--muted)">${esc(r.playerId)}</div>
+          <div>${esc(r.name)}${isMine ? ' <span style="color:#FFD23F;font-weight:800">(自分)</span>' : ""}</div>
+        </td>
+        <td class="mono col-center" style="color:${diffColor}">${diff}</td>
         <td class="hint col-center">${esc(r.updatedAt)}</td>
       </tr>
     `;
@@ -1884,7 +1893,7 @@ function renderRankingDetailHtml(entry) {
     ${!entry.matched ? `<p class="hint" style="margin-bottom:10px">この曲は楽曲マスタと自動で一致しなかったため、EXスコアの理論値差分は表示していません。</p>` : ""}
     <div class="table-wrap">
       <table class="score-table">
-        <thead><tr><th class="col-center">順位</th><th>プレイヤー名</th><th>プレイヤーID</th><th class="col-center">スコア</th><th class="col-center">差分</th><th class="col-center">更新日時</th></tr></thead>
+        <thead><tr><th class="col-center">順位</th><th>プレイヤー</th><th class="col-center">スコア</th><th class="col-center">更新日時</th></tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>
     </div>
