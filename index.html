@@ -602,6 +602,7 @@ async function loadAll() {
       jacket: d.jacket || "",
       reading: d.reading || "",
       maxExScore: Number(d.max_exscore)||0,
+      date: d.date || "",
     }));
   } catch (e) {
     masterError = "楽曲マスタ(songs.json)の読み込みに失敗しました: " + e.message +
@@ -1403,7 +1404,7 @@ function renderCompareFilterModalBody() {
 /* ------------------------------------------------------------------ */
 
 // TODO: 有志の方からURLをいただいたら、ここに設定する
-const RANKING_DATA_URL = "";
+const RANKING_DATA_URL = "https://vaddict.b35.jp/file/yuya/data.json";
 const RANKING_CACHE_KEY = "sdvxRankingCache_v1";
 const RANKING_MIN_LEVEL = 17;
 
@@ -1453,11 +1454,11 @@ const MOCK_RANKING_JSON = [
     difficulty: "ULT",
     level: 20.9,
     ranking_data: [
-      ["ふくちゃん", "SV-9900-0000", 11264, "2026-08-03 04:00"],
-      ["yuuya", "SV-9900-0001", 11258, "2026-08-03 04:00"],
-      ["GUEST-03", "SV-9900-0002", 11201, "2026-08-03 04:00"],
-      ["GUEST-04", "SV-9900-0003", 11150, "2026-08-03 04:00"],
-      ["GUEST-05", "SV-9900-0004", 11089, "2026-08-03 04:00"],
+      ["SV-9900-0000", "ふくちゃん", 11264, "2026-08-03 04:00"],
+      ["SV-9900-0001", "yuuya", 11258, "2026-08-03 04:00"],
+      ["SV-9900-0002", "GUEST-03", 11201, "2026-08-03 04:00"],
+      ["SV-9900-0003", "GUEST-04", 11150, "2026-08-03 04:00"],
+      ["SV-9900-0004", "GUEST-05", 11089, "2026-08-03 04:00"],
     ],
   },
   {
@@ -1465,8 +1466,8 @@ const MOCK_RANKING_JSON = [
     difficulty: "MXM",
     level: 16,
     ranking_data: [
-      ["GUEST-01", "SV-9900-0010", 3447, "2026-08-03 04:00"],
-      ["GUEST-02", "SV-9900-0011", 3440, "2026-08-03 04:00"],
+      ["SV-9900-0010", "GUEST-01", 3447, "2026-08-03 04:00"],
+      ["SV-9900-0011", "GUEST-02", 3440, "2026-08-03 04:00"],
     ],
   },
   {
@@ -1475,8 +1476,8 @@ const MOCK_RANKING_JSON = [
     difficulty: "ULT",
     level: 19,
     ranking_data: [
-      ["GUEST-06", "SV-9900-0020", 9800, "2026-08-03 04:00"],
-      ["GUEST-07", "SV-9900-0021", 9750, "2026-08-03 04:00"],
+      ["SV-9900-0020", "GUEST-06", 9800, "2026-08-03 04:00"],
+      ["SV-9900-0021", "GUEST-07", 9750, "2026-08-03 04:00"],
     ],
   },
 ];
@@ -1486,13 +1487,21 @@ function todayStr() {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
 
+// ランキングJSONのmusic_nameにHTML数値実体参照（&#216; など）が混じっていることがあるためデコードする
+function decodeHtmlEntities(str) {
+  return String(str)
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+}
+
 function buildRankingEntries(rawList) {
   const songLookup = new Map();
   for (const s of songs) songLookup.set(s.title + "___" + s.type, s);
 
   const entries = [];
   for (const item of rawList) {
-    const musicName = String(item.music_name || "");
+    const musicName = decodeHtmlEntities(String(item.music_name || ""));
     const diffAbbr = String(item.difficulty || "").toUpperCase();
     const mappedType = DIFF_ABBR_TO_TYPE[diffAbbr] || null;
     const matchedSong = mappedType ? songLookup.get(musicName + "___" + mappedType) : null;
@@ -1502,8 +1511,8 @@ function buildRankingEntries(rawList) {
 
     const rankingData = (item.ranking_data || []).map((row, i) => ({
       rank: i + 1,
-      name: row[0],
-      playerId: row[1],
+      playerId: row[0],
+      name: row[1],
       score: row[2],
       updatedAt: row[3],
     }));
@@ -1553,8 +1562,10 @@ async function ensureRankingLoaded(force) {
     if (RANKING_DATA_URL) {
       const res = await fetch(RANKING_DATA_URL, { cache: "no-store" });
       if (!res.ok) throw new Error("HTTP " + res.status);
-      raw = await res.json();
-      fetchedAt = new Date().toLocaleString("ja-JP");
+      const json = await res.json();
+      // 実データは { created_at: "...", data: [...] } の形で来る
+      raw = Array.isArray(json) ? json : (json.data || []);
+      fetchedAt = (!Array.isArray(json) && json.created_at) ? json.created_at : new Date().toLocaleString("ja-JP");
     } else {
       // URL未設定の間はサンプルデータで見た目だけ確認できるようにしておく
       raw = MOCK_RANKING_JSON;
