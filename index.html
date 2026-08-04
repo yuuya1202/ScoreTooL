@@ -82,9 +82,20 @@
   .panel h3 { margin:0 0 10px; font-size:14px; letter-spacing:0.5px; }
   .hint { color:var(--text); font-size:12px; margin:4px 0 10px; line-height:1.6; }
   .filter-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
-  .search-input, .select-input { background:var(--panel-2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:7px 10px; font-size:13px; outline:none; }
+  .search-input, .select-input { border:1px solid var(--border); color:var(--text); border-radius:8px; padding:7px 10px; font-size:13px; outline:none; }
+  .search-input { background:#232c45; }
+  .select-input { background:var(--panel-2); }
   .search-input::placeholder { color:var(--muted); opacity:0.55; }
   .search-input { flex:1; min-width:160px; }
+  .search-wrap { position:relative; flex:1; min-width:160px; display:flex; align-items:center; }
+  .search-wrap .search-input { width:100%; flex:1; min-width:0; padding-right:30px; }
+  .search-clear-btn {
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    width:20px; height:20px; border:none; border-radius:50%; background:rgba(255,255,255,0.1);
+    color:var(--muted); cursor:pointer; font-size:12px; line-height:1; padding:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .search-clear-btn:hover { background:rgba(255,255,255,0.18); color:var(--text); }
   @media (max-width: 480px) {
     .search-input { flex-basis:100%; }
   }
@@ -100,7 +111,7 @@
   .level-shortcut.on { background: rgba(255,210,63,0.14); border-color: rgba(255,210,63,0.55); color: var(--gold); }
   .level-shortcut.partial { border-color: rgba(255,210,63,0.4); color: rgba(255,210,63,0.75); background: var(--panel-2); }
   textarea.data-input { width:100%; min-height:110px; background:var(--panel-2); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:10px; font-size:12px; font-family:ui-monospace,"SF Mono",monospace; resize:vertical; }
-  .btn { background: linear-gradient(135deg, var(--cyan), #00a8c2); color:#05070d; border:none; border-radius:8px; padding:9px 18px; font-weight:800; font-size:13px; cursor:pointer; }
+  .btn { background: linear-gradient(135deg, #3fc6da, #1f8fa3); color:#05070d; border:none; border-radius:8px; padding:9px 18px; font-weight:800; font-size:13px; cursor:pointer; }
   .btn:disabled { opacity:0.5; cursor:not-allowed; }
   .btn.secondary { background:var(--panel-2); color:var(--text); border:1px solid var(--border); }
   .btn.filter-active { background:var(--magenta); color:#ffffff; border-color:var(--magenta); font-weight:800; box-shadow: 0 0 14px rgba(255,46,154,0.55); }
@@ -1030,7 +1041,10 @@ function buildCompareSkeleton(friendOptionsHtml) {
     <div class="panel">
       <p class="footnote" id="compareTally" style="text-align:left;margin:0 0 12px"></p>
       <div class="filter-bar">
-        <input class="search-input" id="compareSearchInput" placeholder="曲名で検索…">
+        <div class="search-wrap">
+          <input class="search-input" id="compareSearchInput" placeholder="曲名で検索…">
+          <button type="button" class="search-clear-btn" id="compareSearchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
+        </div>
         <select class="select-input" id="compareSortSelect" aria-label="並び替え">
           <option value="score_desc">スコア高い順</option>
           <option value="score_asc">スコア低い順</option>
@@ -1046,7 +1060,7 @@ function buildCompareSkeleton(friendOptionsHtml) {
       </div>
       <div class="level-shortcut-row" id="compareLevelShortcutRow"></div>
       <div id="compareAdvancedFilterRow" style="display:none">
-        <button class="btn" id="compareFilterBtn">絞り込み条件を開く</button>
+        <button class="btn" id="compareFilterBtn">絞り込み条件を設定する</button>
       </div>
       <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
         <div>
@@ -1094,6 +1108,12 @@ function buildCompareSkeleton(friendOptionsHtml) {
   `;
   document.getElementById('compareFriendSelect').addEventListener('change', (e) => handleSelectCompareFriend(e.target.value));
   document.getElementById('compareSearchInput').addEventListener('input', (e) => { compareState.search = e.target.value; render(); });
+  document.getElementById('compareSearchClearBtn').addEventListener('click', () => {
+    compareState.search = "";
+    document.getElementById('compareSearchInput').value = "";
+    document.getElementById('compareSearchInput').focus();
+    render();
+  });
   document.getElementById('compareSortSelect').addEventListener('change', (e) => { compareState.sort = e.target.value; render(); });
   document.getElementById('compareModeToggle').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-mode]');
@@ -1141,10 +1161,12 @@ function updateCompareControls() {
   if (filterBtn) {
     const active = isCompareFilterActive();
     filterBtn.classList.toggle('filter-active', active);
-    filterBtn.textContent = active ? "絞り込み条件を開く（設定中●）" : "絞り込み条件を開く";
+    filterBtn.textContent = active ? "絞り込み条件を設定する（設定中●）" : "絞り込み条件を設定する";
   }
   const compareShortcutRow = document.getElementById('compareLevelShortcutRow');
   if (compareShortcutRow) compareShortcutRow.innerHTML = renderLevelShortcuts(compareSimpleLevels);
+  const compareSearchClearBtn = document.getElementById('compareSearchClearBtn');
+  if (compareSearchClearBtn) compareSearchClearBtn.style.display = compareState.search ? 'flex' : 'none';
   document.querySelectorAll('#compareModeToggle button').forEach(b => {
     b.classList.toggle('on', b.dataset.mode === compareState.mode);
   });
@@ -1287,7 +1309,10 @@ function buildListSkeleton() {
   document.getElementById('view-list').innerHTML = `
     <div class="panel">
       <div class="filter-bar">
-        <input class="search-input" id="searchInput" placeholder="曲名で検索…">
+        <div class="search-wrap">
+          <input class="search-input" id="searchInput" placeholder="曲名で検索…">
+          <button type="button" class="search-clear-btn" id="searchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
+        </div>
         <select class="select-input" id="sortSelect" aria-label="並び替え">
           <option value="exscore_desc">スコア高い順（EX）</option>
           <option value="exscore_asc">スコア低い順（EX）</option>
@@ -1305,7 +1330,7 @@ function buildListSkeleton() {
       </div>
       <div class="level-shortcut-row" id="levelShortcutRow"></div>
       <div id="advancedFilterRow" style="display:none">
-        <button class="btn" id="openFilterBtn">絞り込み条件を開く</button>
+        <button class="btn" id="openFilterBtn">絞り込み条件を設定する</button>
       </div>
     </div>
     <div id="listTopInfo" class="footnote" style="margin:2px 0 10px;text-align:left"></div>
@@ -1337,6 +1362,13 @@ function buildListSkeleton() {
   `;
   document.getElementById('searchInput').value = filters.search;
   document.getElementById('searchInput').addEventListener('input', (e) => updateFilter('search', e.target.value));
+  document.getElementById('searchClearBtn').addEventListener('click', () => {
+    filters.search = "";
+    document.getElementById('searchInput').value = "";
+    document.getElementById('searchInput').focus();
+    currentPage = 1;
+    render();
+  });
   document.getElementById('sortSelect').addEventListener('change', (e) => updateFilter('sort', e.target.value));
   document.getElementById('filterModeToggle').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-mode]');
@@ -1375,10 +1407,12 @@ function updateListControls() {
   if (filterBtn) {
     const active = isFilterActive();
     filterBtn.classList.toggle('filter-active', active);
-    filterBtn.textContent = active ? "絞り込み条件を開く（設定中●）" : "絞り込み条件を開く";
+    filterBtn.textContent = active ? "絞り込み条件を設定する（設定中●）" : "絞り込み条件を設定する";
   }
   const shortcutRow = document.getElementById('levelShortcutRow');
   if (shortcutRow) shortcutRow.innerHTML = renderLevelShortcuts(simpleLevels);
+  const searchClearBtn = document.getElementById('searchClearBtn');
+  if (searchClearBtn) searchClearBtn.style.display = filters.search ? 'flex' : 'none';
   // 検索欄はユーザーが今まさに入力中の値そのものなので、ここでは一切触らない
 }
 
