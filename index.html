@@ -148,12 +148,12 @@
   .ranking-song-list-wrap { overflow-x:auto; }
   .ranking-song-list { display:flex; flex-direction:column; align-items:flex-start; font-size:13px; min-width:452px; }
   .ranking-song-row {
-    display:grid; grid-template-columns:260px 62px 62px 52px; align-items:center; gap:8px;
+    display:grid; grid-template-columns:260px 52px 62px 62px; align-items:center; gap:8px;
     padding:10px 6px; border-bottom:1px solid var(--row-border); cursor:pointer; border-radius:6px;
   }
   @media (max-width: 480px) {
     .ranking-song-list { min-width:342px; }
-    .ranking-song-row { grid-template-columns:150px 62px 62px 52px; }
+    .ranking-song-row { grid-template-columns:150px 52px 62px 62px; }
   }
   .ranking-song-row:hover { background:var(--row-hover); }
   .ranking-song-header {
@@ -1508,6 +1508,17 @@ function decodeHtmlEntities(str) {
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
 }
 
+// 同名タイトルで複数バージョン（カバー違いなど）が存在し、自動突合せでは判別できない曲の対応表。
+// ランキング側の表記（無印＝古いバージョン／「2」＝新しいバージョン）を、songs.json側の正式タイトルに紐付ける。
+const RANKING_TITLE_ALIASES = {
+  "カジノファイヤーことみちゃん___maximum": "カジノファイヤーことみちゃん(ARM feat. 山本椛 + Brasscapsule)",
+  "カジノファイヤーことみちゃん2___maximum": "カジノファイヤーことみちゃん(covered by 一条莉々華(ReGLOSS))",
+  "Prayer___exhaust": "Prayer(ぺのれり)",
+  "Prayer2___maximum": "Prayer(溝口ゆうま feat. 大瀬良あい)",
+  "朱と碧のランページ___exhaust": "朱と碧のランページ(NU-KO)",
+  "朱と碧のランページ2___maximum": "朱と碧のランページ(covered by 儒烏風亭らでん(ReGLOSS))",
+};
+
 function buildRankingEntries(rawList) {
   const songLookup = new Map();
   for (const s of songs) songLookup.set(s.title + "___" + s.type, s);
@@ -1517,7 +1528,11 @@ function buildRankingEntries(rawList) {
     const musicName = decodeHtmlEntities(String(item.music_name || ""));
     const diffAbbr = String(item.difficulty || "").toUpperCase();
     const mappedType = DIFF_ABBR_TO_TYPE[diffAbbr] || null;
-    const matchedSong = mappedType ? songLookup.get(musicName + "___" + mappedType) : null;
+    const lookupKey = musicName + "___" + mappedType;
+    let matchedSong = mappedType ? songLookup.get(lookupKey) : null;
+    if (!matchedSong && RANKING_TITLE_ALIASES[lookupKey]) {
+      matchedSong = songLookup.get(RANKING_TITLE_ALIASES[lookupKey] + "___" + mappedType);
+    }
 
     const level = matchedSong ? matchedSong.level : (typeof item.level === "number" ? item.level : parseFloat(item.level));
     if (!(level >= RANKING_MIN_LEVEL)) continue; // Lv.17未満は対象外
@@ -1821,9 +1836,9 @@ function renderRankingListHtml() {
           </div>
           <div class="title-text">${esc(e.musicName)}${e.matched ? "" : `<span class="hint" style="margin-left:6px">（未マッチ）</span>`}</div>
         </div>
+        <div class="col-center mono" style="color:${scoreColor(mineDisplay)}">${mineDisplay}</div>
         <div class="col-center mono" style="color:${scoreColor(top1Display)}">${top1Display}</div>
         <div class="col-center mono" style="color:${scoreColor(top100Display)}">${top100Display}</div>
-        <div class="col-center mono" style="color:${scoreColor(mineDisplay)}">${mineDisplay}</div>
       </div>
     `;
   }).join("") || `<p class="hint">該当する曲がありません。</p>`;
@@ -1866,9 +1881,9 @@ function renderRankingListHtml() {
       <div class="ranking-song-list" id="rankingSongListWrap">
         <div class="ranking-song-row ranking-song-header">
           <div>楽曲</div>
+          <div class="col-center">自分</div>
           <div class="col-center">1位</div>
           <div class="col-center">100位</div>
-          <div class="col-center">自分</div>
         </div>
         ${rowsHtml}
       </div>
