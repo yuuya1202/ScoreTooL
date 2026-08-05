@@ -256,9 +256,10 @@
   <p class="hint" id="authHint">アカウント名とパスワードを入力してください。</p>
   <input class="search-input" id="authUsername" placeholder="アカウント名（半角英数字・3〜20文字）" style="width:100%;margin-bottom:8px;box-sizing:border-box;">
   <input class="search-input" id="authPassword" type="text" placeholder="パスワード（6文字以上）" style="width:100%;margin-bottom:4px;box-sizing:border-box;">
+  <p class="hint" id="authPasswordNotice" style="display:none;margin-top:4px">※アカウント名は後から変更できますが、パスワードは変更できません。</p>
   <div id="authPlayerIdWrap" style="display:none;margin-top:8px">
     <input class="search-input" id="authPlayerId" placeholder="プレイヤーID（任意・例: SV-9900-0000）" style="width:100%;box-sizing:border-box;">
-    <p class="hint" style="margin-top:4px">入力しておくと、ランキング機能で自分の順位が見つけやすくなります。</p>
+    <p class="hint" style="margin-top:4px">登録すると、ランキング機能で自分の順位を確認できるようになります。</p>
   </div>
   <p class="hint" id="authError" style="color:#ff4757;min-height:16px"></p>
   <div class="btn-row">
@@ -1653,7 +1654,7 @@ function renderRankingTab() {
 
   container.innerHTML = `
     <div class="panel">
-      ${activeEntry ? "" : `<p class="footnote" style="margin:0 0 10px;text-align:left">※Lv.1〜16は対象外です</p>`}
+      ${activeEntry ? "" : `<p class="footnote" style="margin:0 0 10px;text-align:left">※Lv.1〜16は対象外です　∇以前に出した記録はランキングには掲載されません</p>`}
       ${activeEntry ? renderRankingDetailHtml(activeEntry) : renderRankingListHtml()}
     </div>
     <div class="modal-overlay" id="rankingFilterModalOverlay" style="display:none">
@@ -2167,7 +2168,7 @@ function updateListTableBody(visible, filtered, merged, totalPages) {
   const hasAnyScore = merged.some(m => m.score);
   noScoreHelp.innerHTML = hasAnyScore ? "" : `
     <div class="help-banner">
-      まだスコアが登録されていません。右上のアカウントメニューの「スコア登録」から登録してみましょう。
+      まだスコアが登録されていません。右上のアカウントメニューの「スコア登録」からスコアを登録してください
       <button class="link-btn" onclick="switchTab('data')" style="margin-left:6px">スコア登録はこちら</button>
     </div>`;
 }
@@ -2456,6 +2457,7 @@ function renderAuthGate() {
   document.querySelector('#authGate .btn.secondary').textContent = authMode === "login" ? "新規登録はこちら" : "戻る";
   document.getElementById('authError').textContent = "";
   document.getElementById('authPlayerIdWrap').style.display = authMode === "signup" ? "block" : "none";
+  document.getElementById('authPasswordNotice').style.display = authMode === "signup" ? "block" : "none";
 }
 window.toggleAuthMode = function () {
   authMode = authMode === "login" ? "signup" : "login";
