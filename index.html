@@ -1527,14 +1527,16 @@ function buildRankingEntries(rawList) {
 
   const entries = [];
   for (const item of rawList) {
-    const musicName = decodeHtmlEntities(String(item.music_name || ""));
+    const rawMusicName = decodeHtmlEntities(String(item.music_name || ""));
     const diffAbbr = String(item.difficulty || "").toUpperCase();
     const mappedType = DIFF_ABBR_TO_TYPE[diffAbbr] || null;
-    const lookupKey = musicName + "___" + mappedType;
+    const lookupKey = rawMusicName + "___" + mappedType;
     let matchedSong = mappedType ? songLookup.get(lookupKey) : null;
     if (!matchedSong && RANKING_TITLE_ALIASES[lookupKey]) {
       matchedSong = songLookup.get(RANKING_TITLE_ALIASES[lookupKey] + "___" + mappedType);
     }
+    // マッチできた曲はsongs.json側の正式名称で表示する（ランキング側の簡易表記との差異を吸収）
+    const musicName = matchedSong ? matchedSong.title : rawMusicName;
 
     const level = matchedSong ? matchedSong.level : (typeof item.level === "number" ? item.level : parseFloat(item.level));
     if (!(level >= RANKING_MIN_LEVEL)) continue; // Lv.17未満は対象外
