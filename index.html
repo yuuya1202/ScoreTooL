@@ -150,6 +150,7 @@
   .ranking-song-row {
     display:grid; grid-template-columns:260px 52px 62px 62px; align-items:center; gap:8px;
     padding:10px 6px; border-bottom:1px solid var(--row-border); cursor:pointer; border-radius:6px;
+    width:fit-content;
   }
   @media (max-width: 480px) {
     .ranking-song-list { min-width:342px; }
@@ -1553,6 +1554,7 @@ function buildRankingEntries(rawList) {
       jacket: matchedSong ? matchedSong.jacket : "",
       maxExScore: matchedSong ? matchedSong.maxExScore : 0,
       date: matchedSong ? (matchedSong.date || "") : "",
+      reading: matchedSong ? (matchedSong.reading || "") : "",
       matched: !!matchedSong,
       rankingData,
     });
@@ -1776,7 +1778,7 @@ function renderRankingListHtml() {
 
   if (rankingState.search.trim()) {
     const q = rankingState.search.trim().toLowerCase();
-    list = list.filter(e => e.musicName.toLowerCase().includes(q));
+    list = list.filter(e => e.musicName.toLowerCase().includes(q) || (e.reading || "").includes(q));
   }
 
   if (rankingFilterMode === "simple") {
