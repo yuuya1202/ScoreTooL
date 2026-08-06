@@ -1101,7 +1101,7 @@ function renderCompareTab() {
   if (!compareOuterBuilt) {
     document.getElementById('view-compare').innerHTML = `
       <div class="toggle-group segmented-toggle" id="compareViewModeToggle" style="margin-bottom:14px">
-        <button class="toggle-pill" data-mode="single">1対1</button>
+        <button class="toggle-pill" data-mode="single">1vs1</button>
         <button class="toggle-pill" data-mode="multi">複数人</button>
       </div>
       <div id="compareSingleWrap"></div>
@@ -1505,16 +1505,17 @@ function renderCompareMultiContent() {
     const mineVal = multiPersonValue(m.score, m.maxExScore, mode);
     const mineDisplay = multiPersonDisplay(m.score, m.maxExScore, mode);
     const cellSizeClass = mode === "normal" ? " score-cell-small" : "";
-    const cells = friendCols.map(col => {
+    const friendVals = friendCols.map(col => multiPersonValue((friendScoresByUid[col.uid] || {})[m.key] || null, m.maxExScore, mode));
+    const allVals = [mineVal, ...friendVals].filter(v => v !== null);
+    const bestVal = allVals.length ? Math.max(...allVals) : null;
+    const colorFor = (v) => (v !== null && bestVal !== null && v === bestVal) ? "color:#FFD23F" : "color:var(--text)";
+    const cells = friendCols.map((col, i) => {
       const fs = (friendScoresByUid[col.uid] || {})[m.key] || null;
-      const v = multiPersonValue(fs, m.maxExScore, mode);
-      const isBetter = mineVal !== null && v !== null && v > mineVal;
-      const color = isBetter ? "color:#FF4757" : "";
-      return `<td class="mono col-center${cellSizeClass}" style="${color}">${multiPersonDisplay(fs, m.maxExScore, mode)}</td>`;
+      return `<td class="mono col-center${cellSizeClass}" style="${colorFor(friendVals[i])}">${multiPersonDisplay(fs, m.maxExScore, mode)}</td>`;
     }).join("");
     return `<tr>
       <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy">`:`<div class="jacket-thumb"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
-      <td class="mono col-center${cellSizeClass}" style="color:#FFD23F">${mineDisplay}</td>
+      <td class="mono col-center${cellSizeClass}" style="${colorFor(mineVal)}">${mineDisplay}</td>
       ${cells}
     </tr>`;
   }).join("");
