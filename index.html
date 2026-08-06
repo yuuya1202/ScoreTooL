@@ -148,12 +148,12 @@
   .ranking-song-list-wrap { overflow-x:auto; }
   .ranking-song-list { display:flex; flex-direction:column; font-size:13px; min-width:452px; }
   .ranking-song-row {
-    display:grid; grid-template-columns:minmax(260px,1fr) 52px 62px 62px; align-items:center; gap:8px;
+    display:grid; grid-template-columns:minmax(260px,1fr) 52px 62px 62px 74px; align-items:center; gap:8px;
     padding:10px 6px; border-bottom:1px solid var(--row-border); cursor:pointer; border-radius:6px;
   }
   @media (max-width: 480px) {
     .ranking-song-list { min-width:342px; }
-    .ranking-song-row { grid-template-columns:minmax(150px,1fr) 52px 62px 62px; }
+    .ranking-song-row { grid-template-columns:minmax(150px,1fr) 52px 62px 62px 74px; }
   }
   .ranking-song-row:hover { background:var(--row-hover); }
   .ranking-song-header {
@@ -1155,8 +1155,7 @@ function renderCompareSingleContent() {
   if (!selectedUid) {
     document.getElementById('compareSingleWrap').innerHTML = `
       <div class="panel">
-        <h3>スコア比較</h3>
-        <p class="hint">比較したいフレンドを選んでください</p>
+        <h3 style="margin-top:0">比較したいフレンドを選んでください</h3>
         <select class="select-input" onchange="handleSelectCompareFriend(this.value)">${options}</select>
       </div>`;
     compareSkeletonBuilt = false;
@@ -1951,10 +1950,71 @@ const RANKING_TITLE_ALIASES = {
   "カジノファイヤーことみちゃん___maximum": "カジノファイヤーことみちゃん(ARM feat. 山本椛 + Brasscapsule)",
   "カジノファイヤーことみちゃん2___maximum": "カジノファイヤーことみちゃん(covered by 一条莉々華(ReGLOSS))",
   "Prayer___exhaust": "Prayer(ぺのれり)",
+  "Prayer___maximum": "Prayer(溝口ゆうま feat. 大瀬良あい)",
   "Prayer2___maximum": "Prayer(溝口ゆうま feat. 大瀬良あい)",
   "朱と碧のランページ___exhaust": "朱と碧のランページ(NU-KO)",
+  "朱と碧のランページ___maximum": "朱と碧のランページ(covered by 儒烏風亭らでん(ReGLOSS))",
   "朱と碧のランページ2___maximum": "朱と碧のランページ(covered by 儒烏風亭らでん(ReGLOSS))",
+  // EG（旧ver）ランキングデータ側の省略表記対応
+  "消失___exhaust": "初音ミクの消失",
+  "消失(Hommarju Remix)___maximum": "初音ミクの消失(Hommarju Remix)",
+  "暴走___exhaust": "初音ミクの暴走",
 };
+
+// EG（全ver時代）の1位スコア：静的データ・更新されない。新verで追加された曲はここに存在しない。
+const EG_DIFF_MAP = {
+  diff_nov: "novice", diff_adv: "advanced", diff_exh: "exhaust", diff_inf: "infinite",
+  diff_mxm: "maximum", diff_grv: "gravity", diff_hvn: "heavenly", diff_vvd: "vivid",
+  diff_xcd: "exceed", diff_nbl: "nabla", diff_ult: "ultimate",
+};
+let egTopScoreByKey = {}; // "title___type" -> 生スコア
+let egDataStatus = "idle"; // idle | loading | loaded | error
+
+function stripExitTunesSuffix(name) {
+  return String(name).replace(/\(EXIT TUNES\)$/, "").trim();
+}
+
+function buildEgTopScoreMap(rawList) {
+  const songLookup = new Map();
+  for (const s of songs) songLookup.set(s.title + "___" + s.type, s);
+  const map = {};
+  for (const item of rawList) {
+    const type = EG_DIFF_MAP[item.difficulty_type] || null;
+    if (!type) continue;
+    const name = stripExitTunesSuffix(decodeHtmlEntities(String(item.music_name || "")));
+    const artist = item.artist_name;
+    let matchedSong = null;
+    if (artist) {
+      matchedSong = songs.find(s => s.type === type && s.title.startsWith(name) && s.title.includes(artist)) || null;
+    }
+    if (!matchedSong) matchedSong = songLookup.get(name + "___" + type) || null;
+    if (!matchedSong) {
+      // 曲名中のアポストロフィの表記ゆれ（'  vs ’）を考慮した再試行
+      const alt = name.replace(/\u2019/g, "'");
+      matchedSong = songLookup.get(alt + "___" + type) || null;
+    }
+    if (!matchedSong && RANKING_TITLE_ALIASES[name + "___" + type]) {
+      matchedSong = songLookup.get(RANKING_TITLE_ALIASES[name + "___" + type] + "___" + type) || null;
+    }
+    if (matchedSong) map[matchedSong.title + "___" + matchedSong.type] = item.score;
+  }
+  return map;
+}
+
+async function ensureEgTopScoresLoaded() {
+  if (egDataStatus === "loaded" || egDataStatus === "loading") return;
+  egDataStatus = "loading";
+  try {
+    const res = await fetch('./eg_top_scores.json');
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const raw = await res.json();
+    egTopScoreByKey = buildEgTopScoreMap(raw);
+    egDataStatus = "loaded";
+  } catch (e) {
+    console.error("EG時代の1位スコアデータの読み込みに失敗:", e);
+    egDataStatus = "error";
+  }
+}
 
 function buildRankingEntries(rawList) {
   const songLookup = new Map();
@@ -1984,6 +2044,8 @@ function buildRankingEntries(rawList) {
       updatedAt: row[3],
     }));
 
+    const egTop1Score = matchedSong ? (egTopScoreByKey[matchedSong.title + "___" + matchedSong.type] ?? null) : null;
+
     entries.push({
       musicName,
       diffAbbr,
@@ -1994,6 +2056,7 @@ function buildRankingEntries(rawList) {
       date: matchedSong ? (matchedSong.date || "") : "",
       reading: matchedSong ? (matchedSong.reading || "") : "",
       matched: !!matchedSong,
+      egTop1Score,
       rankingData,
     });
   }
@@ -2003,6 +2066,7 @@ function buildRankingEntries(rawList) {
 
 async function ensureRankingLoaded(force) {
   initRankingFilterDefaults();
+  await ensureEgTopScoresLoaded(); // 静的データなので一度読み込めばOK
   if (rankingState.status === "loading") return;
   if (!force && rankingState.status === "loaded") { render(); return; }
 
@@ -2265,6 +2329,7 @@ function renderRankingListHtml() {
     const scoreColor = (display) => display === "-0" ? "#FFD23F" : "var(--text)";
     const top1Display = scoreDisplay(top1);
     const top100Display = scoreDisplay(top100);
+    const egDisplay = (e.matched && e.egTop1Score != null) ? formatExDiff(e.egTop1Score - e.maxExScore) : "-";
     const myScoreEntry = e.matched ? scores[songKey(e.musicName, e.type)] : null;
     const mineDisplay = (myScoreEntry && myScoreEntry.exScore) ? formatExDiff(myScoreEntry.exScore - e.maxExScore) : "-";
     return `
@@ -2279,6 +2344,7 @@ function renderRankingListHtml() {
         <div class="col-center mono" style="color:${scoreColor(mineDisplay)}">${mineDisplay}</div>
         <div class="col-center mono" style="color:${scoreColor(top1Display)}">${top1Display}</div>
         <div class="col-center mono" style="color:${scoreColor(top100Display)}">${top100Display}</div>
+        <div class="col-center mono" style="color:${scoreColor(egDisplay)}">${egDisplay}</div>
       </div>
     `;
   }).join("") || `<p class="hint">該当する曲がありません。</p>`;
@@ -2324,6 +2390,7 @@ function renderRankingListHtml() {
           <div class="col-center">自分</div>
           <div class="col-center">1位</div>
           <div class="col-center">100位</div>
+          <div class="col-center">1位(EG)</div>
         </div>
         ${rowsHtml}
       </div>
