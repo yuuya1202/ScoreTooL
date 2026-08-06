@@ -417,6 +417,20 @@ let compareDraftLevels = new Set();
 let compareDraftDiffs = new Set();
 let compareFilterMode = "simple"; // "simple" | "advanced"（比較タブ）
 let compareSimpleLevels = new Set(); // 比較タブの「絞り込み」バッジ用（詳細フィルタとは独立管理）
+let compareViewMode = "single"; // "single" | "multi"（1対1 / 複数人）
+let compareOuterBuilt = false;
+let multiCompareState = {
+  loadingFriends: false, friendsList: [],
+  selectedUids: [],           // 選択中フレンドのuid（最大4人）
+  loadingScores: false, friendScoresByUid: {}, // uid -> scores map
+  search: "", mode: "ex", resultFilter: "all", sort: "date_desc",
+  filterMode: "simple",
+  simpleLevels: new Set(),
+  levels: new Set(), diffs: new Set(DIFF_ORDER),
+};
+let multiCompareSkeletonBuilt = false;
+let multiCompareDraftLevels = new Set();
+let multiCompareDraftDiffs = new Set();
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                              */
@@ -629,6 +643,9 @@ async function loadAll() {
   compareFilterMode = "simple";
   simpleLevels = new Set(DEFAULT_LEVEL_VALUES);
   compareSimpleLevels = new Set(DEFAULT_LEVEL_VALUES);
+  multiCompareState.levels = new Set(ALL_LEVEL_VALUES);
+  multiCompareState.filterMode = "simple";
+  multiCompareState.simpleLevels = new Set(DEFAULT_LEVEL_VALUES);
 
   render();
   refreshFriendBadgeOnly();
@@ -1081,15 +1098,49 @@ function getCompareFiltered(merged, friendScores) {
 }
 
 function renderCompareTab() {
+  if (!compareOuterBuilt) {
+    document.getElementById('view-compare').innerHTML = `
+      <div class="toggle-group segmented-toggle" id="compareViewModeToggle" style="margin-bottom:14px">
+        <button class="toggle-pill" data-mode="single">1対1</button>
+        <button class="toggle-pill" data-mode="multi">複数人</button>
+      </div>
+      <div id="compareSingleWrap"></div>
+      <div id="compareMultiWrap"></div>
+    `;
+    document.getElementById('compareViewModeToggle').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-mode]');
+      if (!btn) return;
+      compareViewMode = btn.dataset.mode;
+      if (compareViewMode === "multi" && multiCompareState.friendsList.length === 0 && !multiCompareState.loadingFriends) {
+        refreshMultiCompareFriends();
+      }
+      render();
+    });
+    compareOuterBuilt = true;
+  }
+  document.querySelectorAll('#compareViewModeToggle button').forEach(b => {
+    b.classList.toggle('on', b.dataset.mode === compareViewMode);
+  });
+  document.getElementById('compareSingleWrap').style.display = compareViewMode === "single" ? "block" : "none";
+  document.getElementById('compareMultiWrap').style.display = compareViewMode === "multi" ? "block" : "none";
+
+  if (compareViewMode === "single") {
+    renderCompareSingleContent();
+  } else {
+    renderCompareMultiContent();
+  }
+}
+
+function renderCompareSingleContent() {
   if (compareState.loadingFriends) {
-    document.getElementById('view-compare').innerHTML = `<div class="panel"><p class="hint">読み込み中...</p></div>`;
+    document.getElementById('compareSingleWrap').innerHTML = `<div class="panel"><p class="hint">読み込み中...</p></div>`;
     compareSkeletonBuilt = false;
     return;
   }
   const { friendsList, selectedUid, loadingScores, friendScores } = compareState;
 
   if (friendsList.length === 0) {
-    document.getElementById('view-compare').innerHTML = `
+    document.getElementById('compareSingleWrap').innerHTML = `
       <div class="panel">
         <h3>スコア比較</h3>
         <p class="hint">まだフレンドがいません。「フレンド」タブから相手を追加してください。</p>
@@ -1102,7 +1153,7 @@ function renderCompareTab() {
     friendsList.map(f => `<option value="${esc(f.uid)}" ${f.uid === selectedUid ? "selected" : ""}>${esc(f.username || "(不明なユーザー)")}</option>`).join("");
 
   if (!selectedUid) {
-    document.getElementById('view-compare').innerHTML = `
+    document.getElementById('compareSingleWrap').innerHTML = `
       <div class="panel">
         <h3>スコア比較</h3>
         <p class="hint">比較したいフレンドを選んでください</p>
@@ -1113,7 +1164,7 @@ function renderCompareTab() {
   }
 
   if (loadingScores || friendScores === null) {
-    document.getElementById('view-compare').innerHTML = `
+    document.getElementById('compareSingleWrap').innerHTML = `
       <div class="panel">
         <h3>スコア比較</h3>
         <select class="select-input" onchange="handleSelectCompareFriend(this.value)">${options}</select>
@@ -1132,7 +1183,7 @@ function renderCompareTab() {
 }
 
 function buildCompareSkeleton(friendOptionsHtml) {
-  document.getElementById('view-compare').innerHTML = `
+  document.getElementById('compareSingleWrap').innerHTML = `
     <div class="panel">
       <h3>スコア比較</h3>
       <select class="select-input" id="compareFriendSelect">${friendOptionsHtml}</select>
@@ -1317,6 +1368,390 @@ function updateCompareTableBody() {
   const compareTopInfo = document.getElementById('compareTopInfo');
   if (compareTopInfo) compareTopInfo.textContent = `${visible.length} 件を表示中`;
   document.getElementById('compareTally').innerHTML = `<span style="font-size:17px;font-weight:700;color:var(--text)">${win}勝${loss}敗${draw}分け</span>`;
+}
+
+/* ------------------------------------------------------------------ */
+/* スコア比較タブ：複数人モード                                            */
+/* ------------------------------------------------------------------ */
+
+const MULTI_COMPARE_MAX_FRIENDS = 4; // 自分を含め最大5人
+
+async function refreshMultiCompareFriends() {
+  multiCompareState.loadingFriends = true;
+  render();
+  try {
+    multiCompareState.friendsList = await window.getFriends();
+  } catch (e) {
+    showToast("フレンド一覧の取得に失敗しました: " + e.message, "error");
+  }
+  multiCompareState.loadingFriends = false;
+  render();
+}
+
+function toggleMultiCompareFriend(uid) {
+  const idx = multiCompareState.selectedUids.indexOf(uid);
+  if (idx >= 0) {
+    multiCompareState.selectedUids.splice(idx, 1);
+    delete multiCompareState.friendScoresByUid[uid];
+    render();
+    return;
+  }
+  if (multiCompareState.selectedUids.length >= MULTI_COMPARE_MAX_FRIENDS) {
+    showToast(`比較できるのは自分を含め最大5人（フレンドは${MULTI_COMPARE_MAX_FRIENDS}人）までです`, "error");
+    return;
+  }
+  multiCompareState.selectedUids.push(uid);
+  loadMultiCompareFriendScores(uid);
+  render();
+}
+
+async function loadMultiCompareFriendScores(uid) {
+  multiCompareState.loadingScores = true;
+  render();
+  try {
+    multiCompareState.friendScoresByUid[uid] = await window.getUserScores(uid);
+  } catch (e) {
+    showToast("スコア取得に失敗しました: " + e.message, "error");
+    multiCompareState.friendScoresByUid[uid] = {};
+  }
+  multiCompareState.loadingScores = multiCompareState.selectedUids.some(
+    u => !(u in multiCompareState.friendScoresByUid)
+  );
+  render();
+}
+
+function multiPersonValue(scoreObj, maxExScore, mode) {
+  if (!hasComparablePlay(scoreObj, mode)) return null;
+  return mode === "ex" ? (scoreObj.exScore - maxExScore) : scoreObj.highScore;
+}
+function multiPersonDisplay(scoreObj, maxExScore, mode) {
+  if (!hasComparablePlay(scoreObj, mode)) return "-";
+  return mode === "ex" ? formatExDiff(scoreObj.exScore - maxExScore) : fmtNum(scoreObj.highScore);
+}
+
+function getMultiCompareFiltered(merged) {
+  const { selectedUids, friendScoresByUid, mode, resultFilter, search, filterMode, simpleLevels, levels, diffs } = multiCompareState;
+  let list = filterMode === "simple"
+    ? merged.filter(m => simpleLevels.has(m.level))
+    : merged.filter(m => diffs.has(m.type) && levels.has(m.level));
+
+  if (search.trim()) {
+    const q = search.trim().toLowerCase();
+    list = list.filter(m => m.title.toLowerCase().includes(q) || (m.reading || "").includes(q));
+  }
+
+  if (resultFilter !== "all") {
+    list = list.filter(m => {
+      const mineVal = multiPersonValue(m.score, m.maxExScore, mode);
+      if (mineVal === null) return resultFilter === "others"; // 自分が未プレイなら「1位以外」側に含める
+      const isTop = selectedUids.every(uid => {
+        const v = multiPersonValue((friendScoresByUid[uid] || {})[m.key], m.maxExScore, mode);
+        return v === null || mineVal >= v;
+      });
+      return resultFilter === "top" ? isTop : !isTop;
+    });
+  }
+
+  const cmp = {
+    date_desc: (a, b) => (b.date||"").localeCompare(a.date||"") || a.title.localeCompare(b.title, "ja"),
+    date_asc:  (a, b) => (a.date||"").localeCompare(b.date||"") || a.title.localeCompare(b.title, "ja"),
+    level_desc:(a, b) => b.level - a.level || a.title.localeCompare(b.title, "ja"),
+    level_asc: (a, b) => a.level - b.level || a.title.localeCompare(b.title, "ja"),
+    title_asc: (a, b) => (a.reading || a.title).localeCompare(b.reading || b.title, "ja"),
+    title_desc:(a, b) => (b.reading || b.title).localeCompare(a.reading || a.title, "ja"),
+    score_desc:(a, b) => (multiPersonValue(b.score, b.maxExScore, mode) ?? -Infinity) - (multiPersonValue(a.score, a.maxExScore, mode) ?? -Infinity),
+    score_asc: (a, b) => (multiPersonValue(a.score, a.maxExScore, mode) ?? Infinity) - (multiPersonValue(b.score, b.maxExScore, mode) ?? Infinity),
+  }[multiCompareState.sort] || ((a, b) => (b.date||"").localeCompare(a.date||"") || a.title.localeCompare(b.title, "ja"));
+  return list.slice().sort(cmp);
+}
+
+function renderCompareMultiContent() {
+  const wrap = document.getElementById('compareMultiWrap');
+  const { friendsList, loadingFriends, selectedUids, friendScoresByUid, loadingScores } = multiCompareState;
+
+  if (loadingFriends) {
+    wrap.innerHTML = `<div class="panel"><p class="hint">読み込み中...</p></div>`;
+    return;
+  }
+  if (friendsList.length === 0) {
+    wrap.innerHTML = `
+      <div class="panel">
+        <h3>複数人比較</h3>
+        <p class="hint">まだフレンドがいません。「フレンド」タブから相手を追加してください。</p>
+      </div>`;
+    return;
+  }
+
+  const merged = getMerged();
+  const filtered = getMultiCompareFiltered(merged);
+  const mode = multiCompareState.mode;
+
+  const pickerHtml = friendsList.map(f => {
+    const checked = selectedUids.includes(f.uid);
+    const disabled = !checked && selectedUids.length >= MULTI_COMPARE_MAX_FRIENDS;
+    return `
+      <label class="check-item" style="${disabled ? "opacity:0.4" : ""}">
+        <input type="checkbox" data-uid="${esc(f.uid)}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""}>
+        <span>${esc(f.username || "(不明なユーザー)")}</span>
+      </label>`;
+  }).join("");
+
+  const friendCols = selectedUids.map(uid => {
+    const f = friendsList.find(x => x.uid === uid);
+    return { uid, name: (f && f.username) || "(不明)" };
+  });
+
+  const rowsHtml = filtered.map(m => {
+    const mineVal = multiPersonValue(m.score, m.maxExScore, mode);
+    const mineDisplay = multiPersonDisplay(m.score, m.maxExScore, mode);
+    const cellSizeClass = mode === "normal" ? " score-cell-small" : "";
+    const cells = friendCols.map(col => {
+      const fs = (friendScoresByUid[col.uid] || {})[m.key] || null;
+      const v = multiPersonValue(fs, m.maxExScore, mode);
+      const isBetter = mineVal !== null && v !== null && v > mineVal;
+      const color = isBetter ? "color:#FF4757" : "";
+      return `<td class="mono col-center${cellSizeClass}" style="${color}">${multiPersonDisplay(fs, m.maxExScore, mode)}</td>`;
+    }).join("");
+    return `<tr>
+      <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy">`:`<div class="jacket-thumb"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
+      <td class="mono col-center${cellSizeClass}" style="color:#FFD23F">${mineDisplay}</td>
+      ${cells}
+    </tr>`;
+  }).join("");
+
+  wrap.innerHTML = `
+    <div class="panel">
+      <h3 style="margin-top:0">比較するフレンドを選択（最大${MULTI_COMPARE_MAX_FRIENDS}人）</h3>
+      <div class="check-grid" id="multiCompareFriendPicker">${pickerHtml}</div>
+    </div>
+    ${selectedUids.length === 0 ? `
+    <div class="panel"><p class="hint">フレンドを1人以上選んでください</p></div>
+    ` : `
+    <div class="panel">
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <input class="search-input" id="multiCompareSearchInput" placeholder="曲名で検索…">
+          <button type="button" class="search-clear-btn" id="multiCompareSearchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
+        </div>
+      </div>
+      <div class="toggle-group segmented-toggle" id="multiCompareFilterModeToggle" style="margin-bottom:10px">
+        <button class="toggle-pill" data-mode="simple">表示対象</button>
+        <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
+      </div>
+      <div class="level-shortcut-row" id="multiCompareLevelShortcutRow" style="margin-bottom:12px"></div>
+      <div id="multiCompareAdvancedFilterRow" style="display:none;margin-bottom:12px">
+        <button class="btn" id="multiCompareFilterBtn">絞り込み条件を設定する</button>
+      </div>
+      <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
+        <div>
+          <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">勝負基準</div>
+          <div class="toggle-group segmented-toggle" id="multiCompareModeToggle">
+            <button class="toggle-pill" data-mode="ex">EX</button>
+            <button class="toggle-pill" data-mode="normal">通常</button>
+          </div>
+        </div>
+        <div>
+          <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">表示形式</div>
+          <div class="toggle-group segmented-toggle" id="multiCompareResultToggle">
+            <button class="toggle-pill" data-result="all">すべて</button>
+            <button class="toggle-pill" data-result="top">自分が1位</button>
+            <button class="toggle-pill" data-result="others">1位以外</button>
+          </div>
+        </div>
+      </div>
+      <select class="select-input" id="multiCompareSortSelect" aria-label="並び替え" style="margin-top:10px">
+        <option value="date_desc">収録順（新しい順）</option>
+        <option value="date_asc">収録順（古い順）</option>
+        <option value="score_desc">自分のスコア高い順</option>
+        <option value="score_asc">自分のスコア低い順</option>
+        <option value="level_desc">レベル高い順</option>
+        <option value="level_asc">レベル低い順</option>
+        <option value="title_asc">五十音順（あ→ん）</option>
+        <option value="title_desc">五十音順（ん→あ）</option>
+      </select>
+    </div>
+    <p class="footnote" style="margin:0 0 8px;text-align:left">${filtered.length} 件を表示中${loadingScores ? "（フレンドのスコアを読み込み中…）" : ""}</p>
+    <div class="panel" style="padding:0;overflow:hidden">
+      <div class="table-wrap">
+        <table class="score-table">
+          <thead><tr>
+            <th class="col-title">楽曲</th>
+            <th class="col-center">自分</th>
+            ${friendCols.map(c => `<th class="col-center">${esc(c.name)}</th>`).join("")}
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        ${filtered.length === 0 ? `<div class="empty-state">比較できるスコアがありません</div>` : ""}
+      </div>
+    </div>
+    <div class="modal-overlay" id="multiCompareFilterModalOverlay" style="display:none">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3>高度な絞り込み</h3>
+          <div style="display:flex;align-items:center;gap:14px">
+            <button class="link-btn" id="multiCompareFilterModalResetBtn">内容を初期化</button>
+            <button class="modal-close" id="multiCompareFilterModalCloseBtn">×</button>
+          </div>
+        </div>
+        <div class="modal-body" id="multiCompareFilterModalBody"></div>
+        <div class="modal-footer">
+          <button class="btn" id="multiCompareFilterModalApplyBtn">この条件で絞り込む</button>
+        </div>
+      </div>
+    </div>
+    `}
+  `;
+
+  document.getElementById('multiCompareFriendPicker').addEventListener('change', (e) => {
+    const cb = e.target.closest('input[data-uid]');
+    if (!cb) return;
+    toggleMultiCompareFriend(cb.dataset.uid);
+  });
+
+  if (selectedUids.length === 0) return;
+
+  const searchEl = document.getElementById('multiCompareSearchInput');
+  if (searchEl) {
+    searchEl.value = multiCompareState.search;
+    searchEl.addEventListener('compositionstart', () => { searchEl.dataset.composing = "1"; });
+    searchEl.addEventListener('compositionend', (e) => {
+      searchEl.dataset.composing = "";
+      multiCompareState.search = e.target.value;
+      render();
+    });
+    searchEl.addEventListener('input', (e) => {
+      multiCompareState.search = e.target.value;
+      if (searchEl.dataset.composing === "1") return;
+      render();
+    });
+  }
+  const clearBtn = document.getElementById('multiCompareSearchClearBtn');
+  if (clearBtn) {
+    clearBtn.style.display = multiCompareState.search ? 'flex' : 'none';
+    clearBtn.addEventListener('click', () => { multiCompareState.search = ""; render(); });
+  }
+  document.getElementById('multiCompareFilterModeToggle').querySelectorAll('button[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === multiCompareState.filterMode));
+  document.getElementById('multiCompareFilterModeToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-mode]');
+    if (!btn) return;
+    multiCompareState.filterMode = btn.dataset.mode;
+    render();
+  });
+  const shortcutRow = document.getElementById('multiCompareLevelShortcutRow');
+  shortcutRow.style.display = multiCompareState.filterMode === "simple" ? "flex" : "none";
+  shortcutRow.innerHTML = renderLevelShortcuts(multiCompareState.simpleLevels);
+  shortcutRow.addEventListener('click', (e) => {
+    const btn = e.target.closest('.level-shortcut');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.idx, 10);
+    toggleLevelBand(multiCompareState.simpleLevels, LEVEL_SHORTCUTS[idx].values);
+    render();
+  });
+  document.getElementById('multiCompareAdvancedFilterRow').style.display = multiCompareState.filterMode === "advanced" ? "block" : "none";
+  document.getElementById('multiCompareFilterBtn').addEventListener('click', openMultiCompareFilterModal);
+
+  document.getElementById('multiCompareModeToggle').querySelectorAll('button[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === multiCompareState.mode));
+  document.getElementById('multiCompareModeToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-mode]');
+    if (btn) { multiCompareState.mode = btn.dataset.mode; render(); }
+  });
+  document.getElementById('multiCompareResultToggle').querySelectorAll('button[data-result]').forEach(b => b.classList.toggle('on', b.dataset.result === multiCompareState.resultFilter));
+  document.getElementById('multiCompareResultToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-result]');
+    if (btn) { multiCompareState.resultFilter = btn.dataset.result; render(); }
+  });
+  const sortSelect = document.getElementById('multiCompareSortSelect');
+  sortSelect.value = multiCompareState.sort;
+  sortSelect.addEventListener('change', (e) => { multiCompareState.sort = e.target.value; render(); });
+
+  document.getElementById('multiCompareFilterModalCloseBtn').addEventListener('click', closeMultiCompareFilterModal);
+  document.getElementById('multiCompareFilterModalResetBtn').addEventListener('click', resetMultiCompareFilterModal);
+  document.getElementById('multiCompareFilterModalApplyBtn').addEventListener('click', applyMultiCompareFilterModal);
+  document.getElementById('multiCompareFilterModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'multiCompareFilterModalOverlay') closeMultiCompareFilterModal();
+  });
+}
+
+function openMultiCompareFilterModal() {
+  multiCompareDraftLevels = new Set(multiCompareState.levels);
+  multiCompareDraftDiffs = new Set(multiCompareState.diffs);
+  renderMultiCompareFilterModalBody();
+  document.getElementById('multiCompareFilterModalOverlay').style.display = 'flex';
+}
+function closeMultiCompareFilterModal() {
+  document.getElementById('multiCompareFilterModalOverlay').style.display = 'none';
+}
+function resetMultiCompareFilterModal() {
+  multiCompareDraftLevels = new Set(ALL_LEVEL_VALUES);
+  multiCompareDraftDiffs = new Set(DIFF_ORDER);
+  renderMultiCompareFilterModalBody();
+}
+function applyMultiCompareFilterModal() {
+  multiCompareState.levels = new Set(multiCompareDraftLevels);
+  multiCompareState.diffs = new Set(multiCompareDraftDiffs);
+  closeMultiCompareFilterModal();
+  render();
+}
+window.toggleMultiCompareDraftLevel = function (level, checked) {
+  if (checked) multiCompareDraftLevels.add(level); else multiCompareDraftLevels.delete(level);
+};
+window.setMultiCompareBandLevels = function (levelsInBand, on) {
+  levelsInBand.forEach(lv => on ? multiCompareDraftLevels.add(lv) : multiCompareDraftLevels.delete(lv));
+  renderMultiCompareFilterModalBody();
+};
+window.toggleMultiCompareDraftDiff = function (type, checked) {
+  if (checked) multiCompareDraftDiffs.add(type); else multiCompareDraftDiffs.delete(type);
+};
+window.setMultiCompareAllDiffs = function (diffList, on) {
+  diffList.forEach(d => on ? multiCompareDraftDiffs.add(d) : multiCompareDraftDiffs.delete(d));
+  renderMultiCompareFilterModalBody();
+};
+
+function renderMultiCompareFilterModalBody() {
+  const levelSectionsHtml = LEVEL_BANDS.map(band => {
+    const checksHtml = band.values.map(lv => `
+      <label class="check-item">
+        <input type="checkbox" ${multiCompareDraftLevels.has(lv) ? "checked" : ""} onchange="toggleMultiCompareDraftLevel(${lv}, this.checked)">
+        <span>${formatLevel(lv)}</span>
+      </label>`).join("");
+    return `
+      <div class="filter-band">
+        <div class="filter-band-head">
+          <span class="filter-band-label">${band.label}</span>
+          <span class="filter-band-actions">
+            <button class="link-btn" onclick="setMultiCompareBandLevels(${JSON.stringify(band.values)}, true)">全選択</button>
+            <button class="link-btn" onclick="setMultiCompareBandLevels(${JSON.stringify(band.values)}, false)">解除</button>
+          </span>
+        </div>
+        <div class="check-grid">${checksHtml}</div>
+      </div>`;
+  }).join("");
+
+  const diffChecksHtml = DIFF_ORDER.map(d => {
+    const meta = DIFF_META[d];
+    return `
+      <label class="check-item">
+        <input type="checkbox" ${multiCompareDraftDiffs.has(d) ? "checked" : ""} onchange="toggleMultiCompareDraftDiff('${d}', this.checked)">
+        <span class="badge" style="color:${meta.color};background:${meta.color}22;border-color:${meta.color}55">${meta.abbr}</span>
+      </label>`;
+  }).join("");
+
+  document.getElementById('multiCompareFilterModalBody').innerHTML = `
+    <div class="filter-section">
+      <h4>レベル</h4>
+      ${levelSectionsHtml}
+    </div>
+    <div class="filter-section">
+      <div class="filter-band-head">
+        <h4 style="margin:0">難易度</h4>
+        <span class="filter-band-actions">
+          <button class="link-btn" onclick='setMultiCompareAllDiffs(${JSON.stringify(DIFF_ORDER)}, true)'>全選択</button>
+          <button class="link-btn" onclick='setMultiCompareAllDiffs(${JSON.stringify(DIFF_ORDER)}, false)'>解除</button>
+        </span>
+      </div>
+      <div class="check-grid">${diffChecksHtml}</div>
+    </div>
+  `;
 }
 
 function openCompareFilterModal() {
