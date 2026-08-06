@@ -146,13 +146,13 @@
   .title-cell { display:flex; align-items:center; gap:10px; }
   .title-text { white-space:normal; word-break:break-word; line-height:1.35; min-width:0; flex:1; }
   .ranking-song-list-wrap { overflow-x:auto; }
-  .ranking-song-list { display:flex; flex-direction:column; font-size:13px; min-width:452px; }
+  .ranking-song-list { display:block; font-size:13px; }
   .ranking-song-row {
     display:grid; grid-template-columns:minmax(260px,1fr) var(--ranking-extra-cols, 52px 62px 62px 74px); align-items:center; gap:8px;
     padding:10px 6px; border-bottom:1px solid var(--row-border); cursor:pointer; border-radius:6px;
+    width:100%; box-sizing:border-box;
   }
   @media (max-width: 480px) {
-    .ranking-song-list { min-width:342px; }
     .ranking-song-row { grid-template-columns:minmax(150px,1fr) var(--ranking-extra-cols, 52px 62px 62px 74px); }
   }
   .ranking-song-row:hover { background:var(--row-hover); }
@@ -2007,7 +2007,7 @@ async function ensureEgTopScoresLoaded() {
   if (egDataStatus === "loaded" || egDataStatus === "loading") return;
   egDataStatus = "loading";
   try {
-    const res = await fetch('./eg_top_scores.json');
+    const res = await fetch('./eg_top_scores.json', { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const raw = await res.json();
     egTopScoreByKey = buildEgTopScoreMap(raw);
@@ -2306,6 +2306,24 @@ function rankingExtraColsStyle() {
   return parts.join(" ") || "0px";
 }
 
+function rankingRowWidthPx() {
+  const c = rankingState.visibleColumns;
+  const extraWidths = [];
+  if (c.mine) extraWidths.push(52);
+  if (c.top1) extraWidths.push(62);
+  if (c.top100) extraWidths.push(62);
+  if (c.eg) extraWidths.push(74);
+  const extraSum = extraWidths.reduce((a, b) => a + b, 0);
+  const gaps = extraWidths.length * 8; // 楽曲列と各列の間、列同士の間の gap:8px 分
+  const isMobile = window.innerWidth <= 480;
+  const titleMin = isMobile ? 150 : 260;
+  const rowPadding = 12; // .ranking-song-row の左右padding(6px*2)
+  const contentMin = titleMin + extraSum + gaps + rowPadding;
+  const panel = document.querySelector('#view-ranking .panel');
+  const available = panel ? panel.clientWidth - 32 : window.innerWidth - 64; // パネルのpadding(16px*2)を差し引く
+  return Math.max(contentMin, available);
+}
+
 function renderRankingListHtml() {
   const myId = (window.currentPlayerId || "").toUpperCase();
   let list = rankingState.entries;
@@ -2460,7 +2478,7 @@ function renderRankingListHtml() {
     </div>
     <p class="footnote" style="margin:0 0 8px;text-align:left">${list.length} 件を表示中</p>
     <div class="ranking-song-list-wrap">
-      <div class="ranking-song-list" id="rankingSongListWrap" style="--ranking-extra-cols:${rankingExtraColsStyle()}">
+      <div class="ranking-song-list" id="rankingSongListWrap" style="--ranking-extra-cols:${rankingExtraColsStyle()};width:${rankingRowWidthPx()}px">
         <div class="ranking-song-row ranking-song-header">
           <div>楽曲</div>
           ${cols.mine ? `<div class="col-center">自分</div>` : ""}
