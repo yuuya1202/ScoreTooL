@@ -611,7 +611,7 @@ function parseScoreCsv(text) {
 /* ------------------------------------------------------------------ */
 async function loadAll() {
   try {
-    const res = await fetch('./songs.json');
+    const res = await fetch('./songs.json', { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     songs = data.filter(d => d && d.title && d.type).map(d => ({
