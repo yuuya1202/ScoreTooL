@@ -2292,8 +2292,8 @@ function rankingRowWidthPx() {
   const titleMin = isMobile ? 150 : 260;
   const rowPadding = 12; // .ranking-song-row の左右padding(6px*2)
   const contentMin = titleMin + extraSum + gaps + rowPadding;
-  const panel = document.querySelector('#view-ranking .panel');
-  const available = panel ? panel.clientWidth - 32 : window.innerWidth - 64; // パネルのpadding(16px*2)を差し引く
+  const container = document.getElementById('view-ranking');
+  const available = container ? container.clientWidth - 32 : window.innerWidth - 64; // パネルのpadding(16px*2)を差し引く
   return Math.max(contentMin, available);
 }
 
