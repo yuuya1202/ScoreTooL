@@ -1834,6 +1834,7 @@ function renderCompareMultiContent() {
   });
 
   const rowsHtml = filtered.map(m => {
+    const meta = DIFF_META[m.type] || { abbr: (m.type || "?").slice(0, 3).toUpperCase(), color: "#888" };
     const mineVal = multiPersonValue(m.score, m.maxExScore, mode);
     const mineDisplay = multiPersonDisplay(m.score, m.maxExScore, mode);
     const cellSizeClass = mode === "normal" ? " score-cell-small" : "";
@@ -1846,7 +1847,7 @@ function renderCompareMultiContent() {
       return `<td class="mono col-center${cellSizeClass}" style="${colorFor(friendVals[i])}">${multiPersonDisplay(fs, m.maxExScore, mode)}</td>`;
     }).join("");
     return `<tr>
-      <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy">`:`<div class="jacket-thumb"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
+      <td><div class="title-cell">${m.jacket?`<img class="jacket-thumb" src="${esc(m.jacket)}" loading="lazy" style="border-color:${meta.color}">`:`<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}<span class="title-text">${esc(m.title)}</span></div></td>
       <td class="mono col-center${cellSizeClass}" style="${colorFor(mineVal)}">${mineDisplay}</td>
       ${cells}
     </tr>`;
