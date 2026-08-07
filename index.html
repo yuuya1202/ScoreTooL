@@ -247,7 +247,8 @@
 </head>
 <body>
 
-<div style="max-width:360px;margin:60px auto 0;text-align:left;display:none" id="authBrand">
+<div style="max-width:360px;margin:60px auto 0;text-align:left;display:none;position:relative" id="authBrand">
+  <button class="btn secondary lang-toggle-btn" onclick="setLang(currentLang==='ja'?'ko':'ja')" style="position:absolute;top:0;right:0;padding:6px 12px;font-size:12px">한국어</button>
   <div class="brand-title" style="font-size:24px"><span class="brand-title-sdvx">SDVX</span> <span class="brand-title-exscore">EX-Score</span></div>
 </div>
 <div id="authGate" class="panel" style="max-width:360px;margin:16px auto;display:none">
@@ -266,8 +267,8 @@
     <button class="btn secondary" onclick="toggleAuthMode()">新規登録はこちら</button>
   </div>
   <details style="margin-top:14px;font-size:11px;color:var(--muted)">
-    <summary style="cursor:pointer">アカウント削除依頼・パスワードを忘れた場合</summary>
-    <p style="margin:6px 0 0">X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener" style="color:#3B82F6">@yuuya1202</a> までご連絡ください。</p>
+    <summary style="cursor:pointer" id="authDeleteSummary">アカウント削除依頼・パスワードを忘れた場合</summary>
+    <p style="margin:6px 0 0" id="authDeleteBody">X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener" style="color:#3B82F6">@yuuya1202</a> までご連絡ください。</p>
   </details>
 </div>
 
@@ -285,6 +286,7 @@
         <button class="account-dropdown-item" onclick="openChangeUsernameModal(); toggleAccountMenu();">アカウント名を変更</button>
         <button class="account-dropdown-item" onclick="openPlayerIdModal(); toggleAccountMenu();">プレイヤーIDを設定</button>
         <button class="account-dropdown-item" onclick="switchTab('data'); toggleAccountMenu();">スコア登録</button>
+        <button class="account-dropdown-item lang-toggle-btn" onclick="setLang(currentLang==='ja'?'ko':'ja')">한국어</button>
         <button class="account-dropdown-item" onclick="switchTab('terms'); toggleAccountMenu();">利用規約</button>
         <button class="account-dropdown-item danger" onclick="handleLogout()">ログアウト</button>
       </div>
@@ -447,6 +449,306 @@ function normalizeTitle(raw) {
 function fmtNum(n) { return (n === null || n === undefined || isNaN(n)) ? "-" : n.toLocaleString("en-US"); }
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
+/* ------------------------------------------------------------------ */
+/* 多言語対応（日本語 / 韓国語）                                          */
+/* マスタデータ（曲名・難易度略称など）は翻訳対象外。UI文言のみ対象。         */
+/* ------------------------------------------------------------------ */
+let currentLang = "ja"; // "ja" | "ko"
+const T = {
+  ja: {}, // 日本語は元の文字列そのままなので空でOK（キー未登録時はキー自身を返す）
+  ko: {
+    "ログイン": "로그인",
+    "アカウント名とパスワードを入力してください。": "계정 이름과 비밀번호를 입력해 주세요.",
+    "アカウント名（半角英数字・3〜20文字）": "계정 이름 (반각 영숫자, 3~20자)",
+    "パスワード（6文字以上）": "비밀번호 (6자 이상)",
+    "※アカウント名は後から変更できますが、パスワードは変更できません。": "※ 계정 이름은 나중에 변경할 수 있지만, 비밀번호는 변경할 수 없습니다.",
+    "プレイヤーID（任意・例: SV-9900-0000）": "플레이어 ID (선택 사항, 예: SV-9900-0000)",
+    "登録すると、ランキング機能で自分の順位を確認できるようになります。": "등록하면 랭킹 기능에서 자신의 순위를 확인할 수 있습니다.",
+    "新規登録": "신규 등록",
+    "登録する": "등록하기",
+    "新規登録はこちら": "신규 등록은 여기",
+    "戻る": "돌아가기",
+    "アカウント削除依頼・パスワードを忘れた場合": "계정 삭제 요청・비밀번호를 잊으신 경우",
+    "までご連絡ください。": "로 연락해 주세요.",
+    "アカウント名を変更": "계정 이름 변경",
+    "プレイヤーIDを設定": "플레이어 ID 설정",
+    "スコア登録": "스코어 등록",
+    "利用規約": "이용약관",
+    "ログアウト": "로그아웃",
+    "ホーム": "홈",
+    "ランキング": "랭킹",
+    "スコア比較": "스코어 비교",
+    "フレンド": "친구",
+    "キャンセル": "취소",
+    "現在のアカウント名: ": "현재 계정 이름: ",
+    "新しいアカウント名": "새 계정 이름",
+    "半角英数字・3〜20文字": "반각 영숫자, 3~20자",
+    "変更する": "변경하기",
+    "SDVXのプレイヤーID（例: SV-9900-0000）を登録しておくと、ランキング機能で自分の順位を探せるようになります。": "SDVX 플레이어 ID(예: SV-9900-0000)를 등록해두면 랭킹 기능에서 자신의 순위를 찾을 수 있습니다.",
+    "例: SV-9900-0000": "예: SV-9900-0000",
+    "保存する": "저장하기",
+    "たった今": "방금 전",
+    "{n}分前": "{n}분 전",
+    "{n}時間前": "{n}시간 전",
+    "{n}日前": "{n}일 전",
+    "プレイヤーIDを保存しました": "플레이어 ID를 저장했습니다",
+    "プレイヤーIDを削除しました": "플레이어 ID를 삭제했습니다",
+    "新しいアカウント名を入力してください": "새 계정 이름을 입력해 주세요",
+    " でログイン中": "(으)로 로그인 중",
+    "アカウント名を変更しました": "계정 이름을 변경했습니다",
+    "CSVにデータ行がありません": "CSV에 데이터 행이 없습니다",
+    "楽曲マスタ(songs.json)の読み込みに失敗しました: ": "곡 마스터(songs.json) 로딩에 실패했습니다: ",
+    "。index.html と同じフォルダに songs.json を置いてデプロイしているか確認してください。": ". index.html과 같은 폴더에 songs.json을 두고 배포했는지 확인해 주세요.",
+    "スコアデータの読み込みに失敗しました: ": "스코어 데이터 로딩에 실패했습니다: ",
+    "フレンド一覧の取得に失敗しました: ": "친구 목록을 가져오는 데 실패했습니다: ",
+    "相手のスコア取得に失敗しました: ": "상대의 스코어를 가져오는 데 실패했습니다: ",
+    "フレンド情報の取得に失敗しました: ": "친구 정보를 가져오는 데 실패했습니다: ",
+    "ユーザー名を入力してください": "사용자 이름을 입력해 주세요",
+    "{name} さんにフレンド申請を送りますか？": "{name} 님에게 친구 신청을 보내시겠습니까?",
+    "{name} さんにフレンド申請を送りました": "{name} 님에게 친구 신청을 보냈습니다",
+    "相手": "상대",
+    "{name} さんの申請を承認しますか？": "{name} 님의 신청을 승인하시겠습니까?",
+    "{name} さんの申請を拒否しますか？": "{name} 님의 신청을 거절하시겠습니까?",
+    "{name} さんとフレンドになりました": "{name} 님과 친구가 되었습니다",
+    "{name} さんの申請を拒否しました": "{name} 님의 신청을 거절했습니다",
+    "処理に失敗しました: ": "처리에 실패했습니다: ",
+    "{name} さんをフレンドから削除しますか？": "{name} 님을 친구 목록에서 삭제하시겠습니까?",
+    "{name} さんを削除しました": "{name} 님을 삭제했습니다",
+    "削除に失敗しました: ": "삭제에 실패했습니다: ",
+    "公式サイトに遷移します": "공식 사이트로 이동합니다",
+    "CSVを貼り付けてください": "CSV를 붙여넣어 주세요",
+    "スコアを登録しました": "스코어를 등록했습니다",
+    "取り込みに失敗しました: ": "가져오기에 실패했습니다: ",
+    "自分のスコアデータを全て削除しますか？この操作は取り消せません。": "내 스코어 데이터를 전부 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "スコアデータを削除しました": "스코어 데이터를 삭제했습니다",
+    "利用規約": "이용약관",
+    "SDVX EX-Score をご利用いただく方に向けた規約です。": "SDVX EX-Score를 이용하시는 분들을 위한 약관입니다.",
+    "1. サービス概要": "1. 서비스 개요",
+    "本サービスは、株式会社コナミアミューズメントが提供する音楽ゲーム「SOUND VOLTEX」のプレイ結果をもとに、フレンドとスコアを見比べられるようにした、非公式の個人開発ツールです。運営元は個人であり、コナミアミューズメントおよびその関連会社とのつながりは一切ありません。":
+      "본 서비스는 KONAMI Amusement가 제공하는 음악 게임 'SOUND VOLTEX'의 플레이 기록을 바탕으로, 친구와 스코어를 비교할 수 있게 만든 비공식 개인 개발 툴입니다. 운영자는 개인이며, KONAMI Amusement 및 그 관계사와는 어떠한 관련도 없습니다.",
+    "2. 免責について": "2. 면책 사항",
+    "表示されるデータの正確さや、常に最新の状態であることを保証するものではありません。": "표시되는 데이터의 정확성이나 항상 최신 상태임을 보장하지 않습니다.",
+    "本サービスを利用したことにより生じた不利益（記録の消失、端末への影響等）について、運営者は責任を負いかねます。": "본 서비스를 이용함으로써 발생한 불이익(기록 소실, 단말기에 대한 영향 등)에 대해 운영자는 책임지지 않습니다.",
+    "サービス内容の変更・停止・終了は、事前の告知なく行われることがあります。": "서비스 내용의 변경・중단・종료는 사전 고지 없이 이루어질 수 있습니다.",
+    "3. 禁止する行為": "3. 금지 행위",
+    "サービスの運営に支障をきたすような使い方": "서비스 운영에 지장을 주는 사용 방법",
+    "他人になりすます、または他人のアカウントを無断で使う行為": "타인을 사칭하거나 타인의 계정을 무단으로 사용하는 행위",
+    "承認を得ていないフレンドのスコア情報を外部に漏らす行為": "승인받지 않은 친구의 스코어 정보를 외부에 유출하는 행위",
+    "その他、運営者が不適切と考える行為": "그 외 운영자가 부적절하다고 판단하는 행위",
+    "4. データの扱いについて": "4. 데이터 취급에 대해",
+    "登録されたスコア情報は、比較機能を提供する目的でGoogle Firebase（Firestore）に保管されます。閲覧できるのは本人と、本人が承認したフレンドに限られます。":
+      "등록된 스코어 정보는 비교 기능 제공을 목적으로 Google Firebase(Firestore)에 보관됩니다. 열람 가능한 사람은 본인과, 본인이 승인한 친구로 한정됩니다.",
+    "5. 規約の見直し": "5. 약관 개정",
+    "必要に応じて本規約の内容を更新することがあります。更新した規約は、本ページに反映された時点から適用されます。": "필요에 따라 본 약관의 내용을 업데이트할 수 있습니다. 업데이트된 약관은 본 페이지에 반영된 시점부터 적용됩니다.",
+    "⚠ マスタ読み込みエラー": "⚠ 마스터 로딩 오류",
+    "公式サイトの「PLAY DATA」→「": "공식 사이트의 'PLAY DATA' → '",
+    "スコアデータ/CSVダウンロード": "스코어 데이터/CSV 다운로드",
+    "」からCSVをコピーして、下に貼り付けてください。": "'에서 CSV를 복사해 아래에 붙여넣어 주세요.",
+    "最終登録日時: ": "마지막 등록 일시: ",
+    "楽曲名,難易度,楽曲レベル,クリアランク,スコアグレード,ハイスコア,...": "곡명,난이도,곡 레벨,클리어 랭크,스코어 등급,하이스코어,...",
+    "スコアを登録する": "스코어 등록하기",
+    "読み込み中...": "불러오는 중...",
+    "さんから申請 ": "님의 신청 ",
+    "{name}さんから申請": "{name}님의 신청",
+    "{name}さんに申請中（相手の承認待ち）": "{name}님에게 신청 중 (상대의 승인 대기)",
+    "承認": "승인",
+    "拒否": "거절",
+    "届いている申請はありません": "도착한 신청이 없습니다",
+    "さんに申請中（相手の承認待ち）": "님에게 신청 중 (상대의 승인 대기)",
+    "(不明なユーザー)": "(알 수 없는 사용자)",
+    "フレンドがまだいません": "아직 친구가 없습니다",
+    "フレンドを追加": "친구 추가",
+    "相手のアカウント名を入力して申請してください。相手が承認するとお互いのスコアを比較できるようになります。": "상대의 계정 이름을 입력해 신청해 주세요. 상대가 승인하면 서로의 스코어를 비교할 수 있습니다.",
+    "相手のアカウント名": "상대의 계정 이름",
+    "申請する": "신청하기",
+    "届いている申請": "도착한 신청",
+    "申請中": "신청 중",
+    "フレンド一覧（{n}人）": "친구 목록 ({n}명)",
+    "1対1": "1대1",
+    "複数人": "다인",
+    "まだフレンドがいません。「フレンド」タブから相手を追加してください。": "아직 친구가 없습니다. '친구' 탭에서 상대를 추가해 주세요.",
+    "選択してください": "선택해 주세요",
+    "比較したいフレンドを選んでください": "비교하고 싶은 친구를 선택해 주세요",
+    "スコア比較": "스코어 비교",
+    "曲名で検索…": "곡명으로 검색…",
+    "表示対象": "표시 대상",
+    "高度な絞り込み": "고급 필터",
+    "絞り込み条件を設定する": "필터 조건 설정하기",
+    "収録順（新しい順）": "수록순 (최신순)",
+    "収録順（古い順）": "수록순 (오래된순)",
+    "スコア高い順（自分）": "스코어 높은순 (본인)",
+    "スコア低い順（自分）": "스코어 낮은순 (본인)",
+    "レベル高い順": "레벨 높은순",
+    "レベル低い順": "레벨 낮은순",
+    "五十音順（あ→ん）": "가나다순 (오름차순)",
+    "五十音順（ん→あ）": "가나다순 (내림차순)",
+    "勝負基準": "승부 기준",
+    "通常": "일반",
+    "表示形式": "표시 형식",
+    "すべて": "전체",
+    "勝利": "승리",
+    "敗北": "패배",
+    "引き分け": "무승부",
+    "勝": "승",
+    "敗": "패",
+    "分け": "무",
+    "（フレンドのスコアを読み込み中…）": "（친구의 스코어를 불러오는 중…）",
+    "(不明)": "(알 수 없음)",
+    "楽曲": "곡명",
+    "自分": "본인",
+    "内容を初期化": "내용 초기화",
+    "この条件で絞り込む": "이 조건으로 필터링",
+    "絞り込み条件を設定する（設定中●）": "필터 조건 설정하기（설정 중●）",
+    "比較できるスコアがありません": "비교할 수 있는 스코어가 없습니다",
+    "{n} 件を表示中": "{n}건 표시 중",
+    "比較するフレンドを選択（最大{n}人）": "비교할 친구 선택（최대 {n}명）",
+    "フレンドを1人以上選んでください": "친구를 1명 이상 선택해 주세요",
+    "自分が1位": "본인 1위",
+    "1位以外": "1위 이외",
+    "複数人比較": "다인 비교",
+    "レベル": "레벨",
+    "難易度": "난이도",
+    "全選択": "전체 선택",
+    "解除": "해제",
+    "比較できるのは自分を含め最大5人（フレンドは{n}人）までです": "비교는 본인 포함 최대 5명（친구는 {n}명）까지 가능합니다",
+    "スコア取得に失敗しました: ": "스코어를 가져오는 데 실패했습니다: ",
+    "ランキングデータを読み込み中…": "랭킹 데이터를 불러오는 중…",
+    "ランキングデータの取得に失敗しました: ": "랭킹 데이터를 가져오는 데 실패했습니다: ",
+    "再試行": "다시 시도",
+    "楽曲をタッチすると詳細（1〜100位）を確認できます。": "곡을 터치하면 상세 정보(1~100위)를 확인할 수 있습니다.",
+    "∇以前に出した記録はランキングには掲載されません。※Lv.1〜16は集計対象外です": "∇ 이전에 기록한 결과는 랭킹에 게재되지 않습니다. ※Lv.1~16은 집계 대상 외입니다",
+    "全曲": "전곡",
+    "未理論値": "미달성 만점",
+    "自分がランクイン中": "본인이 랭크인 중",
+    "プレイヤーIDが未登録です。アカウントメニューの「プレイヤーIDを設定」から登録すると、自分がランクインしている曲を確認できます。": "플레이어 ID가 미등록 상태입니다. 계정 메뉴의 '플레이어 ID 설정'에서 등록하면 본인이 랭크인한 곡을 확인할 수 있습니다.",
+    "順位（高い順）": "순위 (높은순)",
+    "順位（低い順）": "순위 (낮은순)",
+    "1位スコア（高い順）": "1위 스코어 (높은순)",
+    "1位スコア（低い順）": "1위 스코어 (낮은순)",
+    "自分のスコアを表示": "본인 스코어 표시",
+    "1位": "1위",
+    "1位(EG)": "1위(EG)",
+    "(自分)": "(본인)",
+    "該当する曲がありません。": "해당하는 곡이 없습니다.",
+    "（未マッチ）": "（미매칭）",
+    "← 曲一覧に戻る": "← 곡 목록으로 돌아가기",
+    "この曲は楽曲マスタと自動で一致しなかったため、EXスコアの理論値差分は表示していません。": "이 곡은 곡 마스터 데이터와 자동으로 일치하지 않아, EX 스코어의 이론값 차이를 표시하지 않습니다.",
+    "順位": "순위",
+    "プレイヤー": "플레이어",
+    "スコア": "스코어",
+    "更新日時": "갱신 일시",
+    "スコア高い順（EX）": "스코어 높은순 (EX)",
+    "スコア低い順（EX）": "스코어 낮은순 (EX)",
+    "スコア高い順（通常）": "스코어 높은순 (일반)",
+    "スコア低い順（通常）": "스코어 낮은순 (일반)",
+    "EXスコア": "EX 스코어",
+    "通常スコア": "일반 스코어",
+    "まだスコアが登録されていません。右上のアカウントメニューの「スコア登録」からスコアを登録してください": "아직 스코어가 등록되지 않았습니다. 우측 상단 계정 메뉴의 '스코어 등록'에서 스코어를 등록해 주세요",
+    "スコア登録はこちら": "스코어 등록은 여기",
+    "最小値は最大値以下にしてください": "최솟값은 최댓값 이하로 설정해 주세요",
+    "楽曲マスタデータを読み込めませんでした": "곡 마스터 데이터를 불러올 수 없었습니다",
+    "songs.json を確認してください。": "songs.json을 확인해 주세요.",
+    "そのアカウント名は既に使われています": "이미 사용 중인 계정 이름입니다",
+    "パスワードは6文字以上にしてください": "비밀번호는 6자 이상으로 설정해 주세요",
+    "アカウント名またはパスワードが違います": "계정 이름 또는 비밀번호가 올바르지 않습니다",
+    "アカウント名に使える文字を確認してください": "계정 이름에 사용 가능한 문자를 확인해 주세요",
+    "エラーが発生しました: ": "오류가 발생했습니다: ",
+    "アカウント名は半角英数字とアンダースコアで3〜20文字にしてください": "계정 이름은 반각 영숫자와 언더스코어로 3~20자로 설정해 주세요",
+    "パスワードは6文字以上で入力してください": "비밀번호는 6자 이상 입력해 주세요",
+    "ログアウトしますか？": "로그아웃하시겠습니까?",
+    "ログインしていません": "로그인되어 있지 않습니다",
+    "プレイヤーIDの形式が正しくありません（例: SV-9900-0000）": "플레이어 ID 형식이 올바르지 않습니다 (예: SV-9900-0000)",
+    "現在と同じアカウント名です": "현재와 같은 계정 이름입니다",
+    "自分自身には申請できません": "자기 자신에게는 신청할 수 없습니다",
+    "そのアカウント名は見つかりません": "해당 계정 이름을 찾을 수 없습니다",
+    "すでに申請済み、フレンド、または相手から拒否されたばかりで再申請できない状態です": "이미 신청함, 친구 관계이거나, 상대에게 방금 거절당해 재신청할 수 없는 상태입니다",
+    "ユーザー情報の取得に失敗:": "사용자 정보를 가져오는 데 실패:",
+    "サンプルデータ（実データURL未設定）": "샘플 데이터（실제 데이터 URL 미설정）",
+    "OK": "확인",
+    "日本語": "日本語",
+    "한국어": "한국어",
+  },
+};
+function t(key, vars) {
+  const dict = T[currentLang] || {};
+  let s = (key in dict) ? dict[key] : key;
+  if (vars) { for (const k in vars) s = s.split("{" + k + "}").join(vars[k]); }
+  return s;
+}
+window.t = t;
+function setLang(lang) {
+  currentLang = lang;
+  if (window.auth && window.auth.currentUser && window.saveLangPref) window.saveLangPref(lang);
+  applyLanguage();
+}
+window.setLang = setLang;
+window.initCurrentLang = function (lang) { currentLang = lang; };
+window.currentLangForSignup = function () { return currentLang; };
+function applyLanguage() {
+  document.documentElement.lang = currentLang === "ko" ? "ko" : "ja";
+  document.querySelectorAll(".lang-toggle-btn").forEach(b => {
+    b.textContent = currentLang === "ja" ? "한국어" : "日本語";
+  });
+  // スケルトンベースのタブは初回しかDOMを作り直さない仕組みなので、
+  // 言語切替時は強制的に作り直させて文言を反映する
+  listSkeletonBuilt = false;
+  compareSkeletonBuilt = false;
+  compareOuterBuilt = false;
+  multiCompareSkeletonBuilt = false;
+  if (document.getElementById('authGate') && document.getElementById('authGate').style.display !== 'none') {
+    renderAuthGate();
+  }
+  if (document.getElementById('appRoot') && document.getElementById('appRoot').style.display !== 'none') {
+    document.querySelectorAll('.account-dropdown-item')[0] && applyStaticTranslations();
+    render();
+    if (tab === 'friends') refreshFriendBadgeOnly();
+  }
+}
+function applyStaticTranslations() {
+  // JSで動的に作られない、静的HTML部分の文言をここでまとめて翻訳する
+  const map = [
+    ['#tab-list', 'ホーム'], ['#tab-ranking', 'ランキング'], ['#tab-compare', 'スコア比較'], ['#tab-friends', 'フレンド'],
+  ];
+  map.forEach(([sel, key]) => {
+    const el = document.querySelector(sel);
+    if (el) {
+      const badge = el.querySelector('.tab-badge');
+      el.textContent = t(key);
+      if (badge) el.appendChild(badge);
+    }
+  });
+  const items = document.querySelectorAll('.account-dropdown-item:not(.lang-toggle-btn)');
+  const labels = ["アカウント名を変更", "プレイヤーIDを設定", "スコア登録", "利用規約", "ログアウト"];
+  items.forEach((el, i) => { if (labels[i]) el.textContent = t(labels[i]); });
+  const cancelBtn = document.getElementById('confirmModalCancelBtn');
+  if (cancelBtn) cancelBtn.textContent = t("キャンセル");
+  const okBtn = document.getElementById('confirmModalOkBtn');
+  if (okBtn) okBtn.textContent = t("OK");
+  const uTitle = document.querySelector('#usernameModalOverlay h3');
+  if (uTitle) uTitle.textContent = t("アカウント名を変更");
+  const uCurrent = document.querySelector('#usernameModalOverlay .hint');
+  const uNewLabel = document.querySelectorAll('#usernameModalOverlay .hint')[1];
+  if (uNewLabel) uNewLabel.textContent = t("新しいアカウント名");
+  const uInput = document.getElementById('usernameModalNew');
+  if (uInput) uInput.placeholder = t("半角英数字・3〜20文字");
+  const uSubmit = document.getElementById('usernameModalSubmitBtn');
+  if (uSubmit) uSubmit.textContent = t("変更する");
+  const uCancel = document.getElementById('usernameModalCancelBtn');
+  if (uCancel) uCancel.textContent = t("キャンセル");
+  const pTitle = document.querySelector('#playerIdModalOverlay h3');
+  if (pTitle) pTitle.textContent = t("プレイヤーIDを設定");
+  const pHint = document.querySelector('#playerIdModalOverlay .hint');
+  if (pHint) pHint.textContent = t("SDVXのプレイヤーID（例: SV-9900-0000）を登録しておくと、ランキング機能で自分の順位を探せるようになります。");
+  const pInput = document.getElementById('playerIdModalInput');
+  if (pInput) pInput.placeholder = t("例: SV-9900-0000");
+  const pSubmit = document.getElementById('playerIdModalSubmitBtn');
+  if (pSubmit) pSubmit.textContent = t("保存する");
+  const pCancel = document.getElementById('playerIdModalCancelBtn');
+  if (pCancel) pCancel.textContent = t("キャンセル");
+}
+window.applyStaticTranslations = applyStaticTranslations;
+
+
 function toDate(v) {
   if (!v) return null;
   if (typeof v.toDate === "function") return v.toDate();
@@ -462,12 +764,12 @@ function formatDateTime(date) {
 function formatRelativeTime(date) {
   if (!date) return "";
   const diffMin = Math.floor((Date.now() - date.getTime()) / 60000);
-  if (diffMin < 1) return "たった今";
-  if (diffMin < 60) return `${diffMin}分前`;
+  if (diffMin < 1) return t("たった今");
+  if (diffMin < 60) return t("{n}分前", {n: diffMin});
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}時間前`;
+  if (diffHour < 24) return t("{n}時間前", {n: diffHour});
   const diffDay = Math.floor(diffHour / 24);
-  return `${diffDay}日前`;
+  return t("{n}日前", {n: diffDay});
 }
 
 let _confirmResolve = null;
@@ -544,14 +846,14 @@ async function submitChangeUsername() {
   const newName = document.getElementById('usernameModalNew').value.trim();
   const errEl = document.getElementById('usernameModalError');
   errEl.textContent = "";
-  if (!newName) { errEl.textContent = "新しいアカウント名を入力してください"; return; }
+  if (!newName) { errEl.textContent = t("新しいアカウント名を入力してください"); return; }
   try {
     const updated = await window.changeDisplayName(newName);
     window.currentUsername = updated;
-    document.getElementById('accountDropdownName').textContent = updated + " でログイン中";
+    document.getElementById('accountDropdownName').textContent = updated + t(" でログイン中");
     document.getElementById('accountAvatarBtn').textContent = updated.charAt(0).toUpperCase();
     closeChangeUsernameModal();
-    showToast("アカウント名を変更しました", "success");
+    showToast(t("アカウント名を変更しました"), "success");
   } catch (e) {
     errEl.textContent = e.message;
   }
@@ -581,7 +883,7 @@ document.addEventListener('click', (e) => {
 
 function parseScoreCsv(text) {
   const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-  if (lines.length < 2) throw new Error("CSVにデータ行がありません");
+  if (lines.length < 2) throw new Error(t("CSVにデータ行がありません"));
   const rows = lines.slice(1);
   const records = {};
   let parsedCount = 0;
@@ -625,8 +927,8 @@ async function loadAll() {
       date: d.date || "",
     }));
   } catch (e) {
-    masterError = "楽曲マスタ(songs.json)の読み込みに失敗しました: " + e.message +
-      "。index.html と同じフォルダに songs.json を置いてデプロイしているか確認してください。";
+    masterError = t("楽曲マスタ(songs.json)の読み込みに失敗しました: ") + e.message +
+      t("。index.html と同じフォルダに songs.json を置いてデプロイしているか確認してください。");
   }
   try {
     const result = await window.loadScoresFromFirestore();
@@ -634,7 +936,7 @@ async function loadAll() {
     scoresUpdatedAt = result.updatedAt;
   } catch (e) {
     scores = {};
-    showToast("スコアデータの読み込みに失敗しました: " + e.message, "error");
+    showToast(t("スコアデータの読み込みに失敗しました: ") + e.message, "error");
   }
 
   filters.levels = new Set(ALL_LEVEL_VALUES);
@@ -677,7 +979,7 @@ async function refreshCompareFriends() {
   try {
     compareState.friendsList = await window.getFriends();
   } catch (e) {
-    showToast("フレンド一覧の取得に失敗しました: " + e.message, "error");
+    showToast(t("フレンド一覧の取得に失敗しました: ") + e.message, "error");
   }
   compareState.loadingFriends = false;
   render();
@@ -697,7 +999,7 @@ async function loadCompareFriendScores(uid) {
   try {
     compareState.friendScores = await window.getUserScores(uid);
   } catch (e) {
-    showToast("相手のスコア取得に失敗しました: " + e.message, "error");
+    showToast(t("相手のスコア取得に失敗しました: ") + e.message, "error");
     compareState.friendScores = {};
   }
   compareState.loadingScores = false;
@@ -707,7 +1009,7 @@ async function loadCompareFriendScores(uid) {
 function updateFriendTabBadge(count) {
   const btn = document.getElementById('tab-friends');
   if (!btn) return;
-  btn.innerHTML = count > 0 ? `フレンド <span class="tab-badge">${count}</span>` : `フレンド`;
+  btn.innerHTML = count > 0 ? `${t("フレンド")} <span class="tab-badge">${count}</span>` : t("フレンド");
 }
 
 async function refreshFriendBadgeOnly() {
@@ -731,7 +1033,7 @@ async function refreshFriendsData() {
     friendsState.friends = friends;
     updateFriendTabBadge(incoming.length);
   } catch (e) {
-    showToast("フレンド情報の取得に失敗しました: " + e.message, "error");
+    showToast(t("フレンド情報の取得に失敗しました: ") + e.message, "error");
   }
   friendsState.loading = false;
   render();
@@ -740,12 +1042,12 @@ async function refreshFriendsData() {
 async function handleSendFriendRequest() {
   const input = document.getElementById('friendUsernameInput');
   const username = input.value.trim();
-  if (!username) { showToast("ユーザー名を入力してください", "error"); return; }
-  if (!(await showConfirmDialog(`${username} さんにフレンド申請を送りますか？`))) return;
+  if (!username) { showToast(t("ユーザー名を入力してください"), "error"); return; }
+  if (!(await showConfirmDialog(t("{name} さんにフレンド申請を送りますか？", {name: username})))) return;
   try {
     await window.sendFriendRequest(username);
     input.value = "";
-    showToast(`${username} さんにフレンド申請を送りました`, "success");
+    showToast(t("{name} さんにフレンド申請を送りました", {name: username}), "success");
     refreshFriendsData();
   } catch (e) {
     showToast(e.message, "error");
@@ -754,38 +1056,38 @@ async function handleSendFriendRequest() {
 
 async function handleRespondRequest(id, accept) {
   const target = friendsState.incoming.find(r => r.id === id);
-  const name = target ? (target.fromUsername || "相手") : "相手";
-  if (!(await showConfirmDialog(accept ? `${name} さんの申請を承認しますか？` : `${name} さんの申請を拒否しますか？`))) return;
+  const name = target ? (target.fromUsername || t("相手")) : t("相手");
+  if (!(await showConfirmDialog(accept ? t("{name} さんの申請を承認しますか？", {name}) : t("{name} さんの申請を拒否しますか？", {name})))) return;
   try {
     await window.respondFriendRequest(id, accept);
-    showToast(accept ? `${name} さんとフレンドになりました` : `${name} さんの申請を拒否しました`, "success");
+    showToast(accept ? t("{name} さんとフレンドになりました", {name}) : t("{name} さんの申請を拒否しました", {name}), "success");
     refreshFriendsData();
   } catch (e) {
-    showToast("処理に失敗しました: " + e.message, "error");
+    showToast(t("処理に失敗しました: ") + e.message, "error");
   }
 }
 
 async function handleRemoveFriend(uid, username) {
-  if (!(await showConfirmDialog(`${username} さんをフレンドから削除しますか？`))) return;
+  if (!(await showConfirmDialog(t("{name} さんをフレンドから削除しますか？", {name: username})))) return;
   try {
     await window.removeFriend(uid);
-    showToast(`${username} さんを削除しました`, "success");
+    showToast(t("{name} さんを削除しました", {name: username}), "success");
     refreshFriendsData();
   } catch (e) {
-    showToast("削除に失敗しました: " + e.message, "error");
+    showToast(t("削除に失敗しました: ") + e.message, "error");
   }
 }
 
 async function handleOpenOfficialSite() {
   const url = "https://p.eagate.573.jp/game/sdvx/vii/playdata/download/index.html";
-  if (!(await showConfirmDialog("公式サイトに遷移します"))) return;
+  if (!(await showConfirmDialog(t("公式サイトに遷移します")))) return;
   window.open(url, "_blank", "noopener");
 }
 
 async function handleImportCsv() {
   const ta = document.getElementById('csvInput');
   const text = ta.value;
-  if (!text.trim()) { showToast("CSVを貼り付けてください", "error"); return; }
+  if (!text.trim()) { showToast(t("CSVを貼り付けてください"), "error"); return; }
   try {
     const { records, parsedCount } = parseScoreCsv(text);
     const merged = Object.assign({}, scores, records);
@@ -793,22 +1095,22 @@ async function handleImportCsv() {
     scores = merged;
     scoresUpdatedAt = new Date();
     ta.value = "";
-    showToast("スコアを登録しました", "success");
+    showToast(t("スコアを登録しました"), "success");
     render();
   } catch (e) {
-    showToast("取り込みに失敗しました: " + e.message, "error");
+    showToast(t("取り込みに失敗しました: ") + e.message, "error");
   }
 }
 
 async function handleClearScores() {
-  if (!(await showConfirmDialog("自分のスコアデータを全て削除しますか？この操作は取り消せません。"))) return;
+  if (!(await showConfirmDialog(t("自分のスコアデータを全て削除しますか？この操作は取り消せません。")))) return;
   try {
     await window.saveScoresToFirestore({});
     scores = {};
-    showToast("スコアデータを削除しました", "success");
+    showToast(t("スコアデータを削除しました"), "success");
     render();
   } catch (e) {
-    showToast("削除に失敗しました: " + e.message, "error");
+    showToast(t("削除に失敗しました: ") + e.message, "error");
   }
 }
 
@@ -941,55 +1243,46 @@ function render() {
 function renderTermsTab() {
   document.getElementById('view-terms').innerHTML = `
     <div class="panel">
-      <h3>利用規約</h3>
-      <p class="hint">SDVX EX-Score をご利用いただく方に向けた規約です。</p>
+      <h3>${t("利用規約")}</h3>
+      <p class="hint">${t("SDVX EX-Score をご利用いただく方に向けた規約です。")}</p>
 
-      <h4 style="margin-top:20px">1. サービス概要</h4>
-      <p class="hint">
-        本サービスは、株式会社コナミアミューズメントが提供する音楽ゲーム「SOUND VOLTEX」のプレイ結果をもとに、
-        フレンドとスコアを見比べられるようにした、非公式の個人開発ツールです。運営元は個人であり、
-        コナミアミューズメントおよびその関連会社とのつながりは一切ありません。
-      </p>
+      <h4 style="margin-top:20px">${t("1. サービス概要")}</h4>
+      <p class="hint">${t("本サービスは、株式会社コナミアミューズメントが提供する音楽ゲーム「SOUND VOLTEX」のプレイ結果をもとに、フレンドとスコアを見比べられるようにした、非公式の個人開発ツールです。運営元は個人であり、コナミアミューズメントおよびその関連会社とのつながりは一切ありません。")}</p>
 
-      <h4 style="margin-top:20px">2. 免責について</h4>
+      <h4 style="margin-top:20px">${t("2. 免責について")}</h4>
       <ul class="hint" style="margin:0;padding-left:20px">
-        <li>表示されるデータの正確さや、常に最新の状態であることを保証するものではありません。</li>
-        <li>本サービスを利用したことにより生じた不利益（記録の消失、端末への影響等）について、運営者は責任を負いかねます。</li>
-        <li>サービス内容の変更・停止・終了は、事前の告知なく行われることがあります。</li>
+        <li>${t("表示されるデータの正確さや、常に最新の状態であることを保証するものではありません。")}</li>
+        <li>${t("本サービスを利用したことにより生じた不利益（記録の消失、端末への影響等）について、運営者は責任を負いかねます。")}</li>
+        <li>${t("サービス内容の変更・停止・終了は、事前の告知なく行われることがあります。")}</li>
       </ul>
 
-      <h4 style="margin-top:20px">3. 禁止する行為</h4>
+      <h4 style="margin-top:20px">${t("3. 禁止する行為")}</h4>
       <ul class="hint" style="margin:0;padding-left:20px">
-        <li>サービスの運営に支障をきたすような使い方</li>
-        <li>他人になりすます、または他人のアカウントを無断で使う行為</li>
-        <li>承認を得ていないフレンドのスコア情報を外部に漏らす行為</li>
-        <li>その他、運営者が不適切と考える行為</li>
+        <li>${t("サービスの運営に支障をきたすような使い方")}</li>
+        <li>${t("他人になりすます、または他人のアカウントを無断で使う行為")}</li>
+        <li>${t("承認を得ていないフレンドのスコア情報を外部に漏らす行為")}</li>
+        <li>${t("その他、運営者が不適切と考える行為")}</li>
       </ul>
 
-      <h4 style="margin-top:20px">4. データの扱いについて</h4>
-      <p class="hint">
-        登録されたスコア情報は、比較機能を提供する目的でGoogle Firebase（Firestore）に保管されます。
-        閲覧できるのは本人と、本人が承認したフレンドに限られます。
-      </p>
+      <h4 style="margin-top:20px">${t("4. データの扱いについて")}</h4>
+      <p class="hint">${t("登録されたスコア情報は、比較機能を提供する目的でGoogle Firebase（Firestore）に保管されます。閲覧できるのは本人と、本人が承認したフレンドに限られます。")}</p>
 
-      <h4 style="margin-top:20px">5. 規約の見直し</h4>
-      <p class="hint">
-        必要に応じて本規約の内容を更新することがあります。更新した規約は、本ページに反映された時点から適用されます。
-      </p>
+      <h4 style="margin-top:20px">${t("5. 規約の見直し")}</h4>
+      <p class="hint">${t("必要に応じて本規約の内容を更新することがあります。更新した規約は、本ページに反映された時点から適用されます。")}</p>
     </div>
   `;
 }
 
 function renderDataTab() {
   document.getElementById('view-data').innerHTML = `
-    ${masterError ? `<div class="panel"><h3 style="color:#ff4757">⚠ マスタ読み込みエラー</h3><p class="hint">${esc(masterError)}</p></div>` : ""}
+    ${masterError ? `<div class="panel"><h3 style="color:#ff4757">${t("⚠ マスタ読み込みエラー")}</h3><p class="hint">${esc(masterError)}</p></div>` : ""}
     <div class="panel">
-      <h3>スコア登録</h3>
-      <p class="hint">公式サイトの「PLAY DATA」→「<a href="#" onclick="handleOpenOfficialSite();return false;" style="color:#3B82F6">スコアデータ/CSVダウンロード</a>」からCSVをコピーして、下に貼り付けてください。</p>
-      ${scoresUpdatedAt ? `<p class="hint">最終登録日時: ${esc(formatDateTime(scoresUpdatedAt))}</p>` : ""}
-      <textarea class="data-input" id="csvInput" placeholder="楽曲名,難易度,楽曲レベル,クリアランク,スコアグレード,ハイスコア,..."></textarea>
+      <h3>${t("スコア登録")}</h3>
+      <p class="hint">${t("公式サイトの「PLAY DATA」→「")}<a href="#" onclick="handleOpenOfficialSite();return false;" style="color:#3B82F6">${t("スコアデータ/CSVダウンロード")}</a>${t("」からCSVをコピーして、下に貼り付けてください。")}</p>
+      ${scoresUpdatedAt ? `<p class="hint">${t("最終登録日時: ")}${esc(formatDateTime(scoresUpdatedAt))}</p>` : ""}
+      <textarea class="data-input" id="csvInput" placeholder="${t("楽曲名,難易度,楽曲レベル,クリアランク,スコアグレード,ハイスコア,...")}"></textarea>
       <div class="btn-row">
-        <button class="btn" onclick="handleImportCsv()">スコアを登録する</button>
+        <button class="btn" onclick="handleImportCsv()">${t("スコアを登録する")}</button>
       </div>
     </div>
   `;
@@ -997,44 +1290,44 @@ function renderDataTab() {
 
 function renderFriendsTab() {
   if (friendsState.loading) {
-    document.getElementById('view-friends').innerHTML = `<div class="panel"><p class="hint">読み込み中...</p></div>`;
+    document.getElementById('view-friends').innerHTML = `<div class="panel"><p class="hint">${t("読み込み中...")}</p></div>`;
     return;
   }
   const { incoming, outgoing, friends } = friendsState;
 
   const incomingRows = incoming.length ? incoming.map(r => `
     <div class="btn-row" style="justify-content:space-between;align-items:center">
-      <span>${esc(r.fromUsername || "(不明なユーザー)")} さんから申請 <span class="hint" style="margin-left:4px">${esc(formatRelativeTime(toDate(r.createdAt)))}</span></span>
+      <span>${t("{name}さんから申請", {name: esc(r.fromUsername || t("(不明なユーザー)"))})} <span class="hint" style="margin-left:4px">${esc(formatRelativeTime(toDate(r.createdAt)))}</span></span>
       <span>
-        <button class="btn" style="padding:6px 12px;font-size:11px" onclick="handleRespondRequest('${esc(r.id)}', true)">承認</button>
-        <button class="btn secondary" style="padding:6px 12px;font-size:11px" onclick="handleRespondRequest('${esc(r.id)}', false)">拒否</button>
+        <button class="btn" style="padding:6px 12px;font-size:11px" onclick="handleRespondRequest('${esc(r.id)}', true)">${t("承認")}</button>
+        <button class="btn secondary" style="padding:6px 12px;font-size:11px" onclick="handleRespondRequest('${esc(r.id)}', false)">${t("拒否")}</button>
       </span>
-    </div>`).join("") : `<p class="hint">届いている申請はありません</p>`;
+    </div>`).join("") : `<p class="hint">${t("届いている申請はありません")}</p>`;
 
   const outgoingRows = outgoing.length ? outgoing.map(r => `
-    <div class="hint">${esc(r.toUsername || "(不明なユーザー)")} さんに申請中（相手の承認待ち）</div>`).join("") : "";
+    <div class="hint">${t("{name}さんに申請中（相手の承認待ち）", {name: esc(r.toUsername || t("(不明なユーザー)"))})}</div>`).join("") : "";
 
   const friendRows = friends.length ? `
     <table class="friend-table">
-      <tbody>${friends.map(f => `<tr><td>${esc(f.username || "(不明なユーザー)")}</td><td><button class="link-btn" style="color:#ff4757" onclick="handleRemoveFriend('${esc(f.uid)}', '${esc((f.username||"").replace(/'/g,"")) }')">削除</button></td></tr>`).join("")}</tbody>
-    </table>` : `<p class="hint">フレンドがまだいません</p>`;
+      <tbody>${friends.map(f => `<tr><td>${esc(f.username || t("(不明なユーザー)"))}</td><td><button class="link-btn" style="color:#ff4757" onclick="handleRemoveFriend('${esc(f.uid)}', '${esc((f.username||"").replace(/'/g,"")) }')">${t("削除")}</button></td></tr>`).join("")}</tbody>
+    </table>` : `<p class="hint">${t("フレンドがまだいません")}</p>`;
 
   document.getElementById('view-friends').innerHTML = `
     <div class="panel">
-      <h3>フレンドを追加</h3>
-      <p class="hint">相手のアカウント名を入力して申請してください。相手が承認するとお互いのスコアを比較できるようになります。</p>
+      <h3>${t("フレンドを追加")}</h3>
+      <p class="hint">${t("相手のアカウント名を入力して申請してください。相手が承認するとお互いのスコアを比較できるようになります。")}</p>
       <div class="btn-row">
-        <input class="search-input" id="friendUsernameInput" placeholder="相手のアカウント名" style="flex:1">
-        <button class="btn" onclick="handleSendFriendRequest()">申請する</button>
+        <input class="search-input" id="friendUsernameInput" placeholder="${t("相手のアカウント名")}" style="flex:1">
+        <button class="btn" onclick="handleSendFriendRequest()">${t("申請する")}</button>
       </div>
     </div>
     <div class="panel">
-      <h3>届いている申請</h3>
+      <h3>${t("届いている申請")}</h3>
       ${incomingRows}
     </div>
-    ${outgoing.length ? `<div class="panel"><h3>申請中</h3>${outgoingRows}</div>` : ""}
+    ${outgoing.length ? `<div class="panel"><h3>${t("申請中")}</h3>${outgoingRows}</div>` : ""}
     <div class="panel">
-      <h3>フレンド一覧（${friends.length}人）</h3>
+      <h3>${t("フレンド一覧（{n}人）", {n: friends.length})}</h3>
       ${friendRows}
     </div>
   `;
@@ -1102,7 +1395,7 @@ function renderCompareTab() {
     document.getElementById('view-compare').innerHTML = `
       <div class="toggle-group segmented-toggle" id="compareViewModeToggle" style="margin-bottom:14px">
         <button class="toggle-pill" data-mode="single">1vs1</button>
-        <button class="toggle-pill" data-mode="multi">複数人</button>
+        <button class="toggle-pill" data-mode="multi">${t("複数人")}</button>
       </div>
       <div id="compareSingleWrap"></div>
       <div id="compareMultiWrap"></div>
@@ -1133,7 +1426,7 @@ function renderCompareTab() {
 
 function renderCompareSingleContent() {
   if (compareState.loadingFriends) {
-    document.getElementById('compareSingleWrap').innerHTML = `<div class="panel"><p class="hint">読み込み中...</p></div>`;
+    document.getElementById('compareSingleWrap').innerHTML = `<div class="panel"><p class="hint">${t("読み込み中...")}</p></div>`;
     compareSkeletonBuilt = false;
     return;
   }
@@ -1142,20 +1435,20 @@ function renderCompareSingleContent() {
   if (friendsList.length === 0) {
     document.getElementById('compareSingleWrap').innerHTML = `
       <div class="panel">
-        <h3>スコア比較</h3>
-        <p class="hint">まだフレンドがいません。「フレンド」タブから相手を追加してください。</p>
+        <h3>${t("スコア比較")}</h3>
+        <p class="hint">${t("まだフレンドがいません。「フレンド」タブから相手を追加してください。")}</p>
       </div>`;
     compareSkeletonBuilt = false;
     return;
   }
 
-  const options = `<option value="">選択してください</option>` +
-    friendsList.map(f => `<option value="${esc(f.uid)}" ${f.uid === selectedUid ? "selected" : ""}>${esc(f.username || "(不明なユーザー)")}</option>`).join("");
+  const options = `<option value="">${t("選択してください")}</option>` +
+    friendsList.map(f => `<option value="${esc(f.uid)}" ${f.uid === selectedUid ? "selected" : ""}>${esc(f.username || t("(不明なユーザー)"))}</option>`).join("");
 
   if (!selectedUid) {
     document.getElementById('compareSingleWrap').innerHTML = `
       <div class="panel">
-        <h3 style="margin-top:0">比較したいフレンドを選んでください</h3>
+        <h3 style="margin-top:0">${t("比較したいフレンドを選んでください")}</h3>
         <select class="select-input" onchange="handleSelectCompareFriend(this.value)">${options}</select>
       </div>`;
     compareSkeletonBuilt = false;
@@ -1165,9 +1458,9 @@ function renderCompareSingleContent() {
   if (loadingScores || friendScores === null) {
     document.getElementById('compareSingleWrap').innerHTML = `
       <div class="panel">
-        <h3>スコア比較</h3>
+        <h3>${t("スコア比較")}</h3>
         <select class="select-input" onchange="handleSelectCompareFriend(this.value)">${options}</select>
-        <p class="hint" style="margin-top:10px">読み込み中...</p>
+        <p class="hint" style="margin-top:10px">${t("読み込み中...")}</p>
       </div>`;
     compareSkeletonBuilt = false;
     return;
@@ -1184,50 +1477,50 @@ function renderCompareSingleContent() {
 function buildCompareSkeleton(friendOptionsHtml) {
   document.getElementById('compareSingleWrap').innerHTML = `
     <div class="panel">
-      <h3>スコア比較</h3>
+      <h3>${t("スコア比較")}</h3>
       <select class="select-input" id="compareFriendSelect">${friendOptionsHtml}</select>
     </div>
     <div class="panel">
       <p class="footnote" id="compareTally" style="text-align:left;margin:0 0 12px"></p>
       <div class="filter-bar">
         <div class="search-wrap">
-          <input class="search-input" id="compareSearchInput" placeholder="曲名で検索…">
-          <button type="button" class="search-clear-btn" id="compareSearchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
+          <input class="search-input" id="compareSearchInput" placeholder="${t("曲名で検索…")}">
+          <button type="button" class="search-clear-btn" id="compareSearchClearBtn" style="display:none" aria-label="${t("検索文字をクリア")}">✕</button>
         </div>
       </div>
       <div class="toggle-group segmented-toggle" id="compareFilterModeToggle" style="margin-bottom:10px">
-        <button class="toggle-pill" data-mode="simple">表示対象</button>
-        <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
+        <button class="toggle-pill" data-mode="simple">${t("表示対象")}</button>
+        <button class="toggle-pill" data-mode="advanced">${t("高度な絞り込み")}</button>
       </div>
       <div class="level-shortcut-row" id="compareLevelShortcutRow"></div>
       <div id="compareAdvancedFilterRow" style="display:none">
-        <button class="btn" id="compareFilterBtn">絞り込み条件を設定する</button>
+        <button class="btn" id="compareFilterBtn">${t("絞り込み条件を設定する")}</button>
       </div>
-      <select class="select-input" id="compareSortSelect" aria-label="並び替え" style="margin-top:10px">
-        <option value="date_desc">収録順（新しい順）</option>
-        <option value="date_asc">収録順（古い順）</option>
-        <option value="score_desc">スコア高い順（自分）</option>
-        <option value="score_asc">スコア低い順（自分）</option>
-        <option value="level_desc">レベル高い順</option>
-        <option value="level_asc">レベル低い順</option>
-        <option value="title_asc">五十音順（あ→ん）</option>
-        <option value="title_desc">五十音順（ん→あ）</option>
+      <select class="select-input" id="compareSortSelect" aria-label="${t("並び替え")}" style="margin-top:10px">
+        <option value="date_desc">${t("収録順（新しい順）")}</option>
+        <option value="date_asc">${t("収録順（古い順）")}</option>
+        <option value="score_desc">${t("スコア高い順（自分）")}</option>
+        <option value="score_asc">${t("スコア低い順（自分）")}</option>
+        <option value="level_desc">${t("レベル高い順")}</option>
+        <option value="level_asc">${t("レベル低い順")}</option>
+        <option value="title_asc">${t("五十音順（あ→ん）")}</option>
+        <option value="title_desc">${t("五十音順（ん→あ）")}</option>
       </select>
       <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
         <div>
-          <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">勝負基準</div>
+          <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">${t("勝負基準")}</div>
           <div class="toggle-group segmented-toggle" id="compareModeToggle">
             <button class="toggle-pill" data-mode="ex">EX</button>
-            <button class="toggle-pill" data-mode="normal">通常</button>
+            <button class="toggle-pill" data-mode="normal">${t("通常")}</button>
           </div>
         </div>
         <div>
-          <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">表示形式</div>
+          <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">${t("表示形式")}</div>
           <div class="toggle-group segmented-toggle" id="compareResultToggle">
-            <button class="toggle-pill" data-result="all">すべて</button>
-            <button class="toggle-pill" data-result="win">勝利</button>
-            <button class="toggle-pill" data-result="loss">敗北</button>
-            <button class="toggle-pill" data-result="draw">引き分け</button>
+            <button class="toggle-pill" data-result="all">${t("すべて")}</button>
+            <button class="toggle-pill" data-result="win">${t("勝利")}</button>
+            <button class="toggle-pill" data-result="loss">${t("敗北")}</button>
+            <button class="toggle-pill" data-result="draw">${t("引き分け")}</button>
           </div>
         </div>
       </div>
@@ -1236,7 +1529,7 @@ function buildCompareSkeleton(friendOptionsHtml) {
     <div class="panel" style="padding:0;overflow:hidden">
       <div class="table-wrap">
         <table class="score-table">
-          <thead><tr><th class="col-title">楽曲</th><th class="col-center">自分</th><th class="col-center" id="compareFriendHeader">相手</th></tr></thead>
+          <thead><tr><th class="col-title">${t("楽曲")}</th><th class="col-center">${t("自分")}</th><th class="col-center" id="compareFriendHeader">${t("相手")}</th></tr></thead>
           <tbody id="compareTbody"></tbody>
         </table>
         <div id="compareEmptyState"></div>
@@ -1245,15 +1538,15 @@ function buildCompareSkeleton(friendOptionsHtml) {
     <div class="modal-overlay" id="compareFilterModalOverlay" style="display:none">
       <div class="modal-box">
         <div class="modal-header">
-          <h3>高度な絞り込み</h3>
+          <h3>${t("高度な絞り込み")}</h3>
           <div style="display:flex;align-items:center;gap:14px">
-            <button class="link-btn" id="compareFilterResetBtn">内容を初期化</button>
+            <button class="link-btn" id="compareFilterResetBtn">${t("内容を初期化")}</button>
             <button class="modal-close" id="compareFilterCloseBtn">×</button>
           </div>
         </div>
         <div class="modal-body" id="compareFilterModalBody"></div>
         <div class="modal-footer">
-          <button class="btn" id="compareFilterApplyBtn">この条件で絞り込む</button>
+          <button class="btn" id="compareFilterApplyBtn">${t("この条件で絞り込む")}</button>
         </div>
       </div>
     </div>
@@ -1299,7 +1592,7 @@ function buildCompareSkeleton(friendOptionsHtml) {
 
 function updateCompareControls() {
   const { friendsList, selectedUid } = compareState;
-  const friendUsername = (friendsList.find(f => f.uid === selectedUid) || {}).username || "相手";
+  const friendUsername = (friendsList.find(f => f.uid === selectedUid) || {}).username || t("相手");
   document.getElementById('compareFriendHeader').textContent = friendUsername;
   document.getElementById('compareSortSelect').value = compareState.sort;
   document.querySelectorAll('#compareFilterModeToggle button').forEach(b => {
@@ -1313,7 +1606,7 @@ function updateCompareControls() {
   if (filterBtn) {
     const active = isCompareFilterActive();
     filterBtn.classList.toggle('filter-active', active);
-    filterBtn.textContent = active ? "絞り込み条件を設定する（設定中●）" : "絞り込み条件を設定する";
+    filterBtn.textContent = active ? t("絞り込み条件を設定する（設定中●）") : t("絞り込み条件を設定する");
   }
   const compareShortcutRow = document.getElementById('compareLevelShortcutRow');
   if (compareShortcutRow) compareShortcutRow.innerHTML = renderLevelShortcuts(compareSimpleLevels);
@@ -1363,10 +1656,10 @@ function updateCompareTableBody() {
 
   document.getElementById('compareTbody').innerHTML = rows;
   document.getElementById('compareEmptyState').innerHTML = visible.length === 0
-    ? `<div class="empty-state">比較できるスコアがありません</div>` : "";
+    ? `<div class="empty-state">${t("比較できるスコアがありません")}</div>` : "";
   const compareTopInfo = document.getElementById('compareTopInfo');
-  if (compareTopInfo) compareTopInfo.textContent = `${visible.length} 件を表示中`;
-  document.getElementById('compareTally').innerHTML = `<span style="font-size:17px;font-weight:700;color:var(--text)">${win}勝${loss}敗${draw}分け</span>`;
+  if (compareTopInfo) compareTopInfo.textContent = t("{n} 件を表示中", {n: visible.length});
+  document.getElementById('compareTally').innerHTML = `<span style="font-size:17px;font-weight:700;color:var(--text)">${win}${t('勝')}${loss}${t('敗')}${draw}${t('分け')}</span>`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1381,7 +1674,7 @@ async function refreshMultiCompareFriends() {
   try {
     multiCompareState.friendsList = await window.getFriends();
   } catch (e) {
-    showToast("フレンド一覧の取得に失敗しました: " + e.message, "error");
+    showToast(t("フレンド一覧の取得に失敗しました: ") + e.message, "error");
   }
   multiCompareState.loadingFriends = false;
   render();
@@ -1469,14 +1762,14 @@ function renderCompareMultiContent() {
   const { friendsList, loadingFriends, selectedUids, friendScoresByUid, loadingScores } = multiCompareState;
 
   if (loadingFriends) {
-    wrap.innerHTML = `<div class="panel"><p class="hint">読み込み中...</p></div>`;
+    wrap.innerHTML = `<div class="panel"><p class="hint">${t("読み込み中...")}</p></div>`;
     return;
   }
   if (friendsList.length === 0) {
     wrap.innerHTML = `
       <div class="panel">
-        <h3>複数人比較</h3>
-        <p class="hint">まだフレンドがいません。「フレンド」タブから相手を追加してください。</p>
+        <h3>${t("複数人比較")}</h3>
+        <p class="hint">${t("まだフレンドがいません。「フレンド」タブから相手を追加してください。")}</p>
       </div>`;
     return;
   }
@@ -1491,13 +1784,13 @@ function renderCompareMultiContent() {
     return `
       <label class="check-item" style="${disabled ? "opacity:0.4" : ""}">
         <input type="checkbox" data-uid="${esc(f.uid)}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""}>
-        <span>${esc(f.username || "(不明なユーザー)")}</span>
+        <span>${esc(f.username || t("(不明なユーザー)"))}</span>
       </label>`;
   }).join("");
 
   const friendCols = selectedUids.map(uid => {
     const f = friendsList.find(x => x.uid === uid);
-    return { uid, name: (f && f.username) || "(不明)" };
+    return { uid, name: (f && f.username) || t("(不明)") };
   });
 
   const rowsHtml = filtered.map(m => {
@@ -1521,81 +1814,81 @@ function renderCompareMultiContent() {
 
   wrap.innerHTML = `
     <div class="panel">
-      <h3 style="margin-top:0">比較するフレンドを選択（最大${MULTI_COMPARE_MAX_FRIENDS}人）</h3>
+      <h3 style="margin-top:0">${t("比較するフレンドを選択（最大{n}人）", {n: MULTI_COMPARE_MAX_FRIENDS})}</h3>
       <div class="check-grid" id="multiCompareFriendPicker">${pickerHtml}</div>
     </div>
     ${selectedUids.length === 0 ? `
-    <div class="panel"><p class="hint">フレンドを1人以上選んでください</p></div>
+    <div class="panel"><p class="hint">${t("フレンドを1人以上選んでください")}</p></div>
     ` : `
     <div class="panel">
       <div class="filter-bar">
         <div class="search-wrap">
-          <input class="search-input" id="multiCompareSearchInput" placeholder="曲名で検索…">
-          <button type="button" class="search-clear-btn" id="multiCompareSearchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
+          <input class="search-input" id="multiCompareSearchInput" placeholder="${t("曲名で検索…")}">
+          <button type="button" class="search-clear-btn" id="multiCompareSearchClearBtn" style="display:none" aria-label="${t("検索文字をクリア")}">✕</button>
         </div>
       </div>
       <div class="toggle-group segmented-toggle" id="multiCompareFilterModeToggle" style="margin-bottom:10px">
-        <button class="toggle-pill" data-mode="simple">表示対象</button>
-        <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
+        <button class="toggle-pill" data-mode="simple">${t("表示対象")}</button>
+        <button class="toggle-pill" data-mode="advanced">${t("高度な絞り込み")}</button>
       </div>
       <div class="level-shortcut-row" id="multiCompareLevelShortcutRow" style="margin-bottom:12px"></div>
       <div id="multiCompareAdvancedFilterRow" style="display:none;margin-bottom:12px">
-        <button class="btn" id="multiCompareFilterBtn">絞り込み条件を設定する</button>
+        <button class="btn" id="multiCompareFilterBtn">${t("絞り込み条件を設定する")}</button>
       </div>
       <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
         <div>
-          <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">勝負基準</div>
+          <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">${t("勝負基準")}</div>
           <div class="toggle-group segmented-toggle" id="multiCompareModeToggle">
             <button class="toggle-pill" data-mode="ex">EX</button>
-            <button class="toggle-pill" data-mode="normal">通常</button>
+            <button class="toggle-pill" data-mode="normal">${t("通常")}</button>
           </div>
         </div>
         <div>
-          <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">表示形式</div>
+          <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">${t("表示形式")}</div>
           <div class="toggle-group segmented-toggle" id="multiCompareResultToggle">
-            <button class="toggle-pill" data-result="all">すべて</button>
-            <button class="toggle-pill" data-result="top">自分が1位</button>
-            <button class="toggle-pill" data-result="others">1位以外</button>
+            <button class="toggle-pill" data-result="all">${t("すべて")}</button>
+            <button class="toggle-pill" data-result="top">${t("自分が1位")}</button>
+            <button class="toggle-pill" data-result="others">${t("1位以外")}</button>
           </div>
         </div>
       </div>
-      <select class="select-input" id="multiCompareSortSelect" aria-label="並び替え" style="margin-top:10px">
-        <option value="date_desc">収録順（新しい順）</option>
-        <option value="date_asc">収録順（古い順）</option>
-        <option value="score_desc">スコア高い順（自分）</option>
-        <option value="score_asc">スコア低い順（自分）</option>
-        <option value="level_desc">レベル高い順</option>
-        <option value="level_asc">レベル低い順</option>
-        <option value="title_asc">五十音順（あ→ん）</option>
-        <option value="title_desc">五十音順（ん→あ）</option>
+      <select class="select-input" id="multiCompareSortSelect" aria-label="${t("並び替え")}" style="margin-top:10px">
+        <option value="date_desc">${t("収録順（新しい順）")}</option>
+        <option value="date_asc">${t("収録順（古い順）")}</option>
+        <option value="score_desc">${t("スコア高い順（自分）")}</option>
+        <option value="score_asc">${t("スコア低い順（自分）")}</option>
+        <option value="level_desc">${t("レベル高い順")}</option>
+        <option value="level_asc">${t("レベル低い順")}</option>
+        <option value="title_asc">${t("五十音順（あ→ん）")}</option>
+        <option value="title_desc">${t("五十音順（ん→あ）")}</option>
       </select>
     </div>
-    <p class="footnote" style="margin:0 0 8px;text-align:left">${filtered.length} 件を表示中${loadingScores ? "（フレンドのスコアを読み込み中…）" : ""}</p>
+    <p class="footnote" style="margin:0 0 8px;text-align:left">${t("{n} 件を表示中", {n: filtered.length})}${loadingScores ? t("（フレンドのスコアを読み込み中…）") : ""}</p>
     <div class="panel" style="padding:0;overflow:hidden">
       <div class="table-wrap">
         <table class="score-table">
           <thead><tr>
-            <th class="col-title">楽曲</th>
-            <th class="col-center">自分</th>
+            <th class="col-title">${t("楽曲")}</th>
+            <th class="col-center">${t("自分")}</th>
             ${friendCols.map(c => `<th class="col-center">${esc(c.name)}</th>`).join("")}
           </tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
-        ${filtered.length === 0 ? `<div class="empty-state">比較できるスコアがありません</div>` : ""}
+        ${filtered.length === 0 ? `<div class="empty-state">${t("比較できるスコアがありません")}</div>` : ""}
       </div>
     </div>
     <div class="modal-overlay" id="multiCompareFilterModalOverlay" style="display:none">
       <div class="modal-box">
         <div class="modal-header">
-          <h3>高度な絞り込み</h3>
+          <h3>${t("高度な絞り込み")}</h3>
           <div style="display:flex;align-items:center;gap:14px">
-            <button class="link-btn" id="multiCompareFilterModalResetBtn">内容を初期化</button>
+            <button class="link-btn" id="multiCompareFilterModalResetBtn">${t("内容を初期化")}</button>
             <button class="modal-close" id="multiCompareFilterModalCloseBtn">×</button>
           </div>
         </div>
         <div class="modal-body" id="multiCompareFilterModalBody"></div>
         <div class="modal-footer">
-          <button class="btn" id="multiCompareFilterModalApplyBtn">この条件で絞り込む</button>
+          <button class="btn" id="multiCompareFilterModalApplyBtn">${t("この条件で絞り込む")}</button>
         </div>
       </div>
     </div>
@@ -1719,8 +2012,8 @@ function renderMultiCompareFilterModalBody() {
         <div class="filter-band-head">
           <span class="filter-band-label">${band.label}</span>
           <span class="filter-band-actions">
-            <button class="link-btn" onclick="setMultiCompareBandLevels(${JSON.stringify(band.values)}, true)">全選択</button>
-            <button class="link-btn" onclick="setMultiCompareBandLevels(${JSON.stringify(band.values)}, false)">解除</button>
+            <button class="link-btn" onclick="setMultiCompareBandLevels(${JSON.stringify(band.values)}, true)">${t("全選択")}</button>
+            <button class="link-btn" onclick="setMultiCompareBandLevels(${JSON.stringify(band.values)}, false)">${t("解除")}</button>
           </span>
         </div>
         <div class="check-grid">${checksHtml}</div>
@@ -1738,15 +2031,15 @@ function renderMultiCompareFilterModalBody() {
 
   document.getElementById('multiCompareFilterModalBody').innerHTML = `
     <div class="filter-section">
-      <h4>レベル</h4>
+      <h4>${t("レベル")}</h4>
       ${levelSectionsHtml}
     </div>
     <div class="filter-section">
       <div class="filter-band-head">
-        <h4 style="margin:0">難易度</h4>
+        <h4 style="margin:0">${t("難易度")}</h4>
         <span class="filter-band-actions">
-          <button class="link-btn" onclick='setMultiCompareAllDiffs(${JSON.stringify(DIFF_ORDER)}, true)'>全選択</button>
-          <button class="link-btn" onclick='setMultiCompareAllDiffs(${JSON.stringify(DIFF_ORDER)}, false)'>解除</button>
+          <button class="link-btn" onclick='setMultiCompareAllDiffs(${JSON.stringify(DIFF_ORDER)}, true)'>${t("全選択")}</button>
+          <button class="link-btn" onclick='setMultiCompareAllDiffs(${JSON.stringify(DIFF_ORDER)}, false)'>${t("解除")}</button>
         </span>
       </div>
       <div class="check-grid">${diffChecksHtml}</div>
@@ -1805,8 +2098,8 @@ function renderCompareFilterModalBody() {
         <div class="filter-band-head">
           <span class="filter-band-label">${band.label}</span>
           <span class="filter-band-actions">
-            <button class="link-btn" onclick="setCompareBandLevels(${JSON.stringify(band.values)}, true)">全選択</button>
-            <button class="link-btn" onclick="setCompareBandLevels(${JSON.stringify(band.values)}, false)">解除</button>
+            <button class="link-btn" onclick="setCompareBandLevels(${JSON.stringify(band.values)}, true)">${t("全選択")}</button>
+            <button class="link-btn" onclick="setCompareBandLevels(${JSON.stringify(band.values)}, false)">${t("解除")}</button>
           </span>
         </div>
         <div class="check-grid">${checksHtml}</div>
@@ -1825,15 +2118,15 @@ function renderCompareFilterModalBody() {
 
   document.getElementById('compareFilterModalBody').innerHTML = `
     <div class="filter-section">
-      <h4>レベル</h4>
+      <h4>${t("レベル")}</h4>
       ${levelSectionsHtml}
     </div>
     <div class="filter-section">
       <div class="filter-band-head">
-        <h4 style="margin:0">難易度</h4>
+        <h4 style="margin:0">${t("難易度")}</h4>
         <span class="filter-band-actions">
-          <button class="link-btn" onclick='setCompareAllDiffs(${JSON.stringify(diffList)}, true)'>全選択</button>
-          <button class="link-btn" onclick='setCompareAllDiffs(${JSON.stringify(diffList)}, false)'>解除</button>
+          <button class="link-btn" onclick='setCompareAllDiffs(${JSON.stringify(diffList)}, true)'>${t("全選択")}</button>
+          <button class="link-btn" onclick='setCompareAllDiffs(${JSON.stringify(diffList)}, false)'>${t("解除")}</button>
         </span>
       </div>
       <div class="check-grid">${diffChecksHtml}</div>
@@ -2103,7 +2396,7 @@ async function ensureRankingLoaded(force) {
     } else {
       // URL未設定の間はサンプルデータで見た目だけ確認できるようにしておく
       raw = MOCK_RANKING_JSON;
-      fetchedAt = "サンプルデータ（実データURL未設定）";
+      fetchedAt = t("サンプルデータ（実データURL未設定）");
     }
     rankingState.entries = buildRankingEntries(raw);
     rankingState.fetchedAt = fetchedAt;
@@ -2138,14 +2431,14 @@ function renderRankingTab() {
   const focusedSelStart = (focusedId === 'rankingSearchInput') ? document.activeElement.selectionStart : null;
 
   if (rankingState.status === "idle" || rankingState.status === "loading") {
-    container.innerHTML = `<div class="panel"><p class="hint">ランキングデータを読み込み中…</p></div>`;
+    container.innerHTML = `<div class="panel"><p class="hint">${t("ランキングデータを読み込み中…")}</p></div>`;
     return;
   }
   if (rankingState.status === "error") {
     container.innerHTML = `
       <div class="panel">
-        <p class="hint" style="color:#ff4757">ランキングデータの取得に失敗しました: ${esc(rankingState.errorMessage)}</p>
-        <button class="btn secondary" onclick="ensureRankingLoaded(true)" style="margin-top:10px">再試行</button>
+        <p class="hint" style="color:#ff4757">${t("ランキングデータの取得に失敗しました: ")}${esc(rankingState.errorMessage)}</p>
+        <button class="btn secondary" onclick="ensureRankingLoaded(true)" style="margin-top:10px">${t("再試行")}</button>
       </div>`;
     return;
   }
@@ -2162,15 +2455,15 @@ function renderRankingTab() {
     <div class="modal-overlay" id="rankingFilterModalOverlay" style="display:none">
       <div class="modal-box">
         <div class="modal-header">
-          <h3>高度な絞り込み</h3>
+          <h3>${t("高度な絞り込み")}</h3>
           <div style="display:flex;align-items:center;gap:14px">
-            <button class="link-btn" id="rankingFilterModalResetBtn">内容を初期化</button>
+            <button class="link-btn" id="rankingFilterModalResetBtn">${t("内容を初期化")}</button>
             <button class="modal-close" id="rankingFilterModalCloseBtn">×</button>
           </div>
         </div>
         <div class="modal-body" id="rankingFilterModalBody"></div>
         <div class="modal-footer">
-          <button class="btn" id="rankingFilterModalApplyBtn">この条件で絞り込む</button>
+          <button class="btn" id="rankingFilterModalApplyBtn">${t("この条件で絞り込む")}</button>
         </div>
       </div>
     </div>
@@ -2301,12 +2594,15 @@ function renderRankingListHtml() {
   const myId = (window.currentPlayerId || "").toUpperCase();
   let list = rankingState.entries;
 
-  const noteHtml = `<p class="footnote" style="margin:0 0 10px;text-align:left">楽曲をタッチすると詳細（1〜100位）を確認できます。∇以前に出した記録はランキングには掲載されません。※Lv.1〜16は対象外です</p>`;
+  const noteHtml = `
+    <p class="footnote" style="margin:0 0 4px;text-align:left">${t("楽曲をタッチすると詳細（1〜100位）を確認できます。")}</p>
+    <p class="footnote" style="margin:0 0 10px;text-align:left">${t("∇以前に出した記録はランキングには掲載されません。※Lv.1〜16は集計対象外です")}</p>
+  `;
   const subTabHtml = `
     <div class="toggle-group segmented-toggle" id="rankingSubTabToggle" style="margin-bottom:14px">
-      <button class="toggle-pill${rankingState.subView === "all" ? " on" : ""}" data-mode="all">全曲</button>
-      <button class="toggle-pill${rankingState.subView === "unconquered" ? " on" : ""}" data-mode="unconquered">未理論値</button>
-      <button class="toggle-pill${rankingState.subView === "mine" ? " on" : ""}" data-mode="mine">自分がランクイン中</button>
+      <button class="toggle-pill${rankingState.subView === "all" ? " on" : ""}" data-mode="all">${t("全曲")}</button>
+      <button class="toggle-pill${rankingState.subView === "unconquered" ? " on" : ""}" data-mode="unconquered">${t("未理論値")}</button>
+      <button class="toggle-pill${rankingState.subView === "mine" ? " on" : ""}" data-mode="mine">${t("自分がランクイン中")}</button>
     </div>
   `;
 
@@ -2316,7 +2612,7 @@ function renderRankingListHtml() {
         <div class="panel">
           ${noteHtml}
           ${subTabHtml}
-          <p class="hint">プレイヤーIDが未登録です。アカウントメニューの「プレイヤーIDを設定」から登録すると、自分がランクインしている曲を確認できます。</p>
+          <p class="hint">${t("プレイヤーIDが未登録です。アカウントメニューの「プレイヤーIDを設定」から登録すると、自分がランクインしている曲を確認できます。")}</p>
         </div>
       `;
     }
@@ -2400,62 +2696,62 @@ function renderRankingListHtml() {
             ${e.jacket ? `<img class="jacket-thumb" src="${esc(e.jacket)}" loading="lazy" style="border-color:${meta.color}">` : `<div class="jacket-thumb" style="border-color:${meta.color}"></div>`}
             ${myRow ? `<span class="ranking-rank-badge">#${myRow.rank}</span>` : ""}
           </div>
-          <div class="title-text">${esc(e.musicName)}${e.matched ? "" : `<span class="hint" style="margin-left:6px">（未マッチ）</span>`}</div>
+          <div class="title-text">${esc(e.musicName)}${e.matched ? "" : `<span class="hint" style="margin-left:6px">${t("（未マッチ）")}</span>`}</div>
         </div>
         <div class="col-center mono" style="color:${colorFor(top1Diff)}">${top1Display}</div>
         <div class="col-center mono" style="color:${colorFor(egDiff)}">${egDisplay}</div>
         ${rankingState.showMineColumn ? `<div class="col-center mono" style="color:${colorFor(mineDiff)}">${mineDisplay}</div>` : ""}
       </div>
     `;
-  }).join("") || `<p class="hint">該当する曲がありません。</p>`;
+  }).join("") || `<p class="hint">${t("該当する曲がありません。")}</p>`;
 
   return `
     <div class="panel">
       ${noteHtml}
       ${subTabHtml}
       <div class="search-wrap" style="margin-bottom:12px">
-        <input class="search-input" id="rankingSearchInput" placeholder="曲名で検索…">
-        <button type="button" class="search-clear-btn" id="rankingSearchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
+        <input class="search-input" id="rankingSearchInput" placeholder="${t("曲名で検索…")}">
+        <button type="button" class="search-clear-btn" id="rankingSearchClearBtn" style="display:none" aria-label="${t("検索文字をクリア")}">✕</button>
       </div>
       <div class="toggle-group segmented-toggle" id="rankingFilterModeToggle" style="margin-bottom:10px">
-        <button class="toggle-pill" data-mode="simple">表示対象</button>
-        <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
+        <button class="toggle-pill" data-mode="simple">${t("表示対象")}</button>
+        <button class="toggle-pill" data-mode="advanced">${t("高度な絞り込み")}</button>
       </div>
       <div class="level-shortcut-row" id="rankingLevelShortcutRow" style="margin-bottom:12px"></div>
       <div id="rankingAdvancedFilterRow" style="display:none;margin-bottom:12px">
-        <button class="btn" id="rankingFilterBtn">絞り込み条件を設定する</button>
+        <button class="btn" id="rankingFilterBtn">${t("絞り込み条件を設定する")}</button>
       </div>
       <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-        <select class="select-input" id="rankingSortSelect" aria-label="並び替え">
-          <option value="date_desc">収録順（新しい順）</option>
-          <option value="date_asc">収録順（古い順）</option>
+        <select class="select-input" id="rankingSortSelect" aria-label="${t("並び替え")}">
+          <option value="date_desc">${t("収録順（新しい順）")}</option>
+          <option value="date_asc">${t("収録順（古い順）")}</option>
           ${rankingState.subView === "mine" ? `
-          <option value="rank_asc">順位（高い順）</option>
-          <option value="rank_desc">順位（低い順）</option>
-          <option value="score_desc">スコア高い順（自分）</option>
-          <option value="score_asc">スコア低い順（自分）</option>` : ""}
+          <option value="rank_asc">${t("順位（高い順）")}</option>
+          <option value="rank_desc">${t("順位（低い順）")}</option>
+          <option value="score_desc">${t("スコア高い順（自分）")}</option>
+          <option value="score_asc">${t("スコア低い順（自分）")}</option>` : ""}
           ${rankingState.subView === "all" || rankingState.subView === "unconquered" ? `
-          <option value="top1_desc">1位スコア（高い順）</option>
-          <option value="top1_asc">1位スコア（低い順）</option>
-          <option value="score_desc">スコア高い順（自分）</option>
-          <option value="score_asc">スコア低い順（自分）</option>` : ""}
-          <option value="level_desc">レベル高い順</option>
-          <option value="level_asc">レベル低い順</option>
-          <option value="title_asc">五十音順（あ→ん）</option>
-          <option value="title_desc">五十音順（ん→あ）</option>
+          <option value="top1_desc">${t("1位スコア（高い順）")}</option>
+          <option value="top1_asc">${t("1位スコア（低い順）")}</option>
+          <option value="score_desc">${t("スコア高い順（自分）")}</option>
+          <option value="score_asc">${t("スコア低い順（自分）")}</option>` : ""}
+          <option value="level_desc">${t("レベル高い順")}</option>
+          <option value="level_asc">${t("レベル低い順")}</option>
+          <option value="title_asc">${t("五十音順（あ→ん）")}</option>
+          <option value="title_desc">${t("五十音順（ん→あ）")}</option>
         </select>
-        <label class="check-item"><input type="checkbox" id="rankingShowMineCheckbox" ${rankingState.showMineColumn ? "checked" : ""}><span>自分のスコアを表示</span></label>
+        <label class="check-item"><input type="checkbox" id="rankingShowMineCheckbox" ${rankingState.showMineColumn ? "checked" : ""}><span>${t("自分のスコアを表示")}</span></label>
       </div>
     </div>
-    <div class="footnote" style="margin:2px 0 10px;text-align:left">${list.length} 件を表示中</div>
+    <div class="footnote" style="margin:2px 0 10px;text-align:left">${t("{n} 件を表示中", {n: list.length})}</div>
     <div class="panel" style="padding:0;overflow:hidden">
       <div class="ranking-song-list-wrap">
         <div class="ranking-song-list" id="rankingSongListWrap" style="--ranking-extra-cols:${rankingExtraColsStyle()};width:${rankingRowWidthPx()}px">
           <div class="ranking-song-row ranking-song-header">
-            <div>楽曲</div>
-            <div class="col-center">1位</div>
-            <div class="col-center">1位(EG)</div>
-            ${rankingState.showMineColumn ? `<div class="col-center">自分</div>` : ""}
+            <div>${t("楽曲")}</div>
+            <div class="col-center">${t("1位")}</div>
+            <div class="col-center">${t("1位(EG)")}</div>
+            ${rankingState.showMineColumn ? `<div class="col-center">${t("自分")}</div>` : ""}
           </div>
           ${rowsHtml}
         </div>
@@ -2476,7 +2772,7 @@ function renderRankingDetailHtml(entry) {
         <td class="col-center mono">${r.rank}</td>
         <td>
           <div class="mono" style="font-size:11px;color:var(--muted)">${esc(r.playerId)}</div>
-          <div>${esc(r.name)}${isMine ? ' <span style="color:#FFD23F;font-weight:800">(自分)</span>' : ""}</div>
+          <div>${esc(r.name)}${isMine ? ` <span style="color:#FFD23F;font-weight:800">${t("(自分)")}</span>` : ""}</div>
         </td>
         <td class="mono col-center" style="color:${diffColor}">${diff}</td>
         <td class="hint col-center">${esc(r.updatedAt)}</td>
@@ -2485,7 +2781,7 @@ function renderRankingDetailHtml(entry) {
   }).join("");
 
   return `
-    <button class="link-btn" id="rankingBackBtn" style="margin-bottom:10px">← 曲一覧に戻る</button>
+    <button class="link-btn" id="rankingBackBtn" style="margin-bottom:10px">${t("← 曲一覧に戻る")}</button>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
       ${entry.jacket ? `<img class="jacket-thumb" src="${esc(entry.jacket)}" style="width:56px;height:56px;border-color:${meta.color}">` : ""}
       <div>
@@ -2493,10 +2789,10 @@ function renderRankingDetailHtml(entry) {
         <div class="hint" style="margin-top:2px"><span style="color:${meta.color};font-weight:800">${esc(meta.abbr)}</span> Lv.${entry.level}</div>
       </div>
     </div>
-    ${!entry.matched ? `<p class="hint" style="margin-bottom:10px">この曲は楽曲マスタと自動で一致しなかったため、EXスコアの理論値差分は表示していません。</p>` : ""}
+    ${!entry.matched ? `<p class="hint" style="margin-bottom:10px">${t("この曲は楽曲マスタと自動で一致しなかったため、EXスコアの理論値差分は表示していません。")}</p>` : ""}
     <div class="table-wrap">
       <table class="score-table">
-        <thead><tr><th class="col-center">順位</th><th>プレイヤー</th><th class="col-center">スコア</th><th class="col-center">更新日時</th></tr></thead>
+        <thead><tr><th class="col-center">${t("順位")}</th><th>${t("プレイヤー")}</th><th class="col-center">${t("スコア")}</th><th class="col-center">${t("更新日時")}</th></tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>
     </div>
@@ -2554,8 +2850,8 @@ function renderRankingFilterModalBody() {
         <div class="filter-band-head">
           <span class="filter-band-label">${band.label}</span>
           <span class="filter-band-actions">
-            <button class="link-btn" onclick="setRankingBandLevels(${JSON.stringify(band.values)}, true)">全選択</button>
-            <button class="link-btn" onclick="setRankingBandLevels(${JSON.stringify(band.values)}, false)">解除</button>
+            <button class="link-btn" onclick="setRankingBandLevels(${JSON.stringify(band.values)}, true)">${t("全選択")}</button>
+            <button class="link-btn" onclick="setRankingBandLevels(${JSON.stringify(band.values)}, false)">${t("解除")}</button>
           </span>
         </div>
         <div class="check-grid">${checksHtml}</div>
@@ -2573,15 +2869,15 @@ function renderRankingFilterModalBody() {
 
   document.getElementById('rankingFilterModalBody').innerHTML = `
     <div class="filter-section">
-      <h4>レベル</h4>
+      <h4>${t("レベル")}</h4>
       ${levelSectionsHtml}
     </div>
     <div class="filter-section">
       <div class="filter-band-head">
-        <h4 style="margin:0">難易度</h4>
+        <h4 style="margin:0">${t("難易度")}</h4>
         <span class="filter-band-actions">
-          <button class="link-btn" onclick='setRankingAllDiffs(${JSON.stringify(RANKING_DIFF_ORDER)}, true)'>全選択</button>
-          <button class="link-btn" onclick='setRankingAllDiffs(${JSON.stringify(RANKING_DIFF_ORDER)}, false)'>解除</button>
+          <button class="link-btn" onclick='setRankingAllDiffs(${JSON.stringify(RANKING_DIFF_ORDER)}, true)'>${t("全選択")}</button>
+          <button class="link-btn" onclick='setRankingAllDiffs(${JSON.stringify(RANKING_DIFF_ORDER)}, false)'>${t("解除")}</button>
         </span>
       </div>
       <div class="check-grid">${diffChecksHtml}</div>
@@ -2597,29 +2893,29 @@ function buildListSkeleton() {
     <div class="panel">
       <div class="filter-bar">
         <div class="search-wrap">
-          <input class="search-input" id="searchInput" placeholder="曲名で検索…">
-          <button type="button" class="search-clear-btn" id="searchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
+          <input class="search-input" id="searchInput" placeholder="${t("曲名で検索…")}">
+          <button type="button" class="search-clear-btn" id="searchClearBtn" style="display:none" aria-label="${t("検索文字をクリア")}">✕</button>
         </div>
       </div>
       <div class="toggle-group segmented-toggle" id="filterModeToggle" style="margin-bottom:10px">
-        <button class="toggle-pill" data-mode="simple">表示対象</button>
-        <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
+        <button class="toggle-pill" data-mode="simple">${t("表示対象")}</button>
+        <button class="toggle-pill" data-mode="advanced">${t("高度な絞り込み")}</button>
       </div>
       <div class="level-shortcut-row" id="levelShortcutRow"></div>
       <div id="advancedFilterRow" style="display:none">
-        <button class="btn" id="openFilterBtn">絞り込み条件を設定する</button>
+        <button class="btn" id="openFilterBtn">${t("絞り込み条件を設定する")}</button>
       </div>
-      <select class="select-input" id="sortSelect" aria-label="並び替え" style="margin-top:10px">
-        <option value="date_desc">収録順（新しい順）</option>
-        <option value="date_asc">収録順（古い順）</option>
-        <option value="exscore_desc">スコア高い順（EX）</option>
-        <option value="exscore_asc">スコア低い順（EX）</option>
-        <option value="score_desc">スコア高い順（通常）</option>
-        <option value="score_asc">スコア低い順（通常）</option>
-        <option value="level_desc">レベル高い順</option>
-        <option value="level_asc">レベル低い順</option>
-        <option value="title_asc">五十音順（あ→ん）</option>
-        <option value="title_desc">五十音順（ん→あ）</option>
+      <select class="select-input" id="sortSelect" aria-label="${t("並び替え")}" style="margin-top:10px">
+        <option value="date_desc">${t("収録順（新しい順）")}</option>
+        <option value="date_asc">${t("収録順（古い順）")}</option>
+        <option value="exscore_desc">${t("スコア高い順（EX）")}</option>
+        <option value="exscore_asc">${t("スコア低い順（EX）")}</option>
+        <option value="score_desc">${t("スコア高い順（通常）")}</option>
+        <option value="score_asc">${t("スコア低い順（通常）")}</option>
+        <option value="level_desc">${t("レベル高い順")}</option>
+        <option value="level_asc">${t("レベル低い順")}</option>
+        <option value="title_asc">${t("五十音順（あ→ん）")}</option>
+        <option value="title_desc">${t("五十音順（ん→あ）")}</option>
       </select>
     </div>
     <div id="listTopInfo" class="footnote" style="margin:2px 0 10px;text-align:left"></div>
@@ -2627,7 +2923,7 @@ function buildListSkeleton() {
     <div class="panel" style="padding:0;overflow:hidden">
       <div class="table-wrap">
         <table class="score-table">
-          <thead><tr><th class="col-title">楽曲</th><th class="col-center" style="color:#FFD23F">EXスコア</th><th class="col-center">通常スコア</th></tr></thead>
+          <thead><tr><th class="col-title">${t("楽曲")}</th><th class="col-center" style="color:#FFD23F">${t("EXスコア")}</th><th class="col-center">${t("通常スコア")}</th></tr></thead>
           <tbody id="scoreTbody"></tbody>
         </table>
         <div id="listEmptyState"></div>
@@ -2637,15 +2933,15 @@ function buildListSkeleton() {
     <div class="modal-overlay" id="filterModalOverlay" style="display:none">
       <div class="modal-box">
         <div class="modal-header">
-          <h3>高度な絞り込み</h3>
+          <h3>${t("高度な絞り込み")}</h3>
           <div style="display:flex;align-items:center;gap:14px">
-            <button class="link-btn" id="filterModalResetBtn">内容を初期化</button>
+            <button class="link-btn" id="filterModalResetBtn">${t("内容を初期化")}</button>
             <button class="modal-close" id="filterModalCloseBtn">×</button>
           </div>
         </div>
         <div class="modal-body" id="filterModalBody"></div>
         <div class="modal-footer">
-          <button class="btn" id="filterModalApplyBtn">この条件で絞り込む</button>
+          <button class="btn" id="filterModalApplyBtn">${t("この条件で絞り込む")}</button>
         </div>
       </div>
     </div>
@@ -2697,7 +2993,7 @@ function updateListControls() {
   if (filterBtn) {
     const active = isFilterActive();
     filterBtn.classList.toggle('filter-active', active);
-    filterBtn.textContent = active ? "絞り込み条件を設定する（設定中●）" : "絞り込み条件を設定する";
+    filterBtn.textContent = active ? t("絞り込み条件を設定する（設定中●）") : t("絞り込み条件を設定する");
   }
   const shortcutRow = document.getElementById('levelShortcutRow');
   if (shortcutRow) shortcutRow.innerHTML = renderLevelShortcuts(simpleLevels);
@@ -2721,9 +3017,9 @@ function updateListTableBody(visible, filtered, merged, totalPages) {
 
   document.getElementById('scoreTbody').innerHTML = rows;
   document.getElementById('listEmptyState').innerHTML = filtered.length === 0
-    ? `<div class="empty-state">条件に一致する楽曲がありません</div>` : "";
+    ? `<div class="empty-state">${t("条件に一致する楽曲がありません")}</div>` : "";
 
-  const countText = `${filtered.length} 件を表示中`;
+  const countText = t("{n} 件を表示中", {n: filtered.length});
   const pageOptions = Array.from({ length: totalPages }, (_, i) => i + 1)
     .map(p => `<option value="${p}" ${p === currentPage ? "selected" : ""}>${p}/${totalPages}</option>`).join("");
   const pagerHtml = totalPages > 1 ? `
@@ -2738,8 +3034,8 @@ function updateListTableBody(visible, filtered, merged, totalPages) {
   const hasAnyScore = merged.some(m => m.score);
   noScoreHelp.innerHTML = hasAnyScore ? "" : `
     <div class="help-banner">
-      まだスコアが登録されていません。右上のアカウントメニューの「スコア登録」からスコアを登録してください
-      <button class="link-btn" onclick="switchTab('data')" style="margin-left:6px">スコア登録はこちら</button>
+      ${t("まだスコアが登録されていません。右上のアカウントメニューの「スコア登録」からスコアを登録してください")}
+      <button class="link-btn" onclick="switchTab('data')" style="margin-left:6px">${t("スコア登録はこちら")}</button>
     </div>`;
 }
 
@@ -2880,7 +3176,7 @@ function renderFilterModalBody() {
   const scoreHtml = `
     <div class="toggle-group" style="margin-bottom:10px">
       <button class="toggle-pill ${isEx ? 'on' : ''}" onclick="setDraftScoreMode('ex')">EX</button>
-      <button class="toggle-pill ${!isEx ? 'on' : ''}" onclick="setDraftScoreMode('normal')">通常</button>
+      <button class="toggle-pill ${!isEx ? 'on' : ''}" onclick="setDraftScoreMode('normal')">${t("通常")}</button>
     </div>
     <div class="score-range-row">
       ${isEx ? `<span class="score-range-sign">-</span>` : ""}
@@ -2889,7 +3185,7 @@ function renderFilterModalBody() {
       ${isEx ? `<span class="score-range-sign">-</span>` : ""}
       <input type="number" class="select-input score-range-input ${scoreRangeInvalid ? 'input-error' : ''}" min="0" value="${curMax}" onchange="setDraftScoreMax(this.value)">
     </div>
-    ${scoreRangeInvalid ? `<p class="hint" style="color:#ff4757;margin:6px 0 0">最小値は最大値以下にしてください</p>` : ""}
+    ${scoreRangeInvalid ? `<p class="hint" style="color:#ff4757;margin:6px 0 0">${t("最小値は最大値以下にしてください")}</p>` : ""}
   `;
 
   const levelSectionsHtml = LEVEL_BANDS.map(band => {
@@ -2903,8 +3199,8 @@ function renderFilterModalBody() {
         <div class="filter-band-head">
           <span class="filter-band-label">${band.label}</span>
           <span class="filter-band-actions">
-            <button class="link-btn" onclick="setBandLevels(${JSON.stringify(band.values)}, true)">全選択</button>
-            <button class="link-btn" onclick="setBandLevels(${JSON.stringify(band.values)}, false)">解除</button>
+            <button class="link-btn" onclick="setBandLevels(${JSON.stringify(band.values)}, true)">${t("全選択")}</button>
+            <button class="link-btn" onclick="setBandLevels(${JSON.stringify(band.values)}, false)">${t("解除")}</button>
           </span>
         </div>
         <div class="check-grid">${checksHtml}</div>
@@ -2923,19 +3219,19 @@ function renderFilterModalBody() {
 
   document.getElementById('filterModalBody').innerHTML = `
     <div class="filter-section">
-      <h4>スコア</h4>
+      <h4>${t("スコア")}</h4>
       ${scoreHtml}
     </div>
     <div class="filter-section">
-      <h4>レベル</h4>
+      <h4>${t("レベル")}</h4>
       ${levelSectionsHtml}
     </div>
     <div class="filter-section">
       <div class="filter-band-head">
-        <h4 style="margin:0">難易度</h4>
+        <h4 style="margin:0">${t("難易度")}</h4>
         <span class="filter-band-actions">
-          <button class="link-btn" onclick='setAllDiffs(${JSON.stringify(diffList)}, true)'>全選択</button>
-          <button class="link-btn" onclick='setAllDiffs(${JSON.stringify(diffList)}, false)'>解除</button>
+          <button class="link-btn" onclick='setAllDiffs(${JSON.stringify(diffList)}, true)'>${t("全選択")}</button>
+          <button class="link-btn" onclick='setAllDiffs(${JSON.stringify(diffList)}, false)'>${t("解除")}</button>
         </span>
       </div>
       <div class="check-grid">${diffChecksHtml}</div>
@@ -2952,8 +3248,8 @@ function renderListTab(merged) {
   if (songs.length === 0) {
     document.getElementById('view-list').innerHTML = `
       <div class="empty-state">
-        <div class="big">楽曲マスタデータを読み込めませんでした</div>
-        <div>${esc(masterError || "songs.json を確認してください。")}</div>
+        <div class="big">${t("楽曲マスタデータを読み込めませんでした")}</div>
+        <div>${esc(masterError || t("songs.json を確認してください。"))}</div>
       </div>`;
     listSkeletonBuilt = false;
     return;
@@ -3010,24 +3306,33 @@ function validateUsername(u) {
 }
 function mapAuthError(e) {
   switch (e.code) {
-    case "auth/email-already-in-use": return "そのアカウント名は既に使われています";
-    case "auth/weak-password": return "パスワードは6文字以上にしてください";
+    case "auth/email-already-in-use": return t("そのアカウント名は既に使われています");
+    case "auth/weak-password": return t("パスワードは6文字以上にしてください");
     case "auth/invalid-credential":
     case "auth/wrong-password":
-    case "auth/user-not-found": return "アカウント名またはパスワードが違います";
-    case "auth/invalid-email": return "アカウント名に使える文字を確認してください";
-    default: return "エラーが発生しました: " + e.message;
+    case "auth/user-not-found": return t("アカウント名またはパスワードが違います");
+    case "auth/invalid-email": return t("アカウント名に使える文字を確認してください");
+    default: return t("エラーが発生しました: ") + e.message;
   }
 }
 
 let authMode = "login";
 function renderAuthGate() {
-  document.getElementById('authTitle').textContent = authMode === "login" ? "ログイン" : "新規登録";
-  document.getElementById('authSubmitBtn').textContent = authMode === "login" ? "ログイン" : "登録する";
-  document.querySelector('#authGate .btn.secondary').textContent = authMode === "login" ? "新規登録はこちら" : "戻る";
+  document.getElementById('authTitle').textContent = authMode === "login" ? t("ログイン") : t("新規登録");
+  document.getElementById('authSubmitBtn').textContent = authMode === "login" ? t("ログイン") : t("登録する");
+  document.querySelector('#authGate .btn.secondary').textContent = authMode === "login" ? t("新規登録はこちら") : t("戻る");
   document.getElementById('authError').textContent = "";
   document.getElementById('authPlayerIdWrap').style.display = authMode === "signup" ? "block" : "none";
   document.getElementById('authPasswordNotice').style.display = authMode === "signup" ? "block" : "none";
+  document.getElementById('authHint').textContent = t("アカウント名とパスワードを入力してください。");
+  document.getElementById('authUsername').placeholder = t("アカウント名（半角英数字・3〜20文字）");
+  document.getElementById('authPassword').placeholder = t("パスワード（6文字以上）");
+  document.getElementById('authPasswordNotice').textContent = t("※アカウント名は後から変更できますが、パスワードは変更できません。");
+  document.getElementById('authPlayerId').placeholder = t("プレイヤーID（任意・例: SV-9900-0000）");
+  document.querySelector('#authPlayerIdWrap .hint').textContent = t("登録すると、ランキング機能で自分の順位を確認できるようになります。");
+  document.getElementById('authDeleteSummary').textContent = t("アカウント削除依頼・パスワードを忘れた場合");
+  document.getElementById('authDeleteBody').innerHTML = `X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener" style="color:#3B82F6">@yuuya1202</a> ${t("までご連絡ください。")}`;
+  document.querySelectorAll('.lang-toggle-btn').forEach(b => { b.textContent = currentLang === "ja" ? "한국어" : "日本語"; });
 }
 window.toggleAuthMode = function () {
   authMode = authMode === "login" ? "signup" : "login";
@@ -3041,11 +3346,11 @@ window.handleAuthSubmit = async function () {
   errEl.textContent = "";
 
   if (!validateUsername(username)) {
-    errEl.textContent = "アカウント名は半角英数字とアンダースコアで3〜20文字にしてください";
+    errEl.textContent = t("アカウント名は半角英数字とアンダースコアで3〜20文字にしてください");
     return;
   }
   if (!password || password.length < 6) {
-    errEl.textContent = "パスワードは6文字以上で入力してください";
+    errEl.textContent = t("パスワードは6文字以上で入力してください");
     return;
   }
 
@@ -3055,7 +3360,8 @@ window.handleAuthSubmit = async function () {
     if (authMode === "signup") {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await setDoc(doc(db, "users", cred.user.uid), {
-        username, displayName: username, createdAt: serverTimestamp(), scores: {}, playerId: playerId || null
+        username, displayName: username, createdAt: serverTimestamp(), scores: {}, playerId: playerId || null,
+        lang: window.currentLangForSignup ? window.currentLangForSignup() : "ja"
       });
       await setDoc(doc(db, "usernames", username.toLowerCase()), { uid: cred.user.uid });
     } else {
@@ -3067,38 +3373,47 @@ window.handleAuthSubmit = async function () {
 };
 
 window.handleLogout = async function () {
-  if (!(await window.showConfirmDialog("ログアウトしますか？"))) return;
+  if (!(await window.showConfirmDialog(t("ログアウトしますか？")))) return;
   signOut(auth);
 };
 
+window.saveLangPref = async function (lang) {
+  if (!auth.currentUser) return;
+  try {
+    await setDoc(doc(db, "users", auth.currentUser.uid), { lang }, { merge: true });
+  } catch (e) {
+    console.error("言語設定の保存に失敗:", e);
+  }
+};
+
 window.savePlayerId = async function (rawId) {
-  if (!auth.currentUser) throw new Error("ログインしていません");
+  if (!auth.currentUser) throw new Error(t("ログインしていません"));
   const id = (rawId || "").trim().toUpperCase();
   if (id && !/^SV-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(id)) {
-    throw new Error("プレイヤーIDの形式が正しくありません（例: SV-9900-0000）");
+    throw new Error(t("プレイヤーIDの形式が正しくありません（例: SV-9900-0000）"));
   }
   await setDoc(doc(db, "users", auth.currentUser.uid), { playerId: id || null }, { merge: true });
   return id;
 };
 
 window.changeDisplayName = async function (newNameRaw) {
-  if (!auth.currentUser) throw new Error("ログインしていません");
+  if (!auth.currentUser) throw new Error(t("ログインしていません"));
   const newName = newNameRaw.trim();
   if (!/^[a-zA-Z0-9_]{3,20}$/.test(newName)) {
-    throw new Error("アカウント名は半角英数字とアンダースコアで3〜20文字にしてください");
+    throw new Error(t("アカウント名は半角英数字とアンダースコアで3〜20文字にしてください"));
   }
 
   const myUid = auth.currentUser.uid;
   const mySnap = await getDoc(doc(db, "users", myUid));
   const oldName = mySnap.exists() ? (mySnap.data().displayName || mySnap.data().username || "") : "";
   if (newName.toLowerCase() === oldName.toLowerCase()) {
-    throw new Error("現在と同じアカウント名です");
+    throw new Error(t("現在と同じアカウント名です"));
   }
 
   try {
     await setDoc(doc(db, "usernames", newName.toLowerCase()), { uid: myUid });
   } catch (e) {
-    throw new Error("そのアカウント名は既に使われています");
+    throw new Error(t("そのアカウント名は既に使われています"));
   }
 
   await setDoc(doc(db, "users", myUid), { displayName: newName }, { merge: true });
@@ -3112,7 +3427,7 @@ window.changeDisplayName = async function (newNameRaw) {
 };
 
 window.saveScoresToFirestore = async function (scores) {
-  if (!auth.currentUser) throw new Error("ログインしていません");
+  if (!auth.currentUser) throw new Error(t("ログインしていません"));
   await setDoc(doc(db, "users", auth.currentUser.uid), { scores, scoresUpdatedAt: serverTimestamp() }, { merge: true });
 };
 
@@ -3131,19 +3446,19 @@ function sortedId(a, b) {
 }
 
 window.sendFriendRequest = async function (targetUsernameRaw) {
-  if (!auth.currentUser) throw new Error("ログインしていません");
+  if (!auth.currentUser) throw new Error(t("ログインしていません"));
   const myUid = auth.currentUser.uid;
   const targetUsername = targetUsernameRaw.trim().toLowerCase();
-  if (!targetUsername) throw new Error("ユーザー名を入力してください");
+  if (!targetUsername) throw new Error(t("ユーザー名を入力してください"));
 
   const mySnap = await getDoc(doc(db, "users", myUid));
   const myUsername = mySnap.exists() ? (mySnap.data().displayName || mySnap.data().username) : "";
   if (targetUsername === (myUsername || "").toLowerCase()) {
-    throw new Error("自分自身には申請できません");
+    throw new Error(t("自分自身には申請できません"));
   }
 
   const unameSnap = await getDoc(doc(db, "usernames", targetUsername));
-  if (!unameSnap.exists()) throw new Error("そのアカウント名は見つかりません");
+  if (!unameSnap.exists()) throw new Error(t("そのアカウント名は見つかりません"));
   const targetUid = unameSnap.data().uid;
 
   const id = sortedId(myUid, targetUid);
@@ -3168,7 +3483,7 @@ window.sendFriendRequest = async function (targetUsernameRaw) {
   try {
     await updateDoc(reqRef, { status: "pending", createdAt: serverTimestamp() });
   } catch (e2) {
-    throw new Error("すでに申請済み、フレンド、または相手から拒否されたばかりで再申請できない状態です");
+    throw new Error(t("すでに申請済み、フレンド、または相手から拒否されたばかりで再申請できない状態です"));
   }
 };
 
@@ -3212,7 +3527,7 @@ window.respondFriendRequest = async function (id, accept) {
 };
 
 window.removeFriend = async function (otherUid) {
-  if (!auth.currentUser) throw new Error("ログインしていません");
+  if (!auth.currentUser) throw new Error(t("ログインしていません"));
   const id = sortedId(auth.currentUser.uid, otherUid);
   await deleteDoc(doc(db, "friendRequests", id));
 };
@@ -3226,22 +3541,26 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     let username = "";
     let playerId = "";
+    let lang = "ja";
     try {
       const snap = await getDoc(doc(db, "users", user.uid));
       if (snap.exists()) {
         username = snap.data().displayName || snap.data().username || "";
         playerId = snap.data().playerId || "";
+        lang = snap.data().lang || "ja";
       }
     } catch (e) {
       console.error("ユーザー情報の取得に失敗:", e);
     }
+    if (window.initCurrentLang) window.initCurrentLang(lang);
     document.getElementById('authGate').style.display = 'none';
     document.getElementById('authBrand').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
-    document.getElementById('accountDropdownName').textContent = username ? (username + " でログイン中") : "";
+    document.getElementById('accountDropdownName').textContent = username ? (username + (window.t ? window.t(" でログイン中") : " でログイン中")) : "";
     window.currentUsername = username;
     window.currentPlayerId = playerId;
     document.getElementById('accountAvatarBtn').textContent = username ? username.charAt(0).toUpperCase() : "?";
+    if (window.applyStaticTranslations) window.applyStaticTranslations();
     window.loadAll();
   } else {
     document.getElementById('appRoot').style.display = 'none';
