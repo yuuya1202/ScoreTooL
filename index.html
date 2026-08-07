@@ -1206,8 +1206,8 @@ function buildCompareSkeleton(friendOptionsHtml) {
       <select class="select-input" id="compareSortSelect" aria-label="並び替え" style="margin-top:10px">
         <option value="date_desc">収録順（新しい順）</option>
         <option value="date_asc">収録順（古い順）</option>
-        <option value="score_desc">スコア高い順</option>
-        <option value="score_asc">スコア低い順</option>
+        <option value="score_desc">スコア高い順（自分）</option>
+        <option value="score_asc">スコア低い順（自分）</option>
         <option value="level_desc">レベル高い順</option>
         <option value="level_asc">レベル低い順</option>
         <option value="title_asc">五十音順（あ→ん）</option>
@@ -1562,8 +1562,8 @@ function renderCompareMultiContent() {
       <select class="select-input" id="multiCompareSortSelect" aria-label="並び替え" style="margin-top:10px">
         <option value="date_desc">収録順（新しい順）</option>
         <option value="date_asc">収録順（古い順）</option>
-        <option value="score_desc">自分のスコア高い順</option>
-        <option value="score_asc">自分のスコア低い順</option>
+        <option value="score_desc">スコア高い順（自分）</option>
+        <option value="score_asc">スコア低い順（自分）</option>
         <option value="level_desc">レベル高い順</option>
         <option value="level_asc">レベル低い順</option>
         <option value="title_asc">五十音順（あ→ん）</option>
@@ -2182,12 +2182,10 @@ function renderRankingTab() {
       if (!btn) return;
       rankingState.subView = btn.dataset.mode;
       const mineOnlySorts = ["rank_asc", "rank_desc"];
-      const allOnlySorts = ["top1_desc", "top1_asc"];
-      const unconqueredOnlySorts = ["score_desc", "score_asc"];
+      const topOnlySorts = ["top1_desc", "top1_asc"]; // 全曲・未理論値のみ
       const v = rankingState.subView;
       if (v !== "mine" && mineOnlySorts.includes(rankingState.sort)) rankingState.sort = "date_desc";
-      if (v !== "all" && allOnlySorts.includes(rankingState.sort)) rankingState.sort = "date_desc";
-      if (v !== "unconquered" && unconqueredOnlySorts.includes(rankingState.sort)) rankingState.sort = "date_desc";
+      if (v === "mine" && topOnlySorts.includes(rankingState.sort)) rankingState.sort = "date_desc";
       render();
     });
     const listWrap = document.getElementById('rankingSongListWrap');
@@ -2303,7 +2301,7 @@ function renderRankingListHtml() {
   const myId = (window.currentPlayerId || "").toUpperCase();
   let list = rankingState.entries;
 
-  const noteHtml = `<p class="footnote" style="margin:0 0 10px;text-align:left">※Lv.1〜16は対象外です　∇以前に出した記録はランキングには掲載されません　楽曲をタッチすると詳細（1〜100位）を確認できます</p>`;
+  const noteHtml = `<p class="footnote" style="margin:0 0 10px;text-align:left">楽曲をタッチすると詳細（1〜100位）を確認できます。∇以前に出した記録はランキングには掲載されません。※Lv.1〜16は対象外です</p>`;
   const subTabHtml = `
     <div class="toggle-group segmented-toggle" id="rankingSubTabToggle" style="margin-bottom:14px">
       <button class="toggle-pill${rankingState.subView === "all" ? " on" : ""}" data-mode="all">全曲</button>
@@ -2352,13 +2350,11 @@ function renderRankingListHtml() {
     if (!row || !e.matched) return -Infinity;
     return row.score - e.maxExScore;
   }
-  function egDiffValue(e) {
-    if (!e.matched || e.egTop1Score == null) return -Infinity;
-    return e.egTop1Score - e.maxExScore;
-  }
-  function bestHistoricalDiff(e) {
-    // 現行の1位とEG時代の1位、良い方（理論値に近い方）を採用する＝歴代最高スコア
-    return Math.max(topDiffValue(e, 0), egDiffValue(e));
+  function mineDiffValue(e) {
+    if (!e.matched) return -Infinity;
+    const myScoreEntry = scores[songKey(e.musicName, e.type)];
+    if (!myScoreEntry || !myScoreEntry.exScore) return -Infinity;
+    return myScoreEntry.exScore - e.maxExScore;
   }
   const rankingCmp = {
     date_desc:  (a,b) => (b.date||"").localeCompare(a.date||"") || a.musicName.localeCompare(b.musicName, "ja"),
@@ -2371,8 +2367,8 @@ function renderRankingListHtml() {
     rank_desc:  (a,b) => (myRankOf(b) ?? -1) - (myRankOf(a) ?? -1),
     top1_desc:  (a,b) => topDiffValue(b, 0) - topDiffValue(a, 0),
     top1_asc:   (a,b) => topDiffValue(a, 0) - topDiffValue(b, 0),
-    score_desc: (a,b) => bestHistoricalDiff(b) - bestHistoricalDiff(a),
-    score_asc:  (a,b) => bestHistoricalDiff(a) - bestHistoricalDiff(b),
+    score_desc: (a,b) => mineDiffValue(b) - mineDiffValue(a),
+    score_asc:  (a,b) => mineDiffValue(a) - mineDiffValue(b),
   }[rankingState.sort] || ((a,b) => (b.date||"").localeCompare(a.date||"") || a.musicName.localeCompare(b.musicName, "ja"));
   list = list.slice().sort(rankingCmp);
 
@@ -2433,19 +2429,20 @@ function renderRankingListHtml() {
         <select class="select-input" id="rankingSortSelect" aria-label="並び替え">
           <option value="date_desc">収録順（新しい順）</option>
           <option value="date_asc">収録順（古い順）</option>
+          ${rankingState.subView === "mine" ? `
+          <option value="rank_asc">順位（高い順）</option>
+          <option value="rank_desc">順位（低い順）</option>
+          <option value="score_desc">スコア高い順（自分）</option>
+          <option value="score_asc">スコア低い順（自分）</option>` : ""}
+          ${rankingState.subView === "all" || rankingState.subView === "unconquered" ? `
+          <option value="top1_desc">1位スコア（高い順）</option>
+          <option value="top1_asc">1位スコア（低い順）</option>
+          <option value="score_desc">スコア高い順（自分）</option>
+          <option value="score_asc">スコア低い順（自分）</option>` : ""}
           <option value="level_desc">レベル高い順</option>
           <option value="level_asc">レベル低い順</option>
           <option value="title_asc">五十音順（あ→ん）</option>
           <option value="title_desc">五十音順（ん→あ）</option>
-          ${rankingState.subView === "mine" ? `
-          <option value="rank_asc">順位（高い順）</option>
-          <option value="rank_desc">順位（低い順）</option>` : ""}
-          ${rankingState.subView === "all" ? `
-          <option value="top1_desc">1位スコア（高い順）</option>
-          <option value="top1_asc">1位スコア（低い順）</option>` : ""}
-          ${rankingState.subView === "unconquered" ? `
-          <option value="score_desc">スコア（高い順）</option>
-          <option value="score_asc">スコア（低い順）</option>` : ""}
         </select>
         <label class="check-item"><input type="checkbox" id="rankingShowMineCheckbox" ${rankingState.showMineColumn ? "checked" : ""}><span>自分のスコアを表示</span></label>
       </div>
