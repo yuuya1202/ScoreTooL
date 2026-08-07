@@ -716,7 +716,8 @@ function updateLangModalUi() {
   const title = document.getElementById('langModalTitle');
   if (title) title.textContent = t("言語設定");
   document.querySelectorAll('.lang-option-btn').forEach(b => {
-    b.classList.toggle('filter-active', b.dataset.lang === currentLang);
+    const isSelected = b.dataset.lang === currentLang;
+    b.classList.toggle('secondary', !isSelected);
   });
 }
 function applyLanguage() {
