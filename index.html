@@ -2446,8 +2446,8 @@ function renderRankingListHtml() {
         </select>
         <label class="check-item"><input type="checkbox" id="rankingShowMineCheckbox" ${rankingState.showMineColumn ? "checked" : ""}><span>自分のスコアを表示</span></label>
       </div>
-      <p class="footnote" style="margin:0;text-align:left">${list.length} 件を表示中</p>
     </div>
+    <div class="footnote" style="margin:2px 0 10px;text-align:left">${list.length} 件を表示中</div>
     <div class="panel" style="padding:0;overflow:hidden">
       <div class="ranking-song-list-wrap">
         <div class="ranking-song-list" id="rankingSongListWrap" style="--ranking-extra-cols:${rankingExtraColsStyle()};width:${rankingRowWidthPx()}px">
