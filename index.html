@@ -248,7 +248,7 @@
 <body>
 
 <div style="max-width:360px;margin:60px auto 0;text-align:left;display:none;position:relative" id="authBrand">
-  <button class="btn secondary lang-toggle-btn" onclick="setLang(currentLang==='ja'?'ko':'ja')" style="position:absolute;top:0;right:0;padding:6px 12px;font-size:12px">한국어</button>
+  <button class="btn secondary lang-toggle-btn" onclick="openLangModal()" style="position:absolute;top:0;right:0;padding:6px 12px;font-size:12px">言語設定</button>
   <div class="brand-title" style="font-size:24px"><span class="brand-title-sdvx">SDVX</span> <span class="brand-title-exscore">EX-Score</span></div>
 </div>
 <div id="authGate" class="panel" style="max-width:360px;margin:16px auto;display:none">
@@ -286,7 +286,7 @@
         <button class="account-dropdown-item" onclick="openChangeUsernameModal(); toggleAccountMenu();">アカウント名を変更</button>
         <button class="account-dropdown-item" onclick="openPlayerIdModal(); toggleAccountMenu();">プレイヤーIDを設定</button>
         <button class="account-dropdown-item" onclick="switchTab('data'); toggleAccountMenu();">スコア登録</button>
-        <button class="account-dropdown-item lang-toggle-btn" onclick="setLang(currentLang==='ja'?'ko':'ja')">한국어</button>
+        <button class="account-dropdown-item lang-toggle-btn" onclick="openLangModal()">言語設定</button>
         <button class="account-dropdown-item" onclick="switchTab('terms'); toggleAccountMenu();">利用規約</button>
         <button class="account-dropdown-item danger" onclick="handleLogout()">ログアウト</button>
       </div>
@@ -353,6 +353,19 @@
     <div class="modal-footer" style="display:flex;gap:10px">
       <button class="btn" id="playerIdModalSubmitBtn" style="flex:1">保存する</button>
       <button class="btn secondary" id="playerIdModalCancelBtn" style="flex:1">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="langModalOverlay" style="display:none">
+  <div class="modal-box" style="max-width:300px">
+    <div class="modal-header">
+      <h3 id="langModalTitle">言語設定</h3>
+      <button class="modal-close" onclick="closeLangModal()">×</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:8px">
+      <button type="button" class="btn secondary lang-option-btn" data-lang="ja" onclick="selectLang('ja')" style="width:100%">日本語</button>
+      <button type="button" class="btn secondary lang-option-btn" data-lang="ko" onclick="selectLang('ko')" style="width:100%">한국어</button>
     </div>
   </div>
 </div>
@@ -667,6 +680,7 @@ const T = {
     "OK": "확인",
     "日本語": "日本語",
     "한국어": "한국어",
+    "言語設定": "언어 설정",
   },
 };
 function t(key, vars) {
@@ -684,11 +698,33 @@ function setLang(lang) {
 window.setLang = setLang;
 window.initCurrentLang = function (lang) { currentLang = lang; };
 window.currentLangForSignup = function () { return currentLang; };
+function openLangModal() {
+  document.getElementById('langModalOverlay').style.display = 'flex';
+  updateLangModalUi();
+}
+function closeLangModal() {
+  document.getElementById('langModalOverlay').style.display = 'none';
+}
+function selectLang(lang) {
+  setLang(lang);
+  closeLangModal();
+}
+window.openLangModal = openLangModal;
+window.closeLangModal = closeLangModal;
+window.selectLang = selectLang;
+function updateLangModalUi() {
+  const title = document.getElementById('langModalTitle');
+  if (title) title.textContent = t("言語設定");
+  document.querySelectorAll('.lang-option-btn').forEach(b => {
+    b.classList.toggle('filter-active', b.dataset.lang === currentLang);
+  });
+}
 function applyLanguage() {
   document.documentElement.lang = currentLang === "ko" ? "ko" : "ja";
   document.querySelectorAll(".lang-toggle-btn").forEach(b => {
-    b.textContent = currentLang === "ja" ? "한국어" : "日本語";
+    b.textContent = t("言語設定");
   });
+  updateLangModalUi();
   // スケルトンベースのタブは初回しかDOMを作り直さない仕組みなので、
   // 言語切替時は強制的に作り直させて文言を反映する
   listSkeletonBuilt = false;
@@ -809,6 +845,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (pCancelBtn) pCancelBtn.addEventListener('click', closePlayerIdModal);
   if (pSubmitBtn) pSubmitBtn.addEventListener('click', submitPlayerId);
   if (pOverlay) pOverlay.addEventListener('click', (e) => { if (e.target.id === 'playerIdModalOverlay') closePlayerIdModal(); });
+
+  const langOverlay = document.getElementById('langModalOverlay');
+  if (langOverlay) langOverlay.addEventListener('click', (e) => { if (e.target.id === 'langModalOverlay') closeLangModal(); });
 });
 
 function openPlayerIdModal() {
@@ -3332,7 +3371,7 @@ function renderAuthGate() {
   document.querySelector('#authPlayerIdWrap .hint').textContent = t("登録すると、ランキング機能で自分の順位を確認できるようになります。");
   document.getElementById('authDeleteSummary').textContent = t("アカウント削除依頼・パスワードを忘れた場合");
   document.getElementById('authDeleteBody').innerHTML = `X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener" style="color:#3B82F6">@yuuya1202</a> ${t("までご連絡ください。")}`;
-  document.querySelectorAll('.lang-toggle-btn').forEach(b => { b.textContent = currentLang === "ja" ? "한국어" : "日本語"; });
+  document.querySelectorAll('.lang-toggle-btn').forEach(b => { b.textContent = t("言語設定"); });
 }
 window.toggleAuthMode = function () {
   authMode = authMode === "login" ? "signup" : "login";
