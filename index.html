@@ -1889,8 +1889,7 @@ let rankingState = {
   listScrollY: 0,          // 一覧タブでのスクロール位置（詳細から戻ったときに復元する）
   search: "",
   sort: "date_desc",
-  visibleColumns: { mine: true, top1: true, top100: true, eg: true }, // 表示する列（デフォルト全選択）
-  columnPickerOpen: false,
+  showMineColumn: false,   // 「自分のスコアを表示」チェックボックス（デフォルトOFF、ONで右端に自分列を追加）
 };
 
 function rankingEntryKey(e) {
@@ -2156,10 +2155,10 @@ function renderRankingTab() {
     : null;
 
   container.innerHTML = `
+    ${activeEntry ? `
     <div class="panel">
-      ${activeEntry ? "" : `<p class="footnote" style="margin:0 0 10px;text-align:left">※Lv.1〜16は対象外です　∇以前に出した記録はランキングには掲載されません</p>`}
-      ${activeEntry ? renderRankingDetailHtml(activeEntry) : renderRankingListHtml()}
-    </div>
+      ${renderRankingDetailHtml(activeEntry)}
+    </div>` : renderRankingListHtml()}
     <div class="modal-overlay" id="rankingFilterModalOverlay" style="display:none">
       <div class="modal-box">
         <div class="modal-header">
@@ -2183,7 +2182,7 @@ function renderRankingTab() {
       if (!btn) return;
       rankingState.subView = btn.dataset.mode;
       const mineOnlySorts = ["rank_asc", "rank_desc"];
-      const allOnlySorts = ["top1_desc", "top1_asc", "top100_desc", "top100_asc"];
+      const allOnlySorts = ["top1_desc", "top1_asc"];
       const unconqueredOnlySorts = ["score_desc", "score_asc"];
       const v = rankingState.subView;
       if (v !== "mine" && mineOnlySorts.includes(rankingState.sort)) rankingState.sort = "date_desc";
@@ -2254,28 +2253,12 @@ function renderRankingTab() {
       rankingSortSelect.value = rankingState.sort;
       rankingSortSelect.addEventListener('change', (e) => { rankingState.sort = e.target.value; render(); });
     }
-    const colPickerBtn = document.getElementById('rankingColumnPickerBtn');
-    const colPickerPanel = document.getElementById('rankingColumnPickerPanel');
-    if (colPickerBtn && colPickerPanel) {
-      colPickerBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        rankingState.columnPickerOpen = !rankingState.columnPickerOpen;
+    const showMineCheckbox = document.getElementById('rankingShowMineCheckbox');
+    if (showMineCheckbox) {
+      showMineCheckbox.addEventListener('change', (e) => {
+        rankingState.showMineColumn = e.target.checked;
         render();
       });
-      colPickerPanel.addEventListener('click', (e) => e.stopPropagation());
-      colPickerPanel.addEventListener('change', (e) => {
-        const cb = e.target.closest('input[data-col]');
-        if (!cb) return;
-        rankingState.visibleColumns[cb.dataset.col] = cb.checked;
-        render();
-      });
-      if (rankingState.columnPickerOpen) {
-        document.addEventListener('click', function closeColPickerOnce() {
-          rankingState.columnPickerOpen = false;
-          document.removeEventListener('click', closeColPickerOnce);
-          render();
-        }, { once: true });
-      }
     }
   } else {
     document.getElementById('rankingBackBtn').addEventListener('click', closeRankingEntry);
@@ -2297,22 +2280,14 @@ function isUnconqueredEntry(e) {
 }
 
 function rankingExtraColsStyle() {
-  const c = rankingState.visibleColumns;
-  const parts = [];
-  if (c.mine) parts.push("52px");
-  if (c.top1) parts.push("62px");
-  if (c.top100) parts.push("62px");
-  if (c.eg) parts.push("74px");
-  return parts.join(" ") || "0px";
+  const parts = ["62px", "74px"]; // 1位, 1位(EG)
+  if (rankingState.showMineColumn) parts.push("52px"); // 自分（右端・任意）
+  return parts.join(" ");
 }
 
 function rankingRowWidthPx() {
-  const c = rankingState.visibleColumns;
-  const extraWidths = [];
-  if (c.mine) extraWidths.push(52);
-  if (c.top1) extraWidths.push(62);
-  if (c.top100) extraWidths.push(62);
-  if (c.eg) extraWidths.push(74);
+  const extraWidths = [62, 74];
+  if (rankingState.showMineColumn) extraWidths.push(52);
   const extraSum = extraWidths.reduce((a, b) => a + b, 0);
   const gaps = extraWidths.length * 8; // 楽曲列と各列の間、列同士の間の gap:8px 分
   const isMobile = window.innerWidth <= 480;
@@ -2328,6 +2303,7 @@ function renderRankingListHtml() {
   const myId = (window.currentPlayerId || "").toUpperCase();
   let list = rankingState.entries;
 
+  const noteHtml = `<p class="footnote" style="margin:0 0 10px;text-align:left">※Lv.1〜16は対象外です　∇以前に出した記録はランキングには掲載されません　楽曲をタッチすると詳細（1〜100位）を確認できます</p>`;
   const subTabHtml = `
     <div class="toggle-group segmented-toggle" id="rankingSubTabToggle" style="margin-bottom:14px">
       <button class="toggle-pill${rankingState.subView === "all" ? " on" : ""}" data-mode="all">全曲</button>
@@ -2339,8 +2315,11 @@ function renderRankingListHtml() {
   if (rankingState.subView === "mine") {
     if (!myId) {
       return `
-        ${subTabHtml}
-        <p class="hint">プレイヤーIDが未登録です。アカウントメニューの「プレイヤーIDを設定」から登録すると、自分がランクインしている曲を確認できます。</p>
+        <div class="panel">
+          ${noteHtml}
+          ${subTabHtml}
+          <p class="hint">プレイヤーIDが未登録です。アカウントメニューの「プレイヤーIDを設定」から登録すると、自分がランクインしている曲を確認できます。</p>
+        </div>
       `;
     }
     list = list.filter(e => e.rankingData.some(r => (r.playerId || "").toUpperCase() === myId));
@@ -2392,29 +2371,32 @@ function renderRankingListHtml() {
     rank_desc:  (a,b) => (myRankOf(b) ?? -1) - (myRankOf(a) ?? -1),
     top1_desc:  (a,b) => topDiffValue(b, 0) - topDiffValue(a, 0),
     top1_asc:   (a,b) => topDiffValue(a, 0) - topDiffValue(b, 0),
-    top100_desc:(a,b) => topDiffValue(b, b.rankingData.length-1) - topDiffValue(a, a.rankingData.length-1),
-    top100_asc: (a,b) => topDiffValue(a, a.rankingData.length-1) - topDiffValue(b, b.rankingData.length-1),
     score_desc: (a,b) => bestHistoricalDiff(b) - bestHistoricalDiff(a),
     score_asc:  (a,b) => bestHistoricalDiff(a) - bestHistoricalDiff(b),
   }[rankingState.sort] || ((a,b) => (b.date||"").localeCompare(a.date||"") || a.musicName.localeCompare(b.musicName, "ja"));
   list = list.slice().sort(rankingCmp);
 
-  const cols = rankingState.visibleColumns;
   const rowsHtml = list.map(e => {
     const meta = DIFF_META[e.type] || { abbr: e.diffAbbr, color: "#888" };
     const myRow = myId ? e.rankingData.find(r => (r.playerId || "").toUpperCase() === myId) : null;
     const top1 = e.rankingData[0];
-    const top100 = e.rankingData[e.rankingData.length - 1];
     const scoreDisplay = (row) => {
       if (!row) return "-";
       return e.matched ? formatExDiff(row.score - e.maxExScore) : String(row.score);
     };
-    const scoreColor = (display) => display === "-0" ? "#FFD23F" : "var(--text)";
     const top1Display = scoreDisplay(top1);
-    const top100Display = scoreDisplay(top100);
     const egDisplay = (e.matched && e.egTop1Score != null) ? formatExDiff(e.egTop1Score - e.maxExScore) : "-";
     const myScoreEntry = e.matched ? scores[songKey(e.musicName, e.type)] : null;
     const mineDisplay = (myScoreEntry && myScoreEntry.exScore) ? formatExDiff(myScoreEntry.exScore - e.maxExScore) : "-";
+
+    // 1位・1位(EG)・自分（表示中のみ）の中で一番良い（理論値に近い）ものだけ金色にする（同率は全部塗る）
+    const top1Diff = (e.matched && top1) ? top1.score - e.maxExScore : null;
+    const egDiff = (e.matched && e.egTop1Score != null) ? e.egTop1Score - e.maxExScore : null;
+    const mineDiff = (rankingState.showMineColumn && myScoreEntry && myScoreEntry.exScore) ? myScoreEntry.exScore - e.maxExScore : null;
+    const candidates = [top1Diff, egDiff, mineDiff].filter(v => v !== null);
+    const bestDiff = candidates.length ? Math.max(...candidates) : null;
+    const colorFor = (v) => (v !== null && bestDiff !== null && v === bestDiff) ? "#FFD23F" : "var(--text)";
+
     return `
       <div class="ranking-song-row" data-key="${esc(rankingEntryKey(e))}">
         <div class="ranking-song-title-cell">
@@ -2424,69 +2406,62 @@ function renderRankingListHtml() {
           </div>
           <div class="title-text">${esc(e.musicName)}${e.matched ? "" : `<span class="hint" style="margin-left:6px">（未マッチ）</span>`}</div>
         </div>
-        ${cols.mine ? `<div class="col-center mono" style="color:${scoreColor(mineDisplay)}">${mineDisplay}</div>` : ""}
-        ${cols.top1 ? `<div class="col-center mono" style="color:${scoreColor(top1Display)}">${top1Display}</div>` : ""}
-        ${cols.top100 ? `<div class="col-center mono" style="color:${scoreColor(top100Display)}">${top100Display}</div>` : ""}
-        ${cols.eg ? `<div class="col-center mono" style="color:${scoreColor(egDisplay)}">${egDisplay}</div>` : ""}
+        <div class="col-center mono" style="color:${colorFor(top1Diff)}">${top1Display}</div>
+        <div class="col-center mono" style="color:${colorFor(egDiff)}">${egDisplay}</div>
+        ${rankingState.showMineColumn ? `<div class="col-center mono" style="color:${colorFor(mineDiff)}">${mineDisplay}</div>` : ""}
       </div>
     `;
   }).join("") || `<p class="hint">該当する曲がありません。</p>`;
 
   return `
-    ${subTabHtml}
-    <div class="search-wrap" style="margin-bottom:12px">
-      <input class="search-input" id="rankingSearchInput" placeholder="曲名で検索…">
-      <button type="button" class="search-clear-btn" id="rankingSearchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
-    </div>
-    <div class="toggle-group segmented-toggle" id="rankingFilterModeToggle" style="margin-bottom:10px">
-      <button class="toggle-pill" data-mode="simple">表示対象</button>
-      <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
-    </div>
-    <div class="level-shortcut-row" id="rankingLevelShortcutRow" style="margin-bottom:12px"></div>
-    <div id="rankingAdvancedFilterRow" style="display:none;margin-bottom:12px">
-      <button class="btn" id="rankingFilterBtn">絞り込み条件を設定する</button>
-    </div>
-    <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px">
-      <select class="select-input" id="rankingSortSelect" aria-label="並び替え">
-        <option value="date_desc">収録順（新しい順）</option>
-        <option value="date_asc">収録順（古い順）</option>
-        <option value="level_desc">レベル高い順</option>
-        <option value="level_asc">レベル低い順</option>
-        <option value="title_asc">五十音順（あ→ん）</option>
-        <option value="title_desc">五十音順（ん→あ）</option>
-        ${rankingState.subView === "mine" ? `
-        <option value="rank_asc">順位（高い順）</option>
-        <option value="rank_desc">順位（低い順）</option>` : ""}
-        ${rankingState.subView === "all" ? `
-        <option value="top1_desc">1位スコア（高い順）</option>
-        <option value="top1_asc">1位スコア（低い順）</option>
-        <option value="top100_desc">100位スコア（高い順）</option>
-        <option value="top100_asc">100位スコア（低い順）</option>` : ""}
-        ${rankingState.subView === "unconquered" ? `
-        <option value="score_desc">スコア（高い順）</option>
-        <option value="score_asc">スコア（低い順）</option>` : ""}
-      </select>
-      <div style="position:relative">
-        <button type="button" class="select-input" id="rankingColumnPickerBtn" style="cursor:pointer;display:flex;align-items:center;gap:8px;justify-content:space-between">列の情報<span style="font-size:10px">▼</span></button>
-        <div id="rankingColumnPickerPanel" style="display:${rankingState.columnPickerOpen ? "block" : "none"};position:absolute;top:calc(100% + 6px);left:0;z-index:5;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-width:140px;box-shadow:0 6px 18px rgba(0,0,0,0.5)">
-          <label class="check-item" style="margin-bottom:6px"><input type="checkbox" data-col="mine" ${cols.mine ? "checked" : ""}><span>自分</span></label>
-          <label class="check-item" style="margin-bottom:6px"><input type="checkbox" data-col="top1" ${cols.top1 ? "checked" : ""}><span>1位</span></label>
-          <label class="check-item" style="margin-bottom:6px"><input type="checkbox" data-col="top100" ${cols.top100 ? "checked" : ""}><span>100位</span></label>
-          <label class="check-item"><input type="checkbox" data-col="eg" ${cols.eg ? "checked" : ""}><span>1位(EG)</span></label>
-        </div>
+    <div class="panel">
+      ${noteHtml}
+      ${subTabHtml}
+      <div class="search-wrap" style="margin-bottom:12px">
+        <input class="search-input" id="rankingSearchInput" placeholder="曲名で検索…">
+        <button type="button" class="search-clear-btn" id="rankingSearchClearBtn" style="display:none" aria-label="検索文字をクリア">✕</button>
       </div>
+      <div class="toggle-group segmented-toggle" id="rankingFilterModeToggle" style="margin-bottom:10px">
+        <button class="toggle-pill" data-mode="simple">表示対象</button>
+        <button class="toggle-pill" data-mode="advanced">高度な絞り込み</button>
+      </div>
+      <div class="level-shortcut-row" id="rankingLevelShortcutRow" style="margin-bottom:12px"></div>
+      <div id="rankingAdvancedFilterRow" style="display:none;margin-bottom:12px">
+        <button class="btn" id="rankingFilterBtn">絞り込み条件を設定する</button>
+      </div>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <select class="select-input" id="rankingSortSelect" aria-label="並び替え">
+          <option value="date_desc">収録順（新しい順）</option>
+          <option value="date_asc">収録順（古い順）</option>
+          <option value="level_desc">レベル高い順</option>
+          <option value="level_asc">レベル低い順</option>
+          <option value="title_asc">五十音順（あ→ん）</option>
+          <option value="title_desc">五十音順（ん→あ）</option>
+          ${rankingState.subView === "mine" ? `
+          <option value="rank_asc">順位（高い順）</option>
+          <option value="rank_desc">順位（低い順）</option>` : ""}
+          ${rankingState.subView === "all" ? `
+          <option value="top1_desc">1位スコア（高い順）</option>
+          <option value="top1_asc">1位スコア（低い順）</option>` : ""}
+          ${rankingState.subView === "unconquered" ? `
+          <option value="score_desc">スコア（高い順）</option>
+          <option value="score_asc">スコア（低い順）</option>` : ""}
+        </select>
+        <label class="check-item"><input type="checkbox" id="rankingShowMineCheckbox" ${rankingState.showMineColumn ? "checked" : ""}><span>自分のスコアを表示</span></label>
+      </div>
+      <p class="footnote" style="margin:0;text-align:left">${list.length} 件を表示中</p>
     </div>
-    <p class="footnote" style="margin:0 0 8px;text-align:left">${list.length} 件を表示中</p>
-    <div class="ranking-song-list-wrap">
-      <div class="ranking-song-list" id="rankingSongListWrap" style="--ranking-extra-cols:${rankingExtraColsStyle()};width:${rankingRowWidthPx()}px">
-        <div class="ranking-song-row ranking-song-header">
-          <div>楽曲</div>
-          ${cols.mine ? `<div class="col-center">自分</div>` : ""}
-          ${cols.top1 ? `<div class="col-center">1位</div>` : ""}
-          ${cols.top100 ? `<div class="col-center">100位</div>` : ""}
-          ${cols.eg ? `<div class="col-center">1位(EG)</div>` : ""}
+    <div class="panel" style="padding:0;overflow:hidden">
+      <div class="ranking-song-list-wrap">
+        <div class="ranking-song-list" id="rankingSongListWrap" style="--ranking-extra-cols:${rankingExtraColsStyle()};width:${rankingRowWidthPx()}px">
+          <div class="ranking-song-row ranking-song-header">
+            <div>楽曲</div>
+            <div class="col-center">1位</div>
+            <div class="col-center">1位(EG)</div>
+            ${rankingState.showMineColumn ? `<div class="col-center">自分</div>` : ""}
+          </div>
+          ${rowsHtml}
         </div>
-        ${rowsHtml}
       </div>
     </div>
   `;
