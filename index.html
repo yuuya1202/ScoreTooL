@@ -2322,7 +2322,17 @@ function buildEgRankingMap(rawObj) {
     if (!type) continue;
     const name = stripExitTunesSuffix(decodeHtmlEntities(m[1]));
 
-    let matchedSong = songLookup.get(name + "___" + type) || null;
+    const value = rawObj[key];
+    // 形式が {artist_name, level, entries:[...]} と、旧来の [...] 直置きの両方に対応する
+    const entriesArr = Array.isArray(value) ? value : (value && Array.isArray(value.entries) ? value.entries : null);
+    if (!entriesArr) continue;
+    const artist = value && !Array.isArray(value) ? value.artist_name : null;
+
+    let matchedSong = null;
+    if (artist) {
+      matchedSong = songs.find(s => s.type === type && s.title.startsWith(name) && s.title.includes(artist)) || null;
+    }
+    if (!matchedSong) matchedSong = songLookup.get(name + "___" + type) || null;
     if (!matchedSong) {
       // 曲名中のアポストロフィの表記ゆれ（'  vs ’）を考慮した再試行
       const alt = name.replace(/\u2019/g, "'");
@@ -2333,7 +2343,7 @@ function buildEgRankingMap(rawObj) {
     }
     if (!matchedSong) continue;
 
-    const rows = (rawObj[key] || []).map((row, i) => ({
+    const rows = entriesArr.map((row, i) => ({
       rank: i + 1, name: row[0], playerId: row[1], score: row[2], updatedAt: row[3],
     }));
     map[matchedSong.title + "___" + matchedSong.type] = rows;
