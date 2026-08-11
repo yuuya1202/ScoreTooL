@@ -2881,7 +2881,7 @@ function renderRankingDetailHtml(entry) {
     ${!entry.matched ? `<p class="hint" style="margin-bottom:10px">${t("この曲は楽曲マスタと自動で一致しなかったため、EXスコアの理論値差分は表示していません。")}</p>` : ""}
     <div class="toggle-group segmented-toggle" id="rankingDetailEraToggle" style="margin-bottom:12px">
       <button class="toggle-pill${era === "current" ? " on" : ""}" data-era="current">∇</button>
-      <button class="toggle-pill${era === "eg" ? " on" : ""}" data-era="eg"${hasEgData ? "" : " disabled"}>EG</button>
+      <button class="toggle-pill${era === "eg" ? " on" : ""}" data-era="eg">EG</button>
     </div>
     ${era === "eg" && !hasEgData ? `<p class="hint" style="margin-bottom:10px">${t("この曲はEG時代のランキングデータに存在しません（新verで追加された曲の可能性があります）。")}</p>` : ""}
     <div class="table-wrap">
