@@ -643,6 +643,7 @@ const T = {
     "1位(EG)": "1위(EG)",
     "(自分)": "(본인)",
     "該当する曲がありません。": "해당하는 곡이 없습니다.",
+    "この曲はEG時代のランキングデータに存在しません（新verで追加された曲の可能性があります）。": "이 곡은 EG 시대의 랭킹 데이터에 존재하지 않습니다（신버전에서 추가된 곡일 가능성이 있습니다）。",
     "（未マッチ）": "（미매칭）",
     "← 曲一覧に戻る": "← 곡 목록으로 돌아가기",
     "この曲は楽曲マスタと自動で一致しなかったため、EXスコアの理論値差分は表示していません。": "이 곡은 곡 마스터 데이터와 자동으로 일치하지 않아, EX 스코어의 이론값 차이를 표시하지 않습니다.",
@@ -2224,6 +2225,7 @@ let rankingState = {
   search: "",
   sort: "date_desc",
   showMineColumn: false,   // 「自分のスコアを表示」チェックボックス（デフォルトOFF、ONで右端に自分列を追加）
+  detailEra: "current",    // 詳細画面：現行(∇) | EG（"current" | "eg"）
 };
 
 function rankingEntryKey(e) {
@@ -2296,33 +2298,31 @@ const RANKING_TITLE_ALIASES = {
   "暴走___exhaust": "初音ミクの暴走",
 };
 
-// EG（全ver時代）の1位スコア：静的データ・更新されない。新verで追加された曲はここに存在しない。
+// EG（全ver時代）の1〜100位ランキング：静的データ・更新されない。新verで追加された曲はここに存在しない。
 const EG_DIFF_MAP = {
   diff_nov: "novice", diff_adv: "advanced", diff_exh: "exhaust", diff_inf: "infinite",
   diff_mxm: "maximum", diff_grv: "gravity", diff_hvn: "heavenly", diff_vvd: "vivid",
   diff_xcd: "exceed", diff_nbl: "nabla", diff_ult: "ultimate",
 };
-let egTopScoreByKey = {}; // "title___type" -> 生スコア
+let egRankingByKey = {}; // "title___type" -> [{rank,name,playerId,score,updatedAt}, ...]
 let egDataStatus = "idle"; // idle | loading | loaded | error
 
 function stripExitTunesSuffix(name) {
   return String(name).replace(/\(EXIT TUNES\)$/, "").trim();
 }
 
-function buildEgTopScoreMap(rawList) {
+function buildEgRankingMap(rawObj) {
   const songLookup = new Map();
   for (const s of songs) songLookup.set(s.title + "___" + s.type, s);
   const map = {};
-  for (const item of rawList) {
-    const type = EG_DIFF_MAP[item.difficulty_type] || null;
+  for (const key of Object.keys(rawObj)) {
+    const m = key.match(/^(.*) \(diff_(\w+)\)$/);
+    if (!m) continue;
+    const type = EG_DIFF_MAP["diff_" + m[2]] || null;
     if (!type) continue;
-    const name = stripExitTunesSuffix(decodeHtmlEntities(String(item.music_name || "")));
-    const artist = item.artist_name;
-    let matchedSong = null;
-    if (artist) {
-      matchedSong = songs.find(s => s.type === type && s.title.startsWith(name) && s.title.includes(artist)) || null;
-    }
-    if (!matchedSong) matchedSong = songLookup.get(name + "___" + type) || null;
+    const name = stripExitTunesSuffix(decodeHtmlEntities(m[1]));
+
+    let matchedSong = songLookup.get(name + "___" + type) || null;
     if (!matchedSong) {
       // 曲名中のアポストロフィの表記ゆれ（'  vs ’）を考慮した再試行
       const alt = name.replace(/\u2019/g, "'");
@@ -2331,7 +2331,12 @@ function buildEgTopScoreMap(rawList) {
     if (!matchedSong && RANKING_TITLE_ALIASES[name + "___" + type]) {
       matchedSong = songLookup.get(RANKING_TITLE_ALIASES[name + "___" + type] + "___" + type) || null;
     }
-    if (matchedSong) map[matchedSong.title + "___" + matchedSong.type] = item.score;
+    if (!matchedSong) continue;
+
+    const rows = (rawObj[key] || []).map((row, i) => ({
+      rank: i + 1, name: row[0], playerId: row[1], score: row[2], updatedAt: row[3],
+    }));
+    map[matchedSong.title + "___" + matchedSong.type] = rows;
   }
   return map;
 }
@@ -2343,10 +2348,10 @@ async function ensureEgTopScoresLoaded() {
     const res = await fetch('./eg_top_scores.json', { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const raw = await res.json();
-    egTopScoreByKey = buildEgTopScoreMap(raw);
+    egRankingByKey = buildEgRankingMap(raw);
     egDataStatus = "loaded";
   } catch (e) {
-    console.error("EG時代の1位スコアデータの読み込みに失敗:", e);
+    console.error("EG時代のランキングデータの読み込みに失敗:", e);
     egDataStatus = "error";
   }
 }
@@ -2379,7 +2384,8 @@ function buildRankingEntries(rawList) {
       updatedAt: row[3],
     }));
 
-    const egTop1Score = matchedSong ? (egTopScoreByKey[matchedSong.title + "___" + matchedSong.type] ?? null) : null;
+    const egRankingData = matchedSong ? (egRankingByKey[matchedSong.title + "___" + matchedSong.type] || null) : null;
+    const egTop1Score = (egRankingData && egRankingData[0]) ? egRankingData[0].score : null;
 
     entries.push({
       musicName,
@@ -2392,6 +2398,7 @@ function buildRankingEntries(rawList) {
       reading: matchedSong ? (matchedSong.reading || "") : "",
       matched: !!matchedSong,
       egTop1Score,
+      egRankingData,
       rankingData,
     });
   }
@@ -2455,6 +2462,7 @@ async function ensureRankingLoaded(force) {
 function openRankingEntry(key) {
   rankingState.listScrollY = window.scrollY;
   rankingState.activeKey = key;
+  rankingState.detailEra = "current"; // "current" | "eg"
   render();
   window.scrollTo(0, 0);
 }
@@ -2594,6 +2602,15 @@ function renderRankingTab() {
     }
   } else {
     document.getElementById('rankingBackBtn').addEventListener('click', closeRankingEntry);
+    const eraToggle = document.getElementById('rankingDetailEraToggle');
+    if (eraToggle) {
+      eraToggle.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-era]');
+        if (!btn || btn.disabled) return;
+        rankingState.detailEra = btn.dataset.era;
+        render();
+      });
+    }
   }
 
   document.getElementById('rankingFilterModalCloseBtn').addEventListener('click', closeRankingFilterModal);
@@ -2821,7 +2838,11 @@ function renderRankingListHtml() {
 function renderRankingDetailHtml(entry) {
   const meta = DIFF_META[entry.type] || { abbr: entry.diffAbbr, color: "#888" };
   const myId = (window.currentPlayerId || "").toUpperCase();
-  const rowsHtml = entry.rankingData.map(r => {
+  const era = rankingState.detailEra === "eg" ? "eg" : "current";
+  const activeData = era === "eg" ? (entry.egRankingData || []) : entry.rankingData;
+  const hasEgData = !!(entry.egRankingData && entry.egRankingData.length);
+
+  const rowsHtml = activeData.map(r => {
     const isMine = myId && (r.playerId || "").toUpperCase() === myId;
     const diff = entry.matched ? formatExDiff(r.score - entry.maxExScore) : String(r.score);
     const diffColor = diff === "-0" ? "#FFD23F" : "var(--text)";
@@ -2836,7 +2857,7 @@ function renderRankingDetailHtml(entry) {
         <td class="hint col-center">${esc(r.updatedAt)}</td>
       </tr>
     `;
-  }).join("");
+  }).join("") || `<tr><td colspan="4" class="hint" style="text-align:center;padding:16px">${t("該当する曲がありません。")}</td></tr>`;
 
   return `
     <button class="link-btn" id="rankingBackBtn" style="margin-bottom:10px">${t("← 曲一覧に戻る")}</button>
@@ -2848,6 +2869,11 @@ function renderRankingDetailHtml(entry) {
       </div>
     </div>
     ${!entry.matched ? `<p class="hint" style="margin-bottom:10px">${t("この曲は楽曲マスタと自動で一致しなかったため、EXスコアの理論値差分は表示していません。")}</p>` : ""}
+    <div class="toggle-group segmented-toggle" id="rankingDetailEraToggle" style="margin-bottom:12px">
+      <button class="toggle-pill${era === "current" ? " on" : ""}" data-era="current">∇</button>
+      <button class="toggle-pill${era === "eg" ? " on" : ""}" data-era="eg"${hasEgData ? "" : " disabled"}>EG</button>
+    </div>
+    ${era === "eg" && !hasEgData ? `<p class="hint" style="margin-bottom:10px">${t("この曲はEG時代のランキングデータに存在しません（新verで追加された曲の可能性があります）。")}</p>` : ""}
     <div class="table-wrap">
       <table class="score-table">
         <thead><tr><th class="col-center">${t("順位")}</th><th>${t("プレイヤー")}</th><th class="col-center">${t("スコア")}</th><th class="col-center">${t("更新日時")}</th></tr></thead>
