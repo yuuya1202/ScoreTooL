@@ -444,6 +444,8 @@ function restoreNormalUiFromGuest() {
     const el = document.getElementById(id);
     if (el) el.style.display = "";
   });
+  tab = "list";
+  applyActiveTabUi("list");
   const dropdown = document.getElementById('accountDropdown');
   if (dropdown && originalAccountDropdownHtml !== null) {
     dropdown.innerHTML = originalAccountDropdownHtml;
@@ -457,8 +459,7 @@ function showGuestApp() {
   applyGuestUiRestrictions();
   document.getElementById('accountAvatarBtn').textContent = "G";
   tab = "ranking";
-  document.getElementById('view-ranking').style.display = 'block';
-  document.getElementById('tab-ranking').className = 'tab-btn active';
+  applyActiveTabUi("ranking");
   applyLanguage();
   updateScrollTopBtn();
   loadAllForGuest().then(() => ensureRankingLoaded());
@@ -1111,14 +1112,22 @@ function distinctLevels() {
 /* ------------------------------------------------------------------ */
 /* Actions                                                              */
 /* ------------------------------------------------------------------ */
+// タブのアクティブ表示(className)とview-*の表示/非表示をまとめて切り替える。
+// switchTab / showGuestApp / restoreNormalUiFromGuest すべてここを通すことで、
+// 「タブのハイライトが複数付く」「隠れたviewが裏で表示されたままになる」ズレを防ぐ。
+function applyActiveTabUi(name) {
+  ['list', 'ranking', 'data', 'friends', 'compare', 'terms'].forEach(n => {
+    const btn = document.getElementById('tab-' + n);
+    if (btn) btn.className = 'tab-btn' + (n === name ? ' active' : '');
+    const view = document.getElementById('view-' + n);
+    if (view) view.style.display = n === name ? 'block' : 'none';
+  });
+}
+
 function switchTab(t) {
   if (isGuestMode && t !== "ranking" && t !== "terms") return;
   tab = t;
-  ['list', 'ranking', 'data', 'friends', 'compare', 'terms'].forEach(name => {
-    const btn = document.getElementById('tab-' + name);
-    if (btn) btn.className = 'tab-btn' + (t === name ? ' active' : '');
-    document.getElementById('view-' + name).style.display = t === name ? 'block' : 'none';
-  });
+  applyActiveTabUi(t);
   render();
   if (t === 'friends') refreshFriendsData();
   if (t === 'compare') refreshCompareFriends();
