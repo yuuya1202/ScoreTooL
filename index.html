@@ -261,13 +261,13 @@
     <input class="search-input" id="authPlayerId" placeholder="プレイヤーID（任意・例: SV-9900-0000）" style="width:100%;box-sizing:border-box;">
     <p class="hint" style="margin-top:4px">登録すると、ランキング機能で自分の順位を確認できるようになります。</p>
   </div>
-  <p class="hint" id="authError" style="color:#ff4757;min-height:16px"></p>
-  <div class="btn-row">
+  <p class="hint" id="authError" style="color:#ff4757;min-height:16px;margin:4px 0"></p>
+  <div class="btn-row" style="margin-top:4px">
     <button class="btn" id="authSubmitBtn" onclick="handleAuthSubmit()">ログイン</button>
     <button class="btn secondary" onclick="toggleAuthMode()">新規登録はこちら</button>
   </div>
   <p style="text-align:center;margin:14px 0 0">
-    <button class="link-btn" id="authGuestLink" onclick="enterGuestMode()">アカウントを作らずランキングだけ見る</button>
+    <button class="link-btn" id="authGuestLink" onclick="enterGuestMode()">ゲストログインでランキングを確認する</button>
   </p>
   <details style="margin-top:14px;font-size:11px;color:var(--muted)">
     <summary style="cursor:pointer" id="authDeleteSummary">アカウント削除依頼・パスワードを忘れた場合</summary>
@@ -422,11 +422,7 @@ function enterGuestMode() {
     const savedLang = localStorage.getItem("sdvxGuestLang");
     if (savedLang) currentLang = savedLang;
   } catch (e) {}
-  try {
-    window.currentPlayerId = localStorage.getItem("sdvxGuestPlayerId") || "";
-  } catch (e) {
-    window.currentPlayerId = "";
-  }
+  window.currentPlayerId = "";
   showGuestApp();
 }
 window.enterGuestMode = enterGuestMode;
@@ -477,8 +473,8 @@ function applyGuestUiRestrictions() {
   if (dropdown) {
     if (originalAccountDropdownHtml === null) originalAccountDropdownHtml = dropdown.innerHTML;
     dropdown.innerHTML = `
-      <div class="account-dropdown-name">${t("ゲストとして閲覧中")}</div>
-      <button class="account-dropdown-item" onclick="exitGuestMode(); toggleAccountMenu();">${t("ログインへ")}</button>
+      <div class="account-dropdown-name">${t("ゲストログイン中")}</div>
+      <button class="account-dropdown-item" onclick="exitGuestMode(); toggleAccountMenu();">${t("ログイン画面に戻る")}</button>
       <button class="account-dropdown-item" onclick="switchTab('terms'); toggleAccountMenu();">${t("利用規約")}</button>
       <button class="account-dropdown-item lang-toggle-btn" onclick="openLangModal()">🌐 ${t("言語設定")}</button>
     `;
@@ -557,9 +553,9 @@ const T = {
     "新規登録": "신규 등록",
     "登録する": "등록하기",
     "新規登録はこちら": "신규 등록은 여기",
-    "アカウントを作らずランキングだけ見る": "계정을 만들지 않고 랭킹만 보기",
-    "ゲストとして閲覧中": "게스트로 보는 중",
-    "ログインへ": "로그인으로",
+    "ゲストログインでランキングを確認する": "계정을 만들지 않고 랭킹만 보기",
+    "ゲストログイン中": "게스트로 보는 중",
+    "ログイン画面に戻る": "로그인으로",
     "戻る": "돌아가기",
     "アカウント削除依頼・パスワードを忘れた場合": "계정 삭제 요청・비밀번호를 잊으신 경우",
     "までご連絡ください。": "로 연락해 주세요.",
@@ -715,6 +711,7 @@ const T = {
     "未理論値": "미달성 만점",
     "自分がランクイン中": "본인이 랭크인 중",
     "プレイヤーIDが未登録です。アカウントメニューの「プレイヤーIDを設定」から登録すると、自分がランクインしている曲を確認できます。": "플레이어 ID가 미등록 상태입니다. 계정 메뉴의 '플레이어 ID 설정'에서 등록하면 본인이 랭크인한 곡을 확인할 수 있습니다.",
+    "この機能を使うにはログインが必要です。アカウントを作成してプレイヤーIDを登録すると、自分がランクインしている曲を確認できます。": "이 기능을 사용하려면 로그인이 필요합니다. 계정을 만들고 플레이어 ID를 등록하면 본인이 랭크인한 곡을 확인할 수 있습니다.",
     "順位（高い順）": "순위 (높은순)",
     "順位（低い順）": "순위 (낮은순)",
     "1位スコア（高い順）": "1위 스코어 (높은순)",
@@ -2664,15 +2661,6 @@ function renderRankingTab() {
       if (v === "mine" && topOnlySorts.includes(rankingState.sort)) rankingState.sort = "date_desc";
       render();
     });
-    const guestIdInput = document.getElementById('rankingGuestPlayerIdInput');
-    if (guestIdInput) {
-      guestIdInput.addEventListener('change', (e) => {
-        const val = e.target.value.trim().toUpperCase();
-        window.currentPlayerId = val;
-        try { localStorage.setItem("sdvxGuestPlayerId", val); } catch (err) {}
-        render();
-      });
-    }
     const listWrap = document.getElementById('rankingSongListWrap');
     if (listWrap) {
       listWrap.addEventListener('click', (e) => {
@@ -2814,10 +2802,6 @@ function renderRankingListHtml() {
       <button class="toggle-pill${rankingState.subView === "unconquered" ? " on" : ""}" data-mode="unconquered">${t("未理論値")}</button>
       <button class="toggle-pill${rankingState.subView === "mine" ? " on" : ""}" data-mode="mine">${t("自分がランクイン中")}</button>
     </div>
-    ${isGuestMode ? `
-    <div class="search-wrap" style="margin-bottom:14px">
-      <input class="search-input" id="rankingGuestPlayerIdInput" placeholder="${t("プレイヤーID（任意・例: SV-9900-0000）")}" value="${esc(window.currentPlayerId || "")}">
-    </div>` : ""}
   `;
 
   if (rankingState.subView === "mine") {
@@ -2826,7 +2810,8 @@ function renderRankingListHtml() {
         <div class="panel">
           ${noteHtml}
           ${subTabHtml}
-          <p class="hint">${t("プレイヤーIDが未登録です。アカウントメニューの「プレイヤーIDを設定」から登録すると、自分がランクインしている曲を確認できます。")}</p>
+          <p class="hint">${isGuestMode ? t("この機能を使うにはログインが必要です。アカウントを作成してプレイヤーIDを登録すると、自分がランクインしている曲を確認できます。") : t("プレイヤーIDが未登録です。アカウントメニューの「プレイヤーIDを設定」から登録すると、自分がランクインしている曲を確認できます。")}</p>
+          ${isGuestMode ? `<button class="btn" onclick="exitGuestMode()" style="margin-top:10px">${t("ログイン画面に戻る")}</button>` : ""}
         </div>
       `;
     }
@@ -3562,7 +3547,7 @@ function renderAuthGate() {
   document.querySelector('#authPlayerIdWrap .hint').textContent = t("登録すると、ランキング機能で自分の順位を確認できるようになります。");
   document.getElementById('authDeleteSummary').textContent = t("アカウント削除依頼・パスワードを忘れた場合");
   const guestLink = document.getElementById('authGuestLink');
-  if (guestLink) guestLink.textContent = t("アカウントを作らずランキングだけ見る");
+  if (guestLink) guestLink.textContent = t("ゲストログインでランキングを確認する");
   document.getElementById('authDeleteBody').innerHTML = `X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener" style="color:#3B82F6">@yuuya1202</a> ${t("までご連絡ください。")}`;
   document.querySelectorAll('.lang-toggle-btn').forEach(b => { b.textContent = "🌐 " + t("言語設定"); });
 }
