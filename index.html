@@ -308,6 +308,8 @@
   <div id="view-compare" style="display:none"></div>
 </div>
 
+<button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="ページ上部に戻る" style="display:none;align-items:center;justify-content:center;position:fixed;bottom:24px;right:20px;width:44px;height:44px;border-radius:50%;border:none;background:linear-gradient(135deg, #3fc6da, #1f8fa3);color:#05070d;font-size:18px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.5);z-index:50">↑</button>
+
 <div class="toast" id="toast"></div>
 
 <div class="modal-overlay" id="confirmModalOverlay" style="display:none">
@@ -630,6 +632,7 @@ const T = {
     "再試行": "다시 시도",
     "楽曲をタッチすると詳細（1〜100位）を確認できます。": "곡을 터치하면 상세 정보(1~100위)를 확인할 수 있습니다.",
     "∇以前に出した記録はランキングには掲載されません。※Lv.1〜16は集計対象外です": "∇ 이전에 기록한 결과는 랭킹에 게재되지 않습니다. ※Lv.1~16은 집계 대상 외입니다",
+    "※Lv.1〜16は集計対象外です": "※Lv.1~16은 집계 대상 외입니다",
     "全曲": "전곡",
     "未理論値": "미달성 만점",
     "自分がランクイン中": "본인이 랭크인 중",
@@ -643,6 +646,7 @@ const T = {
     "1位(EG)": "1위(EG)",
     "(自分)": "(본인)",
     "該当する曲がありません。": "해당하는 곡이 없습니다.",
+    "該当するデータがありません。": "해당하는 데이터가 없습니다.",
     "この曲はEG時代のランキングデータに存在しません（新verで追加された曲の可能性があります）。": "이 곡은 EG 시대의 랭킹 데이터에 존재하지 않습니다（신버전에서 추가된 곡일 가능성이 있습니다）。",
     "（未マッチ）": "（미매칭）",
     "← 曲一覧に戻る": "← 곡 목록으로 돌아가기",
@@ -1012,7 +1016,17 @@ function switchTab(t) {
   if (t === 'friends') refreshFriendsData();
   if (t === 'compare') refreshCompareFriends();
   if (t === 'ranking') ensureRankingLoaded();
+  updateScrollTopBtn();
 }
+
+const SCROLL_TOP_BTN_TABS = ["list", "ranking", "compare"];
+function updateScrollTopBtn() {
+  const btn = document.getElementById('scrollTopBtn');
+  if (!btn) return;
+  const eligible = SCROLL_TOP_BTN_TABS.includes(tab);
+  btn.style.display = (eligible && window.scrollY > 400) ? 'flex' : 'none';
+}
+window.addEventListener('scroll', updateScrollTopBtn, { passive: true });
 
 async function refreshCompareFriends() {
   compareState.loadingFriends = true;
@@ -2673,7 +2687,7 @@ function renderRankingListHtml() {
 
   const noteHtml = `
     <p class="footnote" style="margin:0 0 4px;text-align:left">${t("楽曲をタッチすると詳細（1〜100位）を確認できます。")}</p>
-    <p class="footnote" style="margin:0 0 10px;text-align:left">${t("∇以前に出した記録はランキングには掲載されません。※Lv.1〜16は集計対象外です")}</p>
+    <p class="footnote" style="margin:0 0 10px;text-align:left">${t("※Lv.1〜16は集計対象外です")}</p>
   `;
   const subTabHtml = `
     <div class="toggle-group segmented-toggle" id="rankingSubTabToggle" style="margin-bottom:14px">
@@ -2867,7 +2881,7 @@ function renderRankingDetailHtml(entry) {
         <td class="hint col-center">${esc(r.updatedAt)}</td>
       </tr>
     `;
-  }).join("") || `<tr><td colspan="4" class="hint" style="text-align:center;padding:16px">${t("該当する曲がありません。")}</td></tr>`;
+  }).join("") || `<tr><td colspan="4" class="hint" style="text-align:center;padding:16px">${t("該当するデータがありません。")}</td></tr>`;
 
   return `
     <button class="link-btn" id="rankingBackBtn" style="margin-bottom:10px">${t("← 曲一覧に戻る")}</button>
@@ -2883,7 +2897,6 @@ function renderRankingDetailHtml(entry) {
       <button class="toggle-pill${era === "current" ? " on" : ""}" data-era="current">∇</button>
       <button class="toggle-pill${era === "eg" ? " on" : ""}" data-era="eg">EG</button>
     </div>
-    ${era === "eg" && !hasEgData ? `<p class="hint" style="margin-bottom:10px">${t("この曲はEG時代のランキングデータに存在しません（新verで追加された曲の可能性があります）。")}</p>` : ""}
     <div class="table-wrap">
       <table class="score-table">
         <thead><tr><th class="col-center">${t("順位")}</th><th>${t("プレイヤー")}</th><th class="col-center">${t("スコア")}</th><th class="col-center">${t("更新日時")}</th></tr></thead>
