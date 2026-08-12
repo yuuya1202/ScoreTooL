@@ -2309,6 +2309,8 @@ function renderCompareFilterModalBody() {
 const RANKING_DATA_URL = "https://wild-bonus-8d0b.yuuya1202taiko.workers.dev/";
 // Cloudflare Worker側で access-control-allow-origin を付与済みのため、追加のプロキシは不要
 const RANKING_CORS_PROXY = "";
+// ①のJSONに曲が抜けていた場合の補完先（GitHub Actionsで毎日更新されるマスタ）
+const GITHUB_MASTER_URL = "https://raw.githubusercontent.com/yuuya1202/ScoreTooL/main/ranking_master.json";
 const RANKING_CACHE_KEY = "sdvxRankingCache_v1";
 const RANKING_MIN_LEVEL = 17;
 
@@ -2487,20 +2489,74 @@ async function ensureEgTopScoresLoaded() {
   }
 }
 
-function buildRankingEntries(rawList) {
+// ランキング側の生アイテム（music_name/difficulty）から songs.json 側のマスタ曲を特定する。
+// buildRankingEntries と、GitHub補完ロジック（findRawItemsForMissingSongs）の両方で使う共通処理。
+function matchSongForRankingItem(item, songLookup) {
+  const rawMusicName = decodeHtmlEntities(String(item.music_name || ""));
+  const diffAbbr = String(item.difficulty || "").toUpperCase();
+  const mappedType = DIFF_ABBR_TO_TYPE[diffAbbr] || null;
+  const lookupKey = rawMusicName + "___" + mappedType;
+  let matchedSong = mappedType ? songLookup.get(lookupKey) : null;
+  if (!matchedSong && RANKING_TITLE_ALIASES[lookupKey]) {
+    matchedSong = songLookup.get(RANKING_TITLE_ALIASES[lookupKey] + "___" + mappedType);
+  }
+  return { matchedSong, rawMusicName, diffAbbr, mappedType };
+}
+
+function buildSongLookup() {
   const songLookup = new Map();
   for (const s of songs) songLookup.set(s.title + "___" + s.type, s);
+  return songLookup;
+}
+
+// songs.json側で「本来ランキング対象のはず」の曲一覧（Lv17以上・NOV/ADVを除く）
+function getExpectedRankingSongs() {
+  return songs.filter(s => s.level >= RANKING_MIN_LEVEL && RANKING_DIFF_ORDER.includes(s.type));
+}
+
+// sourceRaw側で曲がマッチしなかった（＝抜けていた）ものを、GitHubマスタから補完する。
+// masterRaw: GitHub上の ranking_master.json の中身（配列）
+async function fillMissingFromGithubMaster(sourceRaw, songLookup) {
+  const matchedKeys = new Set();
+  for (const item of sourceRaw) {
+    const { matchedSong } = matchSongForRankingItem(item, songLookup);
+    if (matchedSong) matchedKeys.add(matchedSong.title + "___" + matchedSong.type);
+  }
+
+  const expected = getExpectedRankingSongs();
+  const missing = expected.filter(s => !matchedKeys.has(s.title + "___" + s.type));
+  if (missing.length === 0) return { raw: sourceRaw, missingCount: 0, filledCount: 0 };
+
+  let masterRaw;
+  try {
+    const res = await fetch(GITHUB_MASTER_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const json = await res.json();
+    masterRaw = Array.isArray(json) ? json : (json.data || []);
+  } catch (e) {
+    console.error("GitHubマスタの取得に失敗（補完なしで続行）:", e);
+    return { raw: sourceRaw, missingCount: missing.length, filledCount: 0 };
+  }
+
+  const missingKeys = new Set(missing.map(s => s.title + "___" + s.type));
+  const fillItems = [];
+  for (const item of masterRaw) {
+    const { matchedSong } = matchSongForRankingItem(item, songLookup);
+    if (matchedSong && missingKeys.has(matchedSong.title + "___" + matchedSong.type)) {
+      fillItems.push(item);
+      missingKeys.delete(matchedSong.title + "___" + matchedSong.type); // 1曲1件でOK
+    }
+  }
+
+  return { raw: sourceRaw.concat(fillItems), missingCount: missing.length, filledCount: fillItems.length };
+}
+
+function buildRankingEntries(rawList) {
+  const songLookup = buildSongLookup();
 
   const entries = [];
   for (const item of rawList) {
-    const rawMusicName = decodeHtmlEntities(String(item.music_name || ""));
-    const diffAbbr = String(item.difficulty || "").toUpperCase();
-    const mappedType = DIFF_ABBR_TO_TYPE[diffAbbr] || null;
-    const lookupKey = rawMusicName + "___" + mappedType;
-    let matchedSong = mappedType ? songLookup.get(lookupKey) : null;
-    if (!matchedSong && RANKING_TITLE_ALIASES[lookupKey]) {
-      matchedSong = songLookup.get(RANKING_TITLE_ALIASES[lookupKey] + "___" + mappedType);
-    }
+    const { matchedSong, rawMusicName, diffAbbr, mappedType } = matchSongForRankingItem(item, songLookup);
     // マッチできた曲はsongs.json側の正式名称で表示する（ランキング側の簡易表記との差異を吸収）
     const musicName = matchedSong ? matchedSong.title : rawMusicName;
 
@@ -2572,6 +2628,16 @@ async function ensureRankingLoaded(force) {
       // 実データは { created_at: "...", data: [...] } の形で来る
       raw = Array.isArray(json) ? json : (json.data || []);
       fetchedAt = (!Array.isArray(json) && json.created_at) ? json.created_at : new Date().toLocaleString("ja-JP");
+
+      // songs.json（Lv17以上）と突き合わせ、①に抜けている曲があればGitHubマスタから補完する
+      if (GITHUB_MASTER_URL) {
+        const songLookup = buildSongLookup();
+        const fillResult = await fillMissingFromGithubMaster(raw, songLookup);
+        raw = fillResult.raw;
+        if (fillResult.missingCount > 0) {
+          console.log(`ランキング補完: ${fillResult.missingCount}曲抜け中 ${fillResult.filledCount}曲をGitHubマスタから補完`);
+        }
+      }
     } else {
       // URL未設定の間はサンプルデータで見た目だけ確認できるようにしておく
       raw = MOCK_RANKING_JSON;
