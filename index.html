@@ -266,6 +266,9 @@
     <button class="btn" id="authSubmitBtn" onclick="handleAuthSubmit()">ログイン</button>
     <button class="btn secondary" onclick="toggleAuthMode()">新規登録はこちら</button>
   </div>
+  <p style="text-align:center;margin:14px 0 0">
+    <button class="link-btn" id="authGuestLink" onclick="enterGuestMode()">アカウントを作らずランキングだけ見る</button>
+  </p>
   <details style="margin-top:14px;font-size:11px;color:var(--muted)">
     <summary style="cursor:pointer" id="authDeleteSummary">アカウント削除依頼・パスワードを忘れた場合</summary>
     <p style="margin:6px 0 0" id="authDeleteBody">X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener" style="color:#3B82F6">@yuuya1202</a> までご連絡ください。</p>
@@ -409,6 +412,78 @@ let scores = {};
 let scoresUpdatedAt = null;
 let masterError = null;
 let tab = "list";
+let isGuestMode = false;
+const GUEST_ALLOWED_TABS = ["ranking"];
+
+function enterGuestMode() {
+  isGuestMode = true;
+  try { localStorage.setItem("sdvxGuestMode", "1"); } catch (e) {}
+  try {
+    const savedLang = localStorage.getItem("sdvxGuestLang");
+    if (savedLang) currentLang = savedLang;
+  } catch (e) {}
+  try {
+    window.currentPlayerId = localStorage.getItem("sdvxGuestPlayerId") || "";
+  } catch (e) {
+    window.currentPlayerId = "";
+  }
+  showGuestApp();
+}
+window.enterGuestMode = enterGuestMode;
+
+let originalAccountDropdownHtml = null;
+function exitGuestMode() {
+  isGuestMode = false;
+  try { localStorage.removeItem("sdvxGuestMode"); } catch (e) {}
+  restoreNormalUiFromGuest();
+  document.getElementById('appRoot').style.display = 'none';
+  document.getElementById('authGate').style.display = 'block';
+  document.getElementById('authBrand').style.display = 'block';
+  renderAuthGate();
+}
+window.exitGuestMode = exitGuestMode;
+
+function restoreNormalUiFromGuest() {
+  ["tab-list", "tab-compare", "tab-friends"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "";
+  });
+  const dropdown = document.getElementById('accountDropdown');
+  if (dropdown && originalAccountDropdownHtml !== null) {
+    dropdown.innerHTML = originalAccountDropdownHtml;
+  }
+}
+
+function showGuestApp() {
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('authBrand').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'block';
+  applyGuestUiRestrictions();
+  document.getElementById('accountAvatarBtn').textContent = "G";
+  tab = "ranking";
+  document.getElementById('view-ranking').style.display = 'block';
+  document.getElementById('tab-ranking').className = 'tab-btn active';
+  applyLanguage();
+  updateScrollTopBtn();
+  loadAllForGuest().then(() => ensureRankingLoaded());
+}
+
+function applyGuestUiRestrictions() {
+  ["tab-list", "tab-compare", "tab-friends"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+  const dropdown = document.getElementById('accountDropdown');
+  if (dropdown) {
+    if (originalAccountDropdownHtml === null) originalAccountDropdownHtml = dropdown.innerHTML;
+    dropdown.innerHTML = `
+      <div class="account-dropdown-name">${t("ゲストとして閲覧中")}</div>
+      <button class="account-dropdown-item" onclick="exitGuestMode(); toggleAccountMenu();">${t("ログインへ")}</button>
+      <button class="account-dropdown-item" onclick="switchTab('terms'); toggleAccountMenu();">${t("利用規約")}</button>
+      <button class="account-dropdown-item lang-toggle-btn" onclick="openLangModal()">🌐 ${t("言語設定")}</button>
+    `;
+  }
+}
 const PAGE_SIZE = 100;
 let currentPage = 1;
 const SCORE_DEFAULTS = { minEx: 0, maxEx: 99999, minNormal: 0, maxNormal: 10000000 };
@@ -482,6 +557,9 @@ const T = {
     "新規登録": "신규 등록",
     "登録する": "등록하기",
     "新規登録はこちら": "신규 등록은 여기",
+    "アカウントを作らずランキングだけ見る": "계정을 만들지 않고 랭킹만 보기",
+    "ゲストとして閲覧中": "게스트로 보는 중",
+    "ログインへ": "로그인으로",
     "戻る": "돌아가기",
     "アカウント削除依頼・パスワードを忘れた場合": "계정 삭제 요청・비밀번호를 잊으신 경우",
     "までご連絡ください。": "로 연락해 주세요.",
@@ -697,11 +775,21 @@ function t(key, vars) {
 window.t = t;
 function setLang(lang) {
   currentLang = lang;
-  if (window.auth && window.auth.currentUser && window.saveLangPref) window.saveLangPref(lang);
+  if (isGuestMode) {
+    try { localStorage.setItem("sdvxGuestLang", lang); } catch (e) {}
+  } else if (window.auth && window.auth.currentUser && window.saveLangPref) {
+    window.saveLangPref(lang);
+  }
   applyLanguage();
 }
 window.setLang = setLang;
 window.initCurrentLang = function (lang) { currentLang = lang; };
+window.isGuestModeActive = function () { return isGuestMode; };
+window.clearGuestModeState = function () {
+  if (isGuestMode) restoreNormalUiFromGuest();
+  isGuestMode = false;
+  try { localStorage.removeItem("sdvxGuestMode"); } catch (e) {}
+};
 window.currentLangForSignup = function () { return currentLang; };
 function openLangModal() {
   document.getElementById('langModalOverlay').style.display = 'flex';
@@ -741,7 +829,11 @@ function applyLanguage() {
     renderAuthGate();
   }
   if (document.getElementById('appRoot') && document.getElementById('appRoot').style.display !== 'none') {
-    document.querySelectorAll('.account-dropdown-item')[0] && applyStaticTranslations();
+    if (isGuestMode) {
+      applyGuestUiRestrictions();
+    } else {
+      document.querySelectorAll('.account-dropdown-item')[0] && applyStaticTranslations();
+    }
     render();
     if (tab === 'friends') refreshFriendBadgeOnly();
   }
@@ -827,6 +919,12 @@ function _closeConfirmDialog(result) {
   if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
 }
 document.addEventListener('DOMContentLoaded', () => {
+  try {
+    if (localStorage.getItem("sdvxGuestMode") === "1") {
+      enterGuestMode();
+    }
+  } catch (e) {}
+
   const cancelBtn = document.getElementById('confirmModalCancelBtn');
   const okBtn = document.getElementById('confirmModalOkBtn');
   const overlay = document.getElementById('confirmModalOverlay');
@@ -956,7 +1054,7 @@ function parseScoreCsv(text) {
 /* ------------------------------------------------------------------ */
 /* Data loading                                                         */
 /* ------------------------------------------------------------------ */
-async function loadAll() {
+async function loadSongsMaster() {
   try {
     const res = await fetch('./songs.json', { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
@@ -975,6 +1073,10 @@ async function loadAll() {
     masterError = t("楽曲マスタ(songs.json)の読み込みに失敗しました: ") + e.message +
       t("。index.html と同じフォルダに songs.json を置いてデプロイしているか確認してください。");
   }
+}
+
+async function loadAll() {
+  await loadSongsMaster();
   try {
     const result = await window.loadScoresFromFirestore();
     scores = result.scores;
@@ -998,6 +1100,13 @@ async function loadAll() {
   refreshFriendBadgeOnly();
 }
 
+// ゲストモード：Firestore（スコア・フレンド）には一切触れず、楽曲マスタだけ読み込む
+async function loadAllForGuest() {
+  await loadSongsMaster();
+  scores = {};
+  render();
+}
+
 function distinctLevels() {
   return Array.from(new Set(songs.map(s => s.level).filter(n => !isNaN(n)))).sort((a,b) => a - b);
 }
@@ -1006,6 +1115,7 @@ function distinctLevels() {
 /* Actions                                                              */
 /* ------------------------------------------------------------------ */
 function switchTab(t) {
+  if (isGuestMode && t !== "ranking" && t !== "terms") return;
   tab = t;
   ['list', 'ranking', 'data', 'friends', 'compare', 'terms'].forEach(name => {
     const btn = document.getElementById('tab-' + name);
@@ -2554,6 +2664,15 @@ function renderRankingTab() {
       if (v === "mine" && topOnlySorts.includes(rankingState.sort)) rankingState.sort = "date_desc";
       render();
     });
+    const guestIdInput = document.getElementById('rankingGuestPlayerIdInput');
+    if (guestIdInput) {
+      guestIdInput.addEventListener('change', (e) => {
+        const val = e.target.value.trim().toUpperCase();
+        window.currentPlayerId = val;
+        try { localStorage.setItem("sdvxGuestPlayerId", val); } catch (err) {}
+        render();
+      });
+    }
     const listWrap = document.getElementById('rankingSongListWrap');
     if (listWrap) {
       listWrap.addEventListener('click', (e) => {
@@ -2695,6 +2814,10 @@ function renderRankingListHtml() {
       <button class="toggle-pill${rankingState.subView === "unconquered" ? " on" : ""}" data-mode="unconquered">${t("未理論値")}</button>
       <button class="toggle-pill${rankingState.subView === "mine" ? " on" : ""}" data-mode="mine">${t("自分がランクイン中")}</button>
     </div>
+    ${isGuestMode ? `
+    <div class="search-wrap" style="margin-bottom:14px">
+      <input class="search-input" id="rankingGuestPlayerIdInput" placeholder="${t("プレイヤーID（任意・例: SV-9900-0000）")}" value="${esc(window.currentPlayerId || "")}">
+    </div>` : ""}
   `;
 
   if (rankingState.subView === "mine") {
@@ -2839,7 +2962,7 @@ function renderRankingListHtml() {
           <option value="title_asc">${t("五十音順（あ→ん）")}</option>
           <option value="title_desc">${t("五十音順（ん→あ）")}</option>
         </select>
-        <label class="check-item"><input type="checkbox" id="rankingShowMineCheckbox" ${rankingState.showMineColumn ? "checked" : ""}><span>${t("自分のスコアを表示")}</span></label>
+        ${isGuestMode ? "" : `<label class="check-item"><input type="checkbox" id="rankingShowMineCheckbox" ${rankingState.showMineColumn ? "checked" : ""}><span>${t("自分のスコアを表示")}</span></label>`}
       </div>
     </div>
     <div class="footnote" style="margin:2px 0 10px;text-align:left">${t("{n} 件を表示中", {n: list.length})}</div>
@@ -3438,9 +3561,12 @@ function renderAuthGate() {
   document.getElementById('authPlayerId').placeholder = t("プレイヤーID（任意・例: SV-9900-0000）");
   document.querySelector('#authPlayerIdWrap .hint').textContent = t("登録すると、ランキング機能で自分の順位を確認できるようになります。");
   document.getElementById('authDeleteSummary').textContent = t("アカウント削除依頼・パスワードを忘れた場合");
+  const guestLink = document.getElementById('authGuestLink');
+  if (guestLink) guestLink.textContent = t("アカウントを作らずランキングだけ見る");
   document.getElementById('authDeleteBody').innerHTML = `X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener" style="color:#3B82F6">@yuuya1202</a> ${t("までご連絡ください。")}`;
   document.querySelectorAll('.lang-toggle-btn').forEach(b => { b.textContent = "🌐 " + t("言語設定"); });
 }
+window.renderAuthGate = renderAuthGate;
 window.toggleAuthMode = function () {
   authMode = authMode === "login" ? "signup" : "login";
   renderAuthGate();
@@ -3646,6 +3772,7 @@ window.getUserScores = async function (uid) {
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
+    if (window.clearGuestModeState) window.clearGuestModeState();
     let username = "";
     let playerId = "";
     let lang = "ja";
@@ -3670,9 +3797,11 @@ onAuthStateChanged(auth, async (user) => {
     if (window.applyStaticTranslations) window.applyStaticTranslations();
     window.loadAll();
   } else {
-    document.getElementById('appRoot').style.display = 'none';
-    document.getElementById('authGate').style.display = 'block';
-    document.getElementById('authBrand').style.display = 'block';
+    if (!window.isGuestModeActive || !window.isGuestModeActive()) {
+      document.getElementById('appRoot').style.display = 'none';
+      document.getElementById('authGate').style.display = 'block';
+      document.getElementById('authBrand').style.display = 'block';
+    }
   }
 });
 
