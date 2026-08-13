@@ -489,6 +489,7 @@ let filters = {
   scoreMode: "ex",
   scoreMinEx: SCORE_DEFAULTS.minEx, scoreMaxEx: SCORE_DEFAULTS.maxEx,
   scoreMinNormal: SCORE_DEFAULTS.minNormal, scoreMaxNormal: SCORE_DEFAULTS.maxNormal,
+  digitFilter: "all", // "all" | "single" | "puc"（表示対象タブ専用の簡易フィルタ）
 };
 let filterMode = "simple"; // "simple" | "advanced"（リストタブ）
 let simpleLevels = new Set(); // 「絞り込み」タブのLv.17〜20バッジ用（詳細フィルタとは独立管理）
@@ -676,6 +677,8 @@ const T = {
     "通常": "일반",
     "表示形式": "표시 형식",
     "すべて": "전체",
+    "1桁": "한 자리",
+    "S-PUC": "S-PUC",
     "勝利": "승리",
     "敗北": "패배",
     "引き分け": "무승부",
@@ -1363,6 +1366,14 @@ function getFiltered(merged) {
   if (filters.search.trim()) {
     const q = filters.search.trim().toLowerCase();
     list = list.filter(m => m.title.toLowerCase().includes(q) || (m.reading || "").includes(q));
+  }
+  if (filterMode === "simple" && filters.digitFilter !== "all") {
+    list = list.filter(m => {
+      const d = exDiff(m);
+      if (d === null) return false;
+      if (filters.digitFilter === "puc") return d === 0;
+      return d >= -9 && d <= 0; // 1桁（0〜-9）
+    });
   }
   if (filterMode === "advanced" && isScoreFilterActive()) {
     if (filters.scoreMode === "ex") {
@@ -3186,6 +3197,11 @@ function buildListSkeleton() {
         <button class="toggle-pill" data-mode="advanced">${t("高度な絞り込み")}</button>
       </div>
       <div class="level-shortcut-row" id="levelShortcutRow"></div>
+      <div class="toggle-group segmented-toggle" id="digitFilterToggle" style="margin-bottom:10px">
+        <button class="toggle-pill" data-digit="all">${t("すべて")}</button>
+        <button class="toggle-pill" data-digit="single">${t("1桁")}</button>
+        <button class="toggle-pill" data-digit="puc">${t("S-PUC")}</button>
+      </div>
       <div id="advancedFilterRow" style="display:none">
         <button class="btn" id="openFilterBtn">${t("絞り込み条件を設定する")}</button>
       </div>
@@ -3256,6 +3272,13 @@ function buildListSkeleton() {
     currentPage = 1;
     render();
   });
+  document.getElementById('digitFilterToggle').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-digit]');
+    if (!btn) return;
+    filters.digitFilter = btn.dataset.digit;
+    currentPage = 1;
+    render();
+  });
   document.getElementById('filterModalCloseBtn').addEventListener('click', closeFilterModal);
   document.getElementById('filterModalResetBtn').addEventListener('click', resetFilterModal);
   document.getElementById('filterModalApplyBtn').addEventListener('click', applyFilterModal);
@@ -3271,7 +3294,14 @@ function updateListControls() {
   });
   const levelShortcutRow = document.getElementById('levelShortcutRow');
   const advancedFilterRow = document.getElementById('advancedFilterRow');
+  const digitFilterToggle = document.getElementById('digitFilterToggle');
   if (levelShortcutRow) levelShortcutRow.style.display = filterMode === "simple" ? "flex" : "none";
+  if (digitFilterToggle) {
+    digitFilterToggle.style.display = filterMode === "simple" ? "flex" : "none";
+    digitFilterToggle.querySelectorAll('button[data-digit]').forEach(b => {
+      b.classList.toggle('on', b.dataset.digit === filters.digitFilter);
+    });
+  }
   if (advancedFilterRow) advancedFilterRow.style.display = filterMode === "advanced" ? "block" : "none";
   const filterBtn = document.getElementById('openFilterBtn');
   if (filterBtn) {
