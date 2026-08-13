@@ -116,6 +116,16 @@
   }
   .level-shortcut.on { background: rgba(255,210,63,0.14); border-color: rgba(255,210,63,0.55); color: var(--gold); }
   .digit-filter-badge.on { background: rgba(46,204,113,0.16); border-color: rgba(46,204,113,0.6); color: #2ecc71; }
+  .filter-dropdown { border:1px solid var(--border); border-radius:10px; background:var(--panel-2); padding:0; margin-bottom:10px; }
+  .filter-dropdown-summary {
+    list-style:none; cursor:pointer; padding:10px 14px; font-weight:700; font-size:13px; color:var(--text);
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .filter-dropdown-summary::-webkit-details-marker { display:none; }
+  .filter-dropdown-arrow { transition:transform 0.15s ease; color:var(--muted); }
+  .filter-dropdown[open] .filter-dropdown-arrow { transform:rotate(180deg); }
+  .filter-dropdown-body { padding:0 14px 6px; border-top:1px solid var(--border); padding-top:12px; }
+  .filter-dropdown-footer { display:flex; gap:10px; align-items:center; padding:6px 14px 14px; }
   .level-shortcut.partial { border-color: rgba(255,210,63,0.4); color: rgba(255,210,63,0.75); background: var(--panel-2); }
   textarea.data-input { width:100%; min-height:110px; background:var(--panel-2); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:10px; font-size:12px; font-family:ui-monospace,"SF Mono",monospace; resize:vertical; }
   .btn { background: linear-gradient(135deg, #3fc6da, #1f8fa3); color:#05070d; border:none; border-radius:8px; padding:9px 18px; font-weight:800; font-size:13px; cursor:pointer; }
@@ -248,9 +258,11 @@
 </head>
 <body>
 
-<div style="max-width:360px;margin:60px auto 0;text-align:left;display:none;position:relative" id="authBrand">
-  <button class="btn secondary lang-toggle-btn" onclick="openLangModal()" style="position:absolute;top:0;right:0;padding:6px 12px;font-size:12px">🌐 言語設定 / 언어 설정</button>
-  <div class="brand-title" style="font-size:24px"><span class="brand-title-sdvx">SDVX</span> <span class="brand-title-exscore">EX-Score</span></div>
+<div style="max-width:360px;margin:60px auto 0;text-align:left;display:none" id="authBrand">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 8px">
+    <div class="brand-title" style="font-size:24px"><span class="brand-title-sdvx">SDVX</span> <span class="brand-title-exscore">EX-Score</span></div>
+    <button class="btn secondary lang-toggle-btn" onclick="openLangModal()" style="padding:6px 12px;font-size:12px;white-space:nowrap">🌐 言語設定 / 언어 설정</button>
+  </div>
 </div>
 <div id="authGate" class="panel" style="max-width:360px;margin:16px auto;display:none">
   <h3 id="authTitle">ログイン</h3>
@@ -1677,9 +1689,14 @@ function buildCompareSkeleton(friendOptionsHtml) {
         <button class="toggle-pill" data-mode="advanced">${t("高度な絞り込み")}</button>
       </div>
       <div class="level-shortcut-row" id="compareLevelShortcutRow"></div>
-      <div id="compareAdvancedFilterRow" style="display:none">
-        <button class="btn" id="compareFilterBtn">${t("絞り込み条件を設定する")}</button>
-      </div>
+      <details id="compareAdvancedFilterRow" class="filter-dropdown" style="display:none">
+        <summary class="filter-dropdown-summary">${t("絞り込み条件を設定する")} <span class="filter-dropdown-arrow">▾</span></summary>
+        <div class="filter-dropdown-body" id="compareFilterModalBody"></div>
+        <div class="filter-dropdown-footer">
+          <button class="btn" id="compareFilterApplyBtn">${t("この条件で絞り込む")}</button>
+          <button class="link-btn" id="compareFilterResetBtn">${t("内容を初期化")}</button>
+        </div>
+      </details>
       <select class="select-input" id="compareSortSelect" aria-label="${t("並び替え")}" style="margin-top:10px">
         <option value="date_desc">${t("収録順（新しい順）")}</option>
         <option value="date_asc">${t("収録順（古い順）")}</option>
@@ -1719,21 +1736,6 @@ function buildCompareSkeleton(friendOptionsHtml) {
         <div id="compareEmptyState"></div>
       </div>
     </div>
-    <div class="modal-overlay" id="compareFilterModalOverlay" style="display:none">
-      <div class="modal-box">
-        <div class="modal-header">
-          <h3>${t("高度な絞り込み")}</h3>
-          <div style="display:flex;align-items:center;gap:14px">
-            <button class="link-btn" id="compareFilterResetBtn">${t("内容を初期化")}</button>
-            <button class="modal-close" id="compareFilterCloseBtn">×</button>
-          </div>
-        </div>
-        <div class="modal-body" id="compareFilterModalBody"></div>
-        <div class="modal-footer">
-          <button class="btn" id="compareFilterApplyBtn">${t("この条件で絞り込む")}</button>
-        </div>
-      </div>
-    </div>
   `;
   document.getElementById('compareFriendSelect').addEventListener('change', (e) => handleSelectCompareFriend(e.target.value));
   document.getElementById('compareSearchInput').addEventListener('input', (e) => { compareState.search = e.target.value; render(); });
@@ -1765,13 +1767,11 @@ function buildCompareSkeleton(friendOptionsHtml) {
     toggleLevelBand(compareSimpleLevels, LEVEL_SHORTCUTS[idx].values);
     render();
   });
-  document.getElementById('compareFilterBtn').addEventListener('click', openCompareFilterModal);
-  document.getElementById('compareFilterCloseBtn').addEventListener('click', closeCompareFilterModal);
+  document.getElementById('compareAdvancedFilterRow').addEventListener('toggle', (e) => {
+    if (e.target.open) openCompareFilterModal();
+  });
   document.getElementById('compareFilterResetBtn').addEventListener('click', resetCompareFilterModal);
   document.getElementById('compareFilterApplyBtn').addEventListener('click', applyCompareFilterModal);
-  document.getElementById('compareFilterModalOverlay').addEventListener('click', (e) => {
-    if (e.target.id === 'compareFilterModalOverlay') closeCompareFilterModal();
-  });
 }
 
 function updateCompareControls() {
@@ -1786,11 +1786,11 @@ function updateCompareControls() {
   const compareAdvancedFilterRow = document.getElementById('compareAdvancedFilterRow');
   if (compareLevelShortcutRow) compareLevelShortcutRow.style.display = compareFilterMode === "simple" ? "flex" : "none";
   if (compareAdvancedFilterRow) compareAdvancedFilterRow.style.display = compareFilterMode === "advanced" ? "block" : "none";
-  const filterBtn = document.getElementById('compareFilterBtn');
-  if (filterBtn) {
+  const filterSummary = document.querySelector('#compareAdvancedFilterRow .filter-dropdown-summary');
+  if (filterSummary) {
     const active = isCompareFilterActive();
-    filterBtn.classList.toggle('filter-active', active);
-    filterBtn.textContent = active ? t("絞り込み条件を設定する（設定中●）") : t("絞り込み条件を設定する");
+    filterSummary.classList.toggle('filter-active', active);
+    filterSummary.childNodes[0].textContent = (active ? t("絞り込み条件を設定する（設定中●）") : t("絞り込み条件を設定する")) + " ";
   }
   const compareShortcutRow = document.getElementById('compareLevelShortcutRow');
   if (compareShortcutRow) compareShortcutRow.innerHTML = renderLevelShortcuts(compareSimpleLevels);
@@ -2017,9 +2017,14 @@ function renderCompareMultiContent() {
         <button class="toggle-pill" data-mode="advanced">${t("高度な絞り込み")}</button>
       </div>
       <div class="level-shortcut-row" id="multiCompareLevelShortcutRow" style="margin-bottom:12px"></div>
-      <div id="multiCompareAdvancedFilterRow" style="display:none;margin-bottom:12px">
-        <button class="btn" id="multiCompareFilterBtn">${t("絞り込み条件を設定する")}</button>
-      </div>
+      <details id="multiCompareAdvancedFilterRow" class="filter-dropdown" style="display:none;margin-bottom:12px">
+        <summary class="filter-dropdown-summary">${t("絞り込み条件を設定する")} <span class="filter-dropdown-arrow">▾</span></summary>
+        <div class="filter-dropdown-body" id="multiCompareFilterModalBody"></div>
+        <div class="filter-dropdown-footer">
+          <button class="btn" id="multiCompareFilterModalApplyBtn">${t("この条件で絞り込む")}</button>
+          <button class="link-btn" id="multiCompareFilterModalResetBtn">${t("内容を初期化")}</button>
+        </div>
+      </details>
       <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;gap:16px">
         <div>
           <div class="filter-band-label" style="margin-bottom:6px;color:var(--text)">${t("勝負基準")}</div>
@@ -2060,21 +2065,6 @@ function renderCompareMultiContent() {
           <tbody>${rowsHtml}</tbody>
         </table>
         ${filtered.length === 0 ? `<div class="empty-state">${t("比較できるスコアがありません")}</div>` : ""}
-      </div>
-    </div>
-    <div class="modal-overlay" id="multiCompareFilterModalOverlay" style="display:none">
-      <div class="modal-box">
-        <div class="modal-header">
-          <h3>${t("高度な絞り込み")}</h3>
-          <div style="display:flex;align-items:center;gap:14px">
-            <button class="link-btn" id="multiCompareFilterModalResetBtn">${t("内容を初期化")}</button>
-            <button class="modal-close" id="multiCompareFilterModalCloseBtn">×</button>
-          </div>
-        </div>
-        <div class="modal-body" id="multiCompareFilterModalBody"></div>
-        <div class="modal-footer">
-          <button class="btn" id="multiCompareFilterModalApplyBtn">${t("この条件で絞り込む")}</button>
-        </div>
       </div>
     </div>
     `}
@@ -2126,7 +2116,9 @@ function renderCompareMultiContent() {
     render();
   });
   document.getElementById('multiCompareAdvancedFilterRow').style.display = multiCompareState.filterMode === "advanced" ? "block" : "none";
-  document.getElementById('multiCompareFilterBtn').addEventListener('click', openMultiCompareFilterModal);
+  document.getElementById('multiCompareAdvancedFilterRow').addEventListener('toggle', (e) => {
+    if (e.target.open) openMultiCompareFilterModal();
+  });
 
   document.getElementById('multiCompareModeToggle').querySelectorAll('button[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === multiCompareState.mode));
   document.getElementById('multiCompareModeToggle').addEventListener('click', (e) => {
@@ -2142,22 +2134,18 @@ function renderCompareMultiContent() {
   sortSelect.value = multiCompareState.sort;
   sortSelect.addEventListener('change', (e) => { multiCompareState.sort = e.target.value; render(); });
 
-  document.getElementById('multiCompareFilterModalCloseBtn').addEventListener('click', closeMultiCompareFilterModal);
   document.getElementById('multiCompareFilterModalResetBtn').addEventListener('click', resetMultiCompareFilterModal);
   document.getElementById('multiCompareFilterModalApplyBtn').addEventListener('click', applyMultiCompareFilterModal);
-  document.getElementById('multiCompareFilterModalOverlay').addEventListener('click', (e) => {
-    if (e.target.id === 'multiCompareFilterModalOverlay') closeMultiCompareFilterModal();
-  });
 }
 
 function openMultiCompareFilterModal() {
   multiCompareDraftLevels = new Set(multiCompareState.levels);
   multiCompareDraftDiffs = new Set(multiCompareState.diffs);
   renderMultiCompareFilterModalBody();
-  document.getElementById('multiCompareFilterModalOverlay').style.display = 'flex';
 }
 function closeMultiCompareFilterModal() {
-  document.getElementById('multiCompareFilterModalOverlay').style.display = 'none';
+  const el = document.getElementById('multiCompareAdvancedFilterRow');
+  if (el) el.open = false;
 }
 function resetMultiCompareFilterModal() {
   multiCompareDraftLevels = new Set(ALL_LEVEL_VALUES);
@@ -2236,10 +2224,10 @@ function openCompareFilterModal() {
   compareDraftLevels = new Set(compareState.levels);
   compareDraftDiffs = new Set(compareState.diffs);
   renderCompareFilterModalBody();
-  document.getElementById('compareFilterModalOverlay').style.display = 'flex';
 }
 function closeCompareFilterModal() {
-  document.getElementById('compareFilterModalOverlay').style.display = 'none';
+  const el = document.getElementById('compareAdvancedFilterRow');
+  if (el) el.open = false;
 }
 function resetCompareFilterModal() {
   compareDraftLevels = new Set(ALL_LEVEL_VALUES);
@@ -2717,21 +2705,6 @@ function renderRankingTab() {
 
   container.innerHTML = `
     ${activeEntry ? renderRankingDetailHtml(activeEntry) : renderRankingListHtml()}
-    <div class="modal-overlay" id="rankingFilterModalOverlay" style="display:none">
-      <div class="modal-box">
-        <div class="modal-header">
-          <h3>${t("高度な絞り込み")}</h3>
-          <div style="display:flex;align-items:center;gap:14px">
-            <button class="link-btn" id="rankingFilterModalResetBtn">${t("内容を初期化")}</button>
-            <button class="modal-close" id="rankingFilterModalCloseBtn">×</button>
-          </div>
-        </div>
-        <div class="modal-body" id="rankingFilterModalBody"></div>
-        <div class="modal-footer">
-          <button class="btn" id="rankingFilterModalApplyBtn">${t("この条件で絞り込む")}</button>
-        </div>
-      </div>
-    </div>
   `;
 
   if (!activeEntry) {
@@ -2801,9 +2774,16 @@ function renderRankingTab() {
       });
     }
     const advRow = document.getElementById('rankingAdvancedFilterRow');
-    if (advRow) advRow.style.display = rankingFilterMode === "advanced" ? "block" : "none";
-    const rankingFilterBtn = document.getElementById('rankingFilterBtn');
-    if (rankingFilterBtn) rankingFilterBtn.addEventListener('click', openRankingFilterModal);
+    if (advRow) {
+      advRow.style.display = rankingFilterMode === "advanced" ? "block" : "none";
+      advRow.addEventListener('toggle', (e) => {
+        if (e.target.open) openRankingFilterModal();
+      });
+    }
+    const rankingFilterApplyBtn = document.getElementById('rankingFilterModalApplyBtn');
+    if (rankingFilterApplyBtn) rankingFilterApplyBtn.addEventListener('click', applyRankingFilterModal);
+    const rankingFilterResetBtn = document.getElementById('rankingFilterModalResetBtn');
+    if (rankingFilterResetBtn) rankingFilterResetBtn.addEventListener('click', resetRankingFilterModal);
     const rankingSortSelect = document.getElementById('rankingSortSelect');
     if (rankingSortSelect) {
       rankingSortSelect.value = rankingState.sort;
@@ -2828,13 +2808,6 @@ function renderRankingTab() {
       });
     }
   }
-
-  document.getElementById('rankingFilterModalCloseBtn').addEventListener('click', closeRankingFilterModal);
-  document.getElementById('rankingFilterModalResetBtn').addEventListener('click', resetRankingFilterModal);
-  document.getElementById('rankingFilterModalApplyBtn').addEventListener('click', applyRankingFilterModal);
-  document.getElementById('rankingFilterModalOverlay').addEventListener('click', (e) => {
-    if (e.target.id === 'rankingFilterModalOverlay') closeRankingFilterModal();
-  });
 }
 
 function isUnconqueredEntry(e) {
@@ -3002,9 +2975,14 @@ function renderRankingListHtml() {
         <button class="toggle-pill" data-mode="advanced">${t("高度な絞り込み")}</button>
       </div>
       <div class="level-shortcut-row" id="rankingLevelShortcutRow" style="margin-bottom:12px"></div>
-      <div id="rankingAdvancedFilterRow" style="display:none;margin-bottom:12px">
-        <button class="btn" id="rankingFilterBtn">${t("絞り込み条件を設定する")}</button>
-      </div>
+      <details id="rankingAdvancedFilterRow" class="filter-dropdown" style="display:none;margin-bottom:12px">
+        <summary class="filter-dropdown-summary">${t("絞り込み条件を設定する")} <span class="filter-dropdown-arrow">▾</span></summary>
+        <div class="filter-dropdown-body" id="rankingFilterModalBody"></div>
+        <div class="filter-dropdown-footer">
+          <button class="btn" id="rankingFilterModalApplyBtn">${t("この条件で絞り込む")}</button>
+          <button class="link-btn" id="rankingFilterModalResetBtn">${t("内容を初期化")}</button>
+        </div>
+      </details>
       <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
         <select class="select-input" id="rankingSortSelect" aria-label="${t("並び替え")}">
           <option value="date_desc">${t("収録順（新しい順）")}</option>
@@ -3099,10 +3077,10 @@ function openRankingFilterModal() {
   rankingDraftLevels = new Set(rankingFilters.levels);
   rankingDraftDiffs = new Set(rankingFilters.diffs);
   renderRankingFilterModalBody();
-  document.getElementById('rankingFilterModalOverlay').style.display = 'flex';
 }
 function closeRankingFilterModal() {
-  document.getElementById('rankingFilterModalOverlay').style.display = 'none';
+  const el = document.getElementById('rankingAdvancedFilterRow');
+  if (el) el.open = false;
 }
 function resetRankingFilterModal() {
   rankingDraftLevels = new Set(DEFAULT_LEVEL_VALUES);
@@ -3203,9 +3181,14 @@ function buildListSkeleton() {
         <button class="level-shortcut digit-filter-badge" data-digit="single">${t("1桁")}</button>
         <button class="level-shortcut digit-filter-badge" data-digit="puc">${t("S-PUC")}</button>
       </div>
-      <div id="advancedFilterRow" style="display:none">
-        <button class="btn" id="openFilterBtn">${t("絞り込み条件を設定する")}</button>
-      </div>
+      <details id="advancedFilterRow" class="filter-dropdown" style="display:none">
+        <summary class="filter-dropdown-summary">${t("絞り込み条件を設定する")} <span class="filter-dropdown-arrow">▾</span></summary>
+        <div class="filter-dropdown-body" id="filterModalBody"></div>
+        <div class="filter-dropdown-footer">
+          <button class="btn" id="filterModalApplyBtn">${t("この条件で絞り込む")}</button>
+          <button class="link-btn" id="filterModalResetBtn">${t("内容を初期化")}</button>
+        </div>
+      </details>
       <select class="select-input" id="sortSelect" aria-label="${t("並び替え")}" style="margin-top:10px">
         <option value="date_desc">${t("収録順（新しい順）")}</option>
         <option value="date_asc">${t("収録順（古い順）")}</option>
@@ -3231,21 +3214,6 @@ function buildListSkeleton() {
       </div>
     </div>
     <div id="listFooterArea"></div>
-    <div class="modal-overlay" id="filterModalOverlay" style="display:none">
-      <div class="modal-box">
-        <div class="modal-header">
-          <h3>${t("高度な絞り込み")}</h3>
-          <div style="display:flex;align-items:center;gap:14px">
-            <button class="link-btn" id="filterModalResetBtn">${t("内容を初期化")}</button>
-            <button class="modal-close" id="filterModalCloseBtn">×</button>
-          </div>
-        </div>
-        <div class="modal-body" id="filterModalBody"></div>
-        <div class="modal-footer">
-          <button class="btn" id="filterModalApplyBtn">${t("この条件で絞り込む")}</button>
-        </div>
-      </div>
-    </div>
   `;
   document.getElementById('searchInput').value = filters.search;
   document.getElementById('searchInput').addEventListener('input', (e) => updateFilter('search', e.target.value));
@@ -3264,7 +3232,9 @@ function buildListSkeleton() {
     currentPage = 1;
     render();
   });
-  document.getElementById('openFilterBtn').addEventListener('click', openFilterModal);
+  document.getElementById('advancedFilterRow').addEventListener('toggle', (e) => {
+    if (e.target.open) openFilterModal();
+  });
   document.getElementById('levelShortcutRow').addEventListener('click', (e) => {
     const btn = e.target.closest('.level-shortcut');
     if (!btn) return;
@@ -3280,12 +3250,8 @@ function buildListSkeleton() {
     currentPage = 1;
     render();
   });
-  document.getElementById('filterModalCloseBtn').addEventListener('click', closeFilterModal);
   document.getElementById('filterModalResetBtn').addEventListener('click', resetFilterModal);
   document.getElementById('filterModalApplyBtn').addEventListener('click', applyFilterModal);
-  document.getElementById('filterModalOverlay').addEventListener('click', (e) => {
-    if (e.target.id === 'filterModalOverlay') closeFilterModal();
-  });
 }
 
 function updateListControls() {
@@ -3304,11 +3270,11 @@ function updateListControls() {
     });
   }
   if (advancedFilterRow) advancedFilterRow.style.display = filterMode === "advanced" ? "block" : "none";
-  const filterBtn = document.getElementById('openFilterBtn');
-  if (filterBtn) {
+  const filterSummary = document.querySelector('#advancedFilterRow .filter-dropdown-summary');
+  if (filterSummary) {
     const active = isFilterActive();
-    filterBtn.classList.toggle('filter-active', active);
-    filterBtn.textContent = active ? t("絞り込み条件を設定する（設定中●）") : t("絞り込み条件を設定する");
+    filterSummary.classList.toggle('filter-active', active);
+    filterSummary.childNodes[0].textContent = (active ? t("絞り込み条件を設定する（設定中●）") : t("絞り込み条件を設定する")) + " ";
   }
   const shortcutRow = document.getElementById('levelShortcutRow');
   if (shortcutRow) shortcutRow.innerHTML = renderLevelShortcuts(simpleLevels);
@@ -3409,11 +3375,11 @@ function openFilterModal() {
   draftScoreMinNormal = filters.scoreMinNormal;
   draftScoreMaxNormal = filters.scoreMaxNormal;
   renderFilterModalBody();
-  document.getElementById('filterModalOverlay').style.display = 'flex';
 }
 
 function closeFilterModal() {
-  document.getElementById('filterModalOverlay').style.display = 'none';
+  const el = document.getElementById('advancedFilterRow');
+  if (el) el.open = false;
 }
 
 function resetFilterModal() {
