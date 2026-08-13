@@ -2704,10 +2704,7 @@ function renderRankingTab() {
     : null;
 
   container.innerHTML = `
-    ${activeEntry ? `
-    <div class="panel">
-      ${renderRankingDetailHtml(activeEntry)}
-    </div>` : renderRankingListHtml()}
+    ${activeEntry ? renderRankingDetailHtml(activeEntry) : renderRankingListHtml()}
     <div class="modal-overlay" id="rankingFilterModalOverlay" style="display:none">
       <div class="modal-box">
         <div class="modal-header">
@@ -3068,24 +3065,28 @@ function renderRankingDetailHtml(entry) {
   }).join("") || `<tr><td colspan="4" class="hint" style="text-align:center;padding:16px">${t("該当するデータがありません。")}</td></tr>`;
 
   return `
-    <button class="link-btn" id="rankingBackBtn" style="margin-bottom:10px">${t("← 曲一覧に戻る")}</button>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-      ${entry.jacket ? `<img class="jacket-thumb" src="${esc(entry.jacket)}" style="width:56px;height:56px;border-color:${meta.color}">` : ""}
-      <div>
-        <div class="title-text" style="font-size:16px">${esc(entry.musicName)}</div>
-        <div class="hint" style="margin-top:2px"><span style="color:${meta.color};font-weight:800">${esc(meta.abbr)}</span> Lv.${entry.level}</div>
+    <div class="panel">
+      <button class="link-btn" id="rankingBackBtn" style="margin-bottom:10px">${t("← 曲一覧に戻る")}</button>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        ${entry.jacket ? `<img class="jacket-thumb" src="${esc(entry.jacket)}" style="width:56px;height:56px;border-color:${meta.color}">` : ""}
+        <div>
+          <div class="title-text" style="font-size:16px">${esc(entry.musicName)}</div>
+          <div class="hint" style="margin-top:2px"><span style="color:${meta.color};font-weight:800">${esc(meta.abbr)}</span> Lv.${entry.level}</div>
+        </div>
+      </div>
+      ${!entry.matched ? `<p class="hint" style="margin-bottom:10px">${t("この曲は楽曲マスタと自動で一致しなかったため、EXスコアの理論値差分は表示していません。")}</p>` : ""}
+      <div class="toggle-group segmented-toggle" id="rankingDetailEraToggle">
+        <button class="toggle-pill${era === "current" ? " on" : ""}" data-era="current">∇</button>
+        <button class="toggle-pill${era === "eg" ? " on" : ""}" data-era="eg">EG</button>
       </div>
     </div>
-    ${!entry.matched ? `<p class="hint" style="margin-bottom:10px">${t("この曲は楽曲マスタと自動で一致しなかったため、EXスコアの理論値差分は表示していません。")}</p>` : ""}
-    <div class="toggle-group segmented-toggle" id="rankingDetailEraToggle" style="margin-bottom:12px">
-      <button class="toggle-pill${era === "current" ? " on" : ""}" data-era="current">∇</button>
-      <button class="toggle-pill${era === "eg" ? " on" : ""}" data-era="eg">EG</button>
-    </div>
-    <div class="table-wrap">
-      <table class="score-table">
-        <thead><tr><th class="col-center">${t("順位")}</th><th>${t("プレイヤー")}</th><th class="col-center">${t("スコア")}</th><th class="col-center">${t("更新日時")}</th></tr></thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
+    <div class="panel" style="padding:0;overflow:hidden">
+      <div class="table-wrap">
+        <table class="score-table">
+          <thead><tr><th class="col-center">${t("順位")}</th><th>${t("プレイヤー")}</th><th class="col-center">${t("スコア")}</th><th class="col-center">${t("更新日時")}</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
     </div>
   `;
 }
