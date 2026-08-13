@@ -2847,17 +2847,9 @@ function rankingRowWidthPx() {
   const titleMin = isMobile ? 150 : 260;
   const rowPadding = 12; // .ranking-song-row の左右padding(6px*2)
   const contentMin = titleMin + extraSum + gaps + rowPadding;
-  // 楽曲一覧が入るパネルは padding:0 で作っているので、そのパネル自体の実測幅をそのまま使う
-  // （見つからない場合のみ、外枠から一般的なパネルpadding分を差し引いた概算にフォールバック）
-  const panels = document.querySelectorAll('#view-ranking .panel');
-  const listPanel = panels.length >= 2 ? panels[1] : null;
-  let available;
-  if (listPanel && listPanel.clientWidth) {
-    available = listPanel.clientWidth;
-  } else {
-    const container = document.getElementById('view-ranking');
-    available = container ? container.clientWidth - 32 : window.innerWidth - 64;
-  }
+  // 楽曲一覧が入るパネルは padding:0 で、body自体のpadding(20px×2)だけが外枠になっているため、
+  // DOMを測定せず window.innerWidth から確定的に計算する（測定タイミングのズレによるズレを防ぐ）
+  const available = window.innerWidth - 40;
   return Math.max(contentMin, available);
 }
 
