@@ -248,7 +248,7 @@
 <body>
 
 <div style="max-width:360px;margin:60px auto 0;text-align:left;display:none;position:relative" id="authBrand">
-  <button class="btn secondary lang-toggle-btn" onclick="openLangModal()" style="position:absolute;top:0;right:0;padding:6px 12px;font-size:12px">🌐 言語設定</button>
+  <button class="btn secondary lang-toggle-btn" onclick="openLangModal()" style="position:absolute;top:0;right:0;padding:6px 12px;font-size:12px">🌐 言語設定 / 언어 설정</button>
   <div class="brand-title" style="font-size:24px"><span class="brand-title-sdvx">SDVX</span> <span class="brand-title-exscore">EX-Score</span></div>
 </div>
 <div id="authGate" class="panel" style="max-width:360px;margin:16px auto;display:none">
@@ -289,7 +289,7 @@
         <button class="account-dropdown-item" onclick="openChangeUsernameModal(); toggleAccountMenu();">アカウント名を変更</button>
         <button class="account-dropdown-item" onclick="openPlayerIdModal(); toggleAccountMenu();">プレイヤーIDを設定</button>
         <button class="account-dropdown-item" onclick="switchTab('data'); toggleAccountMenu();">スコア登録</button>
-        <button class="account-dropdown-item lang-toggle-btn" onclick="openLangModal()">🌐 言語設定</button>
+        <button class="account-dropdown-item lang-toggle-btn" onclick="openLangModal()">🌐 言語設定 / 언어 설정</button>
         <button class="account-dropdown-item" onclick="switchTab('terms'); toggleAccountMenu();">利用規約</button>
         <button class="account-dropdown-item danger" onclick="handleLogout()">ログアウト</button>
       </div>
@@ -332,7 +332,7 @@
       <button class="modal-close" id="usernameModalCloseBtn">×</button>
     </div>
     <div class="modal-body">
-      <p class="hint">現在のアカウント名: <span id="usernameModalCurrent"></span></p>
+      <p class="hint"><span id="usernameModalCurrentLabel">現在のアカウント名: </span><span id="usernameModalCurrent"></span></p>
       <p class="hint" style="margin-top:10px">新しいアカウント名</p>
       <input class="search-input" id="usernameModalNew" placeholder="半角英数字・3〜20文字" style="width:100%;box-sizing:border-box;margin-bottom:4px;">
       <p class="hint" id="usernameModalError" style="color:#ff4757;min-height:16px"></p>
@@ -477,7 +477,7 @@ function applyGuestUiRestrictions() {
       <div class="account-dropdown-name">${t("ゲストログイン中")}</div>
       <button class="account-dropdown-item" onclick="exitGuestMode(); toggleAccountMenu();">${t("ログイン画面に戻る")}</button>
       <button class="account-dropdown-item" onclick="switchTab('terms'); toggleAccountMenu();">${t("利用規約")}</button>
-      <button class="account-dropdown-item lang-toggle-btn" onclick="openLangModal()">🌐 ${t("言語設定")}</button>
+      <button class="account-dropdown-item lang-toggle-btn" onclick="openLangModal()">🌐 言語設定 / 언어 설정</button>
     `;
   }
 }
@@ -814,7 +814,7 @@ function updateLangModalUi() {
 function applyLanguage() {
   document.documentElement.lang = currentLang === "ko" ? "ko" : "ja";
   document.querySelectorAll(".lang-toggle-btn").forEach(b => {
-    b.textContent = "🌐 " + t("言語設定");
+    b.textContent = "🌐 言語設定 / 언어 설정";
   });
   updateLangModalUi();
   // スケルトンベースのタブは初回しかDOMを作り直さない仕組みなので、
@@ -858,7 +858,8 @@ function applyStaticTranslations() {
   if (okBtn) okBtn.textContent = t("OK");
   const uTitle = document.querySelector('#usernameModalOverlay h3');
   if (uTitle) uTitle.textContent = t("アカウント名を変更");
-  const uCurrent = document.querySelector('#usernameModalOverlay .hint');
+  const uCurrent = document.getElementById('usernameModalCurrentLabel');
+  if (uCurrent) uCurrent.textContent = t("現在のアカウント名: ");
   const uNewLabel = document.querySelectorAll('#usernameModalOverlay .hint')[1];
   if (uNewLabel) uNewLabel.textContent = t("新しいアカウント名");
   const uInput = document.getElementById('usernameModalNew');
@@ -3624,7 +3625,7 @@ function renderAuthGate() {
   const guestLink = document.getElementById('authGuestLink');
   if (guestLink) guestLink.textContent = t("ゲストログインでランキングを確認する");
   document.getElementById('authDeleteBody').innerHTML = `X（Twitter）: <a href="https://twitter.com/yuuya1202" target="_blank" rel="noopener" style="color:#3B82F6">@yuuya1202</a> ${t("までご連絡ください。")}`;
-  document.querySelectorAll('.lang-toggle-btn').forEach(b => { b.textContent = "🌐 " + t("言語設定"); });
+  document.querySelectorAll('.lang-toggle-btn').forEach(b => { b.textContent = "🌐 言語設定 / 언어 설정"; });
 }
 window.renderAuthGate = renderAuthGate;
 window.toggleAuthMode = function () {
