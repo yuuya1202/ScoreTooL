@@ -4164,6 +4164,18 @@
     "reading": "すみそめふゅーちゃりんぐねこめあり"
   },
   {
+    "key": "2405_novice",
+    "title": "夢色ワンダー",
+    "type": "novice",
+    "level": 3,
+    "bpm": "135–208",
+    "date": "2026-08-27",
+    "jacket": "https://sdvxindex.com//img/2405_yumeirowonder_holodreams/jk_2405_1_b.webp",
+    "max_exscore": 1717,
+    "chartUrl": "https://sdvxindex.com/s/2405/1/",
+    "reading": "ゆめいろわんだー"
+  },
+  {
     "key": "0056_novice",
     "title": "天ノ弱",
     "type": "novice",
@@ -14520,6 +14532,18 @@
     "reading": "あいあむなんばーわんぱとらちゃんさま"
   },
   {
+    "key": "2302_novice",
+    "title": "ありがとうのマホウ",
+    "type": "novice",
+    "level": 5,
+    "bpm": "130",
+    "date": "2026-09-03",
+    "jacket": "https://sdvxindex.com//img/2302_arigatouno_lapin5/jk_2302_1_b.webp",
+    "max_exscore": 1412,
+    "chartUrl": "https://sdvxindex.com/s/2302/1/",
+    "reading": "ありがとうのまほう"
+  },
+  {
     "key": "1638_novice",
     "title": "うさぬこぬんぬんファンタジー！",
     "type": "novice",
@@ -19824,6 +19848,18 @@
     "reading": "れくとりあ"
   },
   {
+    "key": "2295_novice",
+    "title": "LR",
+    "type": "novice",
+    "level": 6,
+    "bpm": "190",
+    "date": "2026-09-03",
+    "jacket": "https://sdvxindex.com//img/2295_lr_tedukakagurazaka/jk_2295_1_b.webp",
+    "max_exscore": 1985,
+    "chartUrl": "https://sdvxindex.com/s/2295/1/",
+    "reading": "えるあーる"
+  },
+  {
     "key": "2140_novice",
     "title": "La Nostra Storia!",
     "type": "novice",
@@ -22738,6 +22774,18 @@
     "max_exscore": 1879,
     "chartUrl": "https://sdvxindex.com/s/0017/2/",
     "reading": "じれんま"
+  },
+  {
+    "key": "2308_novice",
+    "title": "dilucurum",
+    "type": "novice",
+    "level": 6,
+    "bpm": "195",
+    "date": "2026-09-03",
+    "jacket": "https://sdvxindex.com//img/2308_diliucurum_seatruskuro/jk_2308_1_b.webp",
+    "max_exscore": 1974,
+    "chartUrl": "https://sdvxindex.com/s/2308/1/",
+    "reading": "でぃるくるむ"
   },
   {
     "key": "1407_novice",
@@ -32398,6 +32446,18 @@
     "max_exscore": 2603,
     "chartUrl": "https://sdvxindex.com/s/0435/2/",
     "reading": "ゆうだちきみとかくれが"
+  },
+  {
+    "key": "2405_advanced",
+    "title": "夢色ワンダー",
+    "type": "advanced",
+    "level": 9,
+    "bpm": "135–208",
+    "date": "2026-08-27",
+    "jacket": "https://sdvxindex.com//img/2405_yumeirowonder_holodreams/jk_2405_1_b.webp",
+    "max_exscore": 3331,
+    "chartUrl": "https://sdvxindex.com/s/2405/2/",
+    "reading": "ゆめいろわんだー"
   },
   {
     "key": "0056_advanced",
@@ -46896,6 +46956,18 @@
     "reading": "とりじゅーか"
   },
   {
+    "key": "2302_advanced",
+    "title": "ありがとうのマホウ",
+    "type": "advanced",
+    "level": 12,
+    "bpm": "130",
+    "date": "2026-09-03",
+    "jacket": "https://sdvxindex.com//img/2302_arigatouno_lapin5/jk_2302_1_b.webp",
+    "max_exscore": 2698,
+    "chartUrl": "https://sdvxindex.com/s/2302/2/",
+    "reading": "ありがとうのまほう"
+  },
+  {
     "key": "1931_advanced",
     "title": "いでぃおで結構！",
     "type": "advanced",
@@ -51960,6 +52032,18 @@
     "reading": "れくとりあ"
   },
   {
+    "key": "2295_advanced",
+    "title": "LR",
+    "type": "advanced",
+    "level": 13,
+    "bpm": "190",
+    "date": "2026-09-03",
+    "jacket": "https://sdvxindex.com//img/2295_lr_tedukakagurazaka/jk_2295_2_b.webp",
+    "max_exscore": 4066,
+    "chartUrl": "https://sdvxindex.com/s/2295/2/",
+    "reading": "えるあーる"
+  },
+  {
     "key": "2140_advanced",
     "title": "La Nostra Storia!",
     "type": "advanced",
@@ -54612,6 +54696,18 @@
     "reading": "さいあのたいぷ"
   },
   {
+    "key": "2308_advanced",
+    "title": "dilucurum",
+    "type": "advanced",
+    "level": 13,
+    "bpm": "195",
+    "date": "2026-09-03",
+    "jacket": "https://sdvxindex.com//img/2308_diliucurum_seatruskuro/jk_2308_1_b.webp",
+    "max_exscore": 3604,
+    "chartUrl": "https://sdvxindex.com/s/2308/2/",
+    "reading": "でぃるくるむ"
+  },
+  {
     "key": "1236_exhaust",
     "title": "disordered asia",
     "type": "exhaust",
@@ -56794,6 +56890,18 @@
     "max_exscore": 4428,
     "chartUrl": "https://sdvxindex.com/s/0435/3/",
     "reading": "ゆうだちきみとかくれが"
+  },
+  {
+    "key": "2405_exhaust",
+    "title": "夢色ワンダー",
+    "type": "exhaust",
+    "level": 13,
+    "bpm": "135–208",
+    "date": "2026-08-27",
+    "jacket": "https://sdvxindex.com//img/2405_yumeirowonder_holodreams/jk_2405_1_b.webp",
+    "max_exscore": 5446,
+    "chartUrl": "https://sdvxindex.com/s/2405/3/",
+    "reading": "ゆめいろわんだー"
   },
   {
     "key": "0056_exhaust",
@@ -68832,6 +68940,18 @@
     "reading": "れみにせんす"
   },
   {
+    "key": "2302_exhaust",
+    "title": "ありがとうのマホウ",
+    "type": "exhaust",
+    "level": 15,
+    "bpm": "130",
+    "date": "2026-09-03",
+    "jacket": "https://sdvxindex.com//img/2302_arigatouno_lapin5/jk_2302_3_b.webp",
+    "max_exscore": 4345,
+    "chartUrl": "https://sdvxindex.com/s/2302/3/",
+    "reading": "ありがとうのまほう"
+  },
+  {
     "key": "1888_advanced",
     "title": "いまきみに",
     "type": "advanced",
@@ -73860,6 +73980,18 @@
     "reading": "れくとりあ"
   },
   {
+    "key": "2295_exhaust",
+    "title": "LR",
+    "type": "exhaust",
+    "level": 16,
+    "bpm": "190",
+    "date": "2026-09-03",
+    "jacket": "https://sdvxindex.com//img/2295_lr_tedukakagurazaka/jk_2295_3_b.webp",
+    "max_exscore": 5561,
+    "chartUrl": "https://sdvxindex.com/s/2295/3/",
+    "reading": "えるあーる"
+  },
+  {
     "key": "1256_maximum",
     "title": "La Danza del Fuego",
     "type": "maximum",
@@ -76918,6 +77050,18 @@
     "max_exscore": 5164,
     "chartUrl": "https://sdvxindex.com/s/2385/3/",
     "reading": "さいあのたいぷ"
+  },
+  {
+    "key": "2308_exhaust",
+    "title": "dilucurum",
+    "type": "exhaust",
+    "level": 16,
+    "bpm": "195",
+    "date": "2026-09-03",
+    "jacket": "https://sdvxindex.com//img/2308_diliucurum_seatruskuro/jk_2308_1_b.webp",
+    "max_exscore": 4854,
+    "chartUrl": "https://sdvxindex.com/s/2308/3/",
+    "reading": "でぃるくるむ"
   },
   {
     "key": "1236_maximum",
@@ -89340,6 +89484,18 @@
     "reading": "おるふぇうす"
   },
   {
+    "key": "2302_maximum",
+    "title": "ありがとうのマホウ",
+    "type": "maximum",
+    "level": 17.5,
+    "bpm": "130",
+    "date": "2026-09-03",
+    "jacket": "https://sdvxindex.com//img/2302_arigatouno_lapin5/jk_2302_3_b.webp",
+    "max_exscore": 5158,
+    "chartUrl": "https://sdvxindex.com/s/2302/5/",
+    "reading": "ありがとうのまほう"
+  },
+  {
     "key": "0574_exhaust",
     "title": "あれこれそれどれ",
     "type": "exhaust",
@@ -93420,6 +93576,18 @@
     "reading": "くーるおーさむくるーん"
   },
   {
+    "key": "2295_maximum",
+    "title": "LR",
+    "type": "maximum",
+    "level": 18.3,
+    "bpm": "190",
+    "date": "2026-09-03",
+    "jacket": "https://sdvxindex.com//img/2295_lr_tedukakagurazaka/jk_2295_5_b.webp",
+    "max_exscore": 7694,
+    "chartUrl": "https://sdvxindex.com/s/2295/5/",
+    "reading": "えるあーる"
+  },
+  {
     "key": "0612_exceed",
     "title": "Le Fruit Défendu",
     "type": "exceed",
@@ -95712,6 +95880,18 @@
     "reading": "じゅうさんふとう"
   },
   {
+    "key": "2405_maximum",
+    "title": "夢色ワンダー",
+    "type": "maximum",
+    "level": 18.4,
+    "bpm": "135–208",
+    "date": "2026-08-27",
+    "jacket": "https://sdvxindex.com//img/2405_yumeirowonder_holodreams/jk_2405_1_b.webp",
+    "max_exscore": 11096,
+    "chartUrl": "https://sdvxindex.com/s/2405/5/",
+    "reading": "ゆめいろわんだー"
+  },
+  {
     "key": "1929_maximum",
     "title": "天穹のアルカナビット",
     "type": "maximum",
@@ -96802,6 +96982,18 @@
     "max_exscore": 8541,
     "chartUrl": "https://sdvxindex.com/s/0779/4x/",
     "reading": "こんふりくと"
+  },
+  {
+    "key": "2308_maximum",
+    "title": "dilucurum",
+    "type": "maximum",
+    "level": 18.5,
+    "bpm": "195",
+    "date": "2026-09-03",
+    "jacket": "https://sdvxindex.com//img/2308_diliucurum_seatruskuro/jk_2308_1_b.webp",
+    "max_exscore": 7273,
+    "chartUrl": "https://sdvxindex.com/s/2308/5/",
+    "reading": "でぃるくるむ"
   },
   {
     "key": "1630_maximum",
