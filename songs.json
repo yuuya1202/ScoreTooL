@@ -7896,6 +7896,18 @@
     "reading": "きゃぷてんまりんのけつあんかー"
   },
   {
+    "key": "2404_novice",
+    "title": "ギミギミエンターテイメント",
+    "type": "novice",
+    "level": 4,
+    "bpm": "138–200",
+    "date": "2026-09-20",
+    "jacket": "https://sdvxindex.com//img/2404_gimmegimmeent_holodreams/jk_2404_1_b.webp",
+    "max_exscore": 1870,
+    "chartUrl": "https://sdvxindex.com/s/2404/1/",
+    "reading": "ぎみぎみえんたーていめんと"
+  },
+  {
     "key": "0620_novice",
     "title": "ギャラクシィ・トラベラー",
     "type": "novice",
@@ -47616,6 +47628,18 @@
     "reading": "きらめきいのこりだいせんそう"
   },
   {
+    "key": "2404_advanced",
+    "title": "ギミギミエンターテイメント",
+    "type": "advanced",
+    "level": 12,
+    "bpm": "138–200",
+    "date": "2026-09-20",
+    "jacket": "https://sdvxindex.com//img/2404_gimmegimmeent_holodreams/jk_2404_1_b.webp",
+    "max_exscore": 3403,
+    "chartUrl": "https://sdvxindex.com/s/2404/2/",
+    "reading": "ぎみぎみえんたーていめんと"
+  },
+  {
     "key": "1286_advanced",
     "title": "クレイジークレイジーダンサーズ",
     "type": "advanced",
@@ -78336,6 +78360,18 @@
     "reading": "きもちこねくと"
   },
   {
+    "key": "2404_exhaust",
+    "title": "ギミギミエンターテイメント",
+    "type": "exhaust",
+    "level": 16,
+    "bpm": "138–200",
+    "date": "2026-09-20",
+    "jacket": "https://sdvxindex.com//img/2404_gimmegimmeent_holodreams/jk_2404_1_b.webp",
+    "max_exscore": 5361,
+    "chartUrl": "https://sdvxindex.com/s/2404/3/",
+    "reading": "ぎみぎみえんたーていめんと"
+  },
+  {
     "key": "0356_exhaust",
     "title": "クノイチでも恋がしたい",
     "type": "exhaust",
@@ -84564,6 +84600,18 @@
     "reading": "とーきょーさまーないとはなきんりみっくす"
   },
   {
+    "key": "0175_nabla",
+    "title": "トーキョープレジャーグラウンド",
+    "type": "nabla",
+    "level": 17,
+    "bpm": "220",
+    "date": "2013-06-05",
+    "jacket": "https://sdvxindex.com//img/0175_tokyopleasure_touyu/jk_0175_1_b.webp",
+    "max_exscore": 5717,
+    "chartUrl": "https://sdvxindex.com/s/0175/4n/",
+    "reading": "とーきょーぷれじゃーぐらうんど"
+  },
+  {
     "key": "1762_exhaust",
     "title": "ドゥサンコオデッセイ!!",
     "type": "exhaust",
@@ -90096,6 +90144,18 @@
     "reading": "ないとおぶないつ"
   },
   {
+    "key": "0146_nabla",
+    "title": "ナツノメイロ",
+    "type": "nabla",
+    "level": 17.5,
+    "bpm": "148",
+    "date": "2013-01-18",
+    "jacket": "https://sdvxindex.com//img/0146_natsunomeiro_stereoberry/jk_0146_1_b.webp",
+    "max_exscore": 6073,
+    "chartUrl": "https://sdvxindex.com/s/0146/4n/",
+    "reading": "なつのめいろ"
+  },
+  {
     "key": "0617_exhaust",
     "title": "ネメシス SDVX Edit",
     "type": "exhaust",
@@ -91150,6 +91210,18 @@
     "max_exscore": 6533,
     "chartUrl": "https://sdvxindex.com/s/1032/3/",
     "reading": "ふぃなるかでぃあ"
+  },
+  {
+    "key": "0067_nabla",
+    "title": "Ignited Night burst",
+    "type": "nabla",
+    "level": 18,
+    "bpm": "180",
+    "date": "2012-08-03",
+    "jacket": "https://sdvxindex.com//img/0067_ignited_night_ndriver/jk_0067_4_b.webp",
+    "max_exscore": 5274,
+    "chartUrl": "https://sdvxindex.com/s/0067/4n/",
+    "reading": "いぐないてっどないとばーすと"
   },
   {
     "key": "1712_maximum",
@@ -94524,6 +94596,18 @@
     "reading": "かみつれのなりかた"
   },
   {
+    "key": "2404_maximum",
+    "title": "ギミギミエンターテイメント",
+    "type": "maximum",
+    "level": 18.3,
+    "bpm": "138–200",
+    "date": "2026-09-20",
+    "jacket": "https://sdvxindex.com//img/2404_gimmegimmeent_holodreams/jk_2404_1_b.webp",
+    "max_exscore": 6800,
+    "chartUrl": "https://sdvxindex.com/s/2404/5/",
+    "reading": "ぎみぎみえんたーていめんと"
+  },
+  {
     "key": "2176_maximum",
     "title": "ヒュブリスの頂に聳えるのは",
     "type": "maximum",
@@ -94822,6 +94906,18 @@
     "max_exscore": 6180,
     "chartUrl": "https://sdvxindex.com/s/0725/3/",
     "reading": "えんじぇるずあんどでーもんず"
+  },
+  {
+    "key": "0801_nabla",
+    "title": "Apex of the World",
+    "type": "nabla",
+    "level": 18.4,
+    "bpm": "169",
+    "date": "2016-05-26",
+    "jacket": "https://sdvxindex.com//img/0801_apexoftheworld_uma/jk_0801_4_b.webp",
+    "max_exscore": 7400,
+    "chartUrl": "https://sdvxindex.com/s/0801/4n/",
+    "reading": "あぺっくすおぶざわーるど"
   },
   {
     "key": "1383_maximum",
@@ -98218,6 +98314,18 @@
     "max_exscore": 7002,
     "chartUrl": "https://sdvxindex.com/s/0980/5/",
     "reading": "ろーわーもすとりぼると"
+  },
+  {
+    "key": "0302_nabla",
+    "title": "Lunartic Dial",
+    "type": "nabla",
+    "level": 18.6,
+    "bpm": "162",
+    "date": "2013-08-29",
+    "jacket": "https://sdvxindex.com//img/0302_lunartic_dial_shiron/jk_0302_4_b.webp",
+    "max_exscore": 5953,
+    "chartUrl": "https://sdvxindex.com/s/0302/4n/",
+    "reading": "るなてぃっくだいある"
   },
   {
     "key": "1619_maximum",
