@@ -17340,6 +17340,18 @@
     "reading": "おーるふぉーわん"
   },
   {
+    "key": "2283_novice",
+    "title": "All the Deities",
+    "type": "novice",
+    "level": 6,
+    "bpm": "212",
+    "date": "2026-10-15",
+    "jacket": "https://sdvxindex.com//img/2283_allthedeities_chubay/jk_2283_1_b.webp",
+    "max_exscore": 2011,
+    "chartUrl": "https://sdvxindex.com/s/2283/1/",
+    "reading": "おーるざでぃあてぃーず"
+  },
+  {
     "key": "2114_novice",
     "title": "Almandite",
     "type": "novice",
@@ -18898,6 +18910,18 @@
     "max_exscore": 1950,
     "chartUrl": "https://sdvxindex.com/s/1971/1/",
     "reading": "ふぉーおーるざちゃれんじゃーず"
+  },
+  {
+    "key": "2269_novice",
+    "title": "Forgotten faith",
+    "type": "novice",
+    "level": 6,
+    "bpm": "236",
+    "date": "2026-10-15",
+    "jacket": "https://sdvxindex.com//img/2269_forgottenfaith_siikee/jk_2269_1_b.webp",
+    "max_exscore": 1830,
+    "chartUrl": "https://sdvxindex.com/s/2269/1/",
+    "reading": "ふぉーがっとんふぇいす"
   },
   {
     "key": "0814_novice",
@@ -26818,6 +26842,18 @@
     "max_exscore": 2901,
     "chartUrl": "https://sdvxindex.com/s/1055/1/",
     "reading": "れべりおー"
+  },
+  {
+    "key": "2264_novice",
+    "title": "Rebellion from the Dark Side",
+    "type": "novice",
+    "level": 7,
+    "bpm": "195",
+    "date": "2026-10-15",
+    "jacket": "https://sdvxindex.com//img/2264_rebellionfromthe_laur/jk_2264_1_b.webp",
+    "max_exscore": 1884,
+    "chartUrl": "https://sdvxindex.com/s/2264/1/",
+    "reading": "りべりおんふろむざだーくさいど"
   },
   {
     "key": "1588_novice",
@@ -49896,6 +49932,18 @@
     "reading": "おーるふぉーわん"
   },
   {
+    "key": "2283_advanced",
+    "title": "All the Deities",
+    "type": "advanced",
+    "level": 13,
+    "bpm": "212",
+    "date": "2026-10-15",
+    "jacket": "https://sdvxindex.com//img/2283_allthedeities_chubay/jk_2283_2_b.webp",
+    "max_exscore": 4156,
+    "chartUrl": "https://sdvxindex.com/s/2283/2/",
+    "reading": "おーるざでぃあてぃーず"
+  },
+  {
     "key": "2114_advanced",
     "title": "Almandite",
     "type": "advanced",
@@ -51322,6 +51370,18 @@
     "max_exscore": 4269,
     "chartUrl": "https://sdvxindex.com/s/0367/2/",
     "reading": "ふぉーあるとらぷれいやーず"
+  },
+  {
+    "key": "2269_advanced",
+    "title": "Forgotten faith",
+    "type": "advanced",
+    "level": 13,
+    "bpm": "236",
+    "date": "2026-10-15",
+    "jacket": "https://sdvxindex.com//img/2269_forgottenfaith_siikee/jk_2269_2_b.webp",
+    "max_exscore": 4017,
+    "chartUrl": "https://sdvxindex.com/s/2269/2/",
+    "reading": "ふぉーがっとんふぇいす"
   },
   {
     "key": "0969_exhaust",
@@ -60802,6 +60862,18 @@
     "max_exscore": 2996,
     "chartUrl": "https://sdvxindex.com/s/1801/3/",
     "reading": "りこーる"
+  },
+  {
+    "key": "2264_advanced",
+    "title": "Rebellion from the Dark Side",
+    "type": "advanced",
+    "level": 14,
+    "bpm": "195",
+    "date": "2026-10-15",
+    "jacket": "https://sdvxindex.com//img/2264_rebellionfromthe_laur/jk_2264_2_b.webp",
+    "max_exscore": 3667,
+    "chartUrl": "https://sdvxindex.com/s/2264/2/",
+    "reading": "りべりおんふろむざだーくさいど"
   },
   {
     "key": "0877_exhaust",
@@ -71988,6 +72060,18 @@
     "reading": "おーるふぉーわん"
   },
   {
+    "key": "2283_exhaust",
+    "title": "All the Deities",
+    "type": "exhaust",
+    "level": 16,
+    "bpm": "212",
+    "date": "2026-10-15",
+    "jacket": "https://sdvxindex.com//img/2283_allthedeities_chubay/jk_2283_3_b.webp",
+    "max_exscore": 4800,
+    "chartUrl": "https://sdvxindex.com/s/2283/3/",
+    "reading": "おーるざでぃあてぃーず"
+  },
+  {
     "key": "2114_exhaust",
     "title": "Almandite",
     "type": "exhaust",
@@ -73378,6 +73462,18 @@
     "max_exscore": 5352,
     "chartUrl": "https://sdvxindex.com/s/1971/3/",
     "reading": "ふぉーおーるざちゃれんじゃーず"
+  },
+  {
+    "key": "2269_exhaust",
+    "title": "Forgotten faith",
+    "type": "exhaust",
+    "level": 16,
+    "bpm": "236",
+    "date": "2026-10-15",
+    "jacket": "https://sdvxindex.com//img/2269_forgottenfaith_siikee/jk_2269_3_b.webp",
+    "max_exscore": 4976,
+    "chartUrl": "https://sdvxindex.com/s/2269/3/",
+    "reading": "ふぉーがっとんふぇいす"
   },
   {
     "key": "2384_exhaust",
@@ -82702,6 +82798,18 @@
     "max_exscore": 4611,
     "chartUrl": "https://sdvxindex.com/s/1801/5/",
     "reading": "りこーる"
+  },
+  {
+    "key": "2264_exhaust",
+    "title": "Rebellion from the Dark Side",
+    "type": "exhaust",
+    "level": 17,
+    "bpm": "195",
+    "date": "2026-10-15",
+    "jacket": "https://sdvxindex.com//img/2264_rebellionfromthe_laur/jk_2264_3_b.webp",
+    "max_exscore": 5889,
+    "chartUrl": "https://sdvxindex.com/s/2264/3/",
+    "reading": "りべりおんふろむざだーくさいど"
   },
   {
     "key": "0877_maximum",
@@ -95160,6 +95268,18 @@
     "reading": "ふーりっしゅひーろー"
   },
   {
+    "key": "2269_maximum",
+    "title": "Forgotten faith",
+    "type": "maximum",
+    "level": 18.4,
+    "bpm": "236",
+    "date": "2026-10-15",
+    "jacket": "https://sdvxindex.com//img/2269_forgottenfaith_siikee/jk_2269_5_b.webp",
+    "max_exscore": 7202,
+    "chartUrl": "https://sdvxindex.com/s/2269/5/",
+    "reading": "ふぉーがっとんふぇいす"
+  },
+  {
     "key": "2384_maximum",
     "title": "G.L.I.T.C.H.",
     "type": "maximum",
@@ -97846,6 +97966,18 @@
     "max_exscore": 6084,
     "chartUrl": "https://sdvxindex.com/s/0117/4g/",
     "reading": "あぶさーどがふ"
+  },
+  {
+    "key": "2283_maximum",
+    "title": "All the Deities",
+    "type": "maximum",
+    "level": 18.6,
+    "bpm": "212",
+    "date": "2026-10-15",
+    "jacket": "https://sdvxindex.com//img/2283_allthedeities_chubay/jk_2283_5_b.webp",
+    "max_exscore": 6880,
+    "chartUrl": "https://sdvxindex.com/s/2283/5/",
+    "reading": "おーるざでぃあてぃーず"
   },
   {
     "key": "2114_maximum",
@@ -101170,6 +101302,18 @@
     "max_exscore": 7674,
     "chartUrl": "https://sdvxindex.com/s/2062/5/",
     "reading": "きゅーきゅー"
+  },
+  {
+    "key": "2264_maximum",
+    "title": "Rebellion from the Dark Side",
+    "type": "maximum",
+    "level": 19.2,
+    "bpm": "195",
+    "date": "2026-10-15",
+    "jacket": "https://sdvxindex.com//img/2264_rebellionfromthe_laur/jk_2264_5_b.webp",
+    "max_exscore": 7966,
+    "chartUrl": "https://sdvxindex.com/s/2264/5/",
+    "reading": "りべりおんふろむざだーくさいど"
   },
   {
     "key": "1033_maximum",
