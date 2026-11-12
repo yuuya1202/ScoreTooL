@@ -74121,5 +74121,137 @@
   },
   "version": 7,
   "reading": "だいだいだいだいだいきらい"
+ },
+ {
+  "bpm": 210,
+  "music": "「4x」",
+  "artist": "otoshi.b",
+  "eras": {
+   "old": {
+    "lv_nov": 6,
+    "lv_adv": 13,
+    "lv_exh": 16,
+    "lv_mxm": 18
+   },
+   "old2": {
+    "lv_nov": 6,
+    "lv_adv": 13,
+    "lv_exh": 16,
+    "lv_mxm": 18
+   },
+   "old3": {
+    "lv_nov": 6,
+    "lv_adv": 13,
+    "lv_exh": 16,
+    "lv_mxm": 18
+   },
+   "current": {
+    "lv_nov": 6,
+    "lv_adv": 13,
+    "lv_exh": 16,
+    "lv_mxm": 18.2
+   }
+  },
+  "version": 7,
+  "reading": "さよなら"
+ },
+ {
+  "bpm": 198,
+  "music": "La Vita in Wanderland",
+  "artist": "めと（Metomate）",
+  "eras": {
+   "old": {
+    "lv_nov": 6,
+    "lv_adv": 13,
+    "lv_exh": 16,
+    "lv_mxm": 18
+   },
+   "old2": {
+    "lv_nov": 6,
+    "lv_adv": 13,
+    "lv_exh": 16,
+    "lv_mxm": 18
+   },
+   "old3": {
+    "lv_nov": 6,
+    "lv_adv": 13,
+    "lv_exh": 16,
+    "lv_mxm": 18
+   },
+   "current": {
+    "lv_nov": 6,
+    "lv_adv": 13,
+    "lv_exh": 16,
+    "lv_mxm": 18.6
+   }
+  },
+  "version": 7,
+  "reading": "らゔぃーたいんわんだーらんど"
+ },
+ {
+  "bpm": 210,
+  "music": "Lantana",
+  "artist": "AAAAoi(ああああ+Aoi)",
+  "eras": {
+   "old": {
+    "lv_nov": 7,
+    "lv_adv": 14,
+    "lv_exh": 17,
+    "lv_mxm": 19
+   },
+   "old2": {
+    "lv_nov": 7,
+    "lv_adv": 14,
+    "lv_exh": 17,
+    "lv_mxm": 19
+   },
+   "old3": {
+    "lv_nov": 7,
+    "lv_adv": 14,
+    "lv_exh": 17,
+    "lv_mxm": 19
+   },
+   "current": {
+    "lv_nov": 7,
+    "lv_adv": 14,
+    "lv_exh": 17.5,
+    "lv_mxm": 19.5
+   }
+  },
+  "version": 7,
+  "reading": "らんたな"
+ },
+ {
+  "bpm": 160,
+  "music": "Re:xollect -燃ゆる想い、舞う命-",
+  "artist": "レビアーン vs. らふむ",
+  "eras": {
+   "old": {
+    "lv_nov": 6,
+    "lv_adv": 13,
+    "lv_exh": 16,
+    "lv_mxm": 18
+   },
+   "old2": {
+    "lv_nov": 6,
+    "lv_adv": 13,
+    "lv_exh": 16,
+    "lv_mxm": 18
+   },
+   "old3": {
+    "lv_nov": 6,
+    "lv_adv": 13,
+    "lv_exh": 16,
+    "lv_mxm": 18
+   },
+   "current": {
+    "lv_nov": 6,
+    "lv_adv": 13,
+    "lv_exh": 16,
+    "lv_mxm": 18.2
+   }
+  },
+  "version": 7,
+  "reading": "りこれくともゆるおもいまういのち"
  }
 ]
