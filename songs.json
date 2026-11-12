@@ -3468,6 +3468,18 @@
     "reading": "そらへどらいぶ"
   },
   {
+    "key": "2432_novice",
+    "title": "ダイダイダイダイダイキライ",
+    "type": "novice",
+    "level": 3,
+    "bpm": "130",
+    "date": "2026-10-29",
+    "jacket": "https://sdvxindex.com//img/2432_daidai_amala/jk_2432_1_b.webp",
+    "max_exscore": 1757,
+    "chartUrl": "https://sdvxindex.com/s/2432/1/",
+    "reading": "だいだいだいだいだいきらい"
+  },
+  {
     "key": "0771_novice",
     "title": "ダブルラリアット",
     "type": "novice",
@@ -19908,6 +19920,18 @@
     "reading": "らのすとらすとーりあ"
   },
   {
+    "key": "2312_novice",
+    "title": "La Vita in Wanderland",
+    "type": "novice",
+    "level": 6,
+    "bpm": "198",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2312_lavitainwanderland_meto/jk_2312_1_b.webp",
+    "max_exscore": 2030,
+    "chartUrl": "https://sdvxindex.com/s/2312/1/",
+    "reading": "らゔぃーたいんわんだーらんど"
+  },
+  {
     "key": "0363_novice",
     "title": "Last Concerto",
     "type": "novice",
@@ -21106,6 +21130,18 @@
     "max_exscore": 1879,
     "chartUrl": "https://sdvxindex.com/s/1786/1/",
     "reading": "りろーずがんしゅーと"
+  },
+  {
+    "key": "2297_novice",
+    "title": "Re:xollect -燃ゆる想い、舞う命-",
+    "type": "novice",
+    "level": 6,
+    "bpm": "160",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2297_rexollect_leviernlufm/jk_2297_1_b.webp",
+    "max_exscore": 1640,
+    "chartUrl": "https://sdvxindex.com/s/2297/1/",
+    "reading": "りこれくともゆるおもいまういのち"
   },
   {
     "key": "0025_advanced",
@@ -23434,6 +23470,18 @@
     "max_exscore": 2260,
     "chartUrl": "https://sdvxindex.com/s/2111/1/",
     "reading": "えいとびっとゆにばーす"
+  },
+  {
+    "key": "2300_novice",
+    "title": "「4x」",
+    "type": "novice",
+    "level": 6,
+    "bpm": "210",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2300_4x_otoshib/jk_2300_1_b.webp",
+    "max_exscore": 1918,
+    "chartUrl": "https://sdvxindex.com/s/2300/1/",
+    "reading": "さよなら"
   },
   {
     "key": "2313_novice",
@@ -26542,6 +26590,18 @@
     "max_exscore": 2585,
     "chartUrl": "https://sdvxindex.com/s/1464/1/",
     "reading": "らんすろっとふれいむおぶざりべりおん"
+  },
+  {
+    "key": "2292_novice",
+    "title": "Lantana",
+    "type": "novice",
+    "level": 7,
+    "bpm": "210",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2292_lantana_aaaaoi/jk_2292_1_b.webp",
+    "max_exscore": 2251,
+    "chartUrl": "https://sdvxindex.com/s/2292/1/",
+    "reading": "らんたな"
   },
   {
     "key": "1177_novice",
@@ -32158,6 +32218,18 @@
     "max_exscore": 2304,
     "chartUrl": "https://sdvxindex.com/s/1065/2/",
     "reading": "すぺくとらむ"
+  },
+  {
+    "key": "2432_advanced",
+    "title": "ダイダイダイダイダイキライ",
+    "type": "advanced",
+    "level": 9,
+    "bpm": "130",
+    "date": "2026-10-29",
+    "jacket": "https://sdvxindex.com//img/2432_daidai_amala/jk_2432_1_b.webp",
+    "max_exscore": 2845,
+    "chartUrl": "https://sdvxindex.com/s/2432/2/",
+    "reading": "だいだいだいだいだいきらい"
   },
   {
     "key": "0751_advanced",
@@ -52212,6 +52284,18 @@
     "reading": "らのすとらすとーりあ"
   },
   {
+    "key": "2312_advanced",
+    "title": "La Vita in Wanderland",
+    "type": "advanced",
+    "level": 13,
+    "bpm": "198",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2312_lavitainwanderland_meto/jk_2312_1_b.webp",
+    "max_exscore": 3753,
+    "chartUrl": "https://sdvxindex.com/s/2312/2/",
+    "reading": "らゔぃーたいんわんだーらんど"
+  },
+  {
     "key": "0791_advanced",
     "title": "Lachryma《Re:Queen’M》",
     "type": "advanced",
@@ -53266,6 +53350,18 @@
     "max_exscore": 4818,
     "chartUrl": "https://sdvxindex.com/s/2181/2/",
     "reading": "りらいず"
+  },
+  {
+    "key": "2297_advanced",
+    "title": "Re:xollect -燃ゆる想い、舞う命-",
+    "type": "advanced",
+    "level": 13,
+    "bpm": "160",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2297_rexollect_leviernlufm/jk_2297_2_b.webp",
+    "max_exscore": 2967,
+    "chartUrl": "https://sdvxindex.com/s/2297/2/",
+    "reading": "りこれくともゆるおもいまういのち"
   },
   {
     "key": "1055_advanced",
@@ -55428,6 +55524,18 @@
     "reading": "えいとびっとゆにばーす"
   },
   {
+    "key": "2300_advanced",
+    "title": "「4x」",
+    "type": "advanced",
+    "level": 13,
+    "bpm": "210",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2300_4x_otoshib/jk_2300_1_b.webp",
+    "max_exscore": 3900,
+    "chartUrl": "https://sdvxindex.com/s/2300/2/",
+    "reading": "さよなら"
+  },
+  {
     "key": "0019_exhaust",
     "title": "「月風魔伝」龍骨鬼戦 yks Remix",
     "type": "exhaust",
@@ -56098,6 +56206,18 @@
     "max_exscore": 3824,
     "chartUrl": "https://sdvxindex.com/s/0354/3/",
     "reading": "たいむましん"
+  },
+  {
+    "key": "2432_exhaust",
+    "title": "ダイダイダイダイダイキライ",
+    "type": "exhaust",
+    "level": 13,
+    "bpm": "130",
+    "date": "2026-10-29",
+    "jacket": "https://sdvxindex.com//img/2432_daidai_amala/jk_2432_1_b.webp",
+    "max_exscore": 3702,
+    "chartUrl": "https://sdvxindex.com/s/2432/3/",
+    "reading": "だいだいだいだいだいきらい"
   },
   {
     "key": "0086_exhaust",
@@ -60118,6 +60238,18 @@
     "max_exscore": 4438,
     "chartUrl": "https://sdvxindex.com/s/1464/2/",
     "reading": "らんすろっとふれいむおぶざりべりおん"
+  },
+  {
+    "key": "2292_advanced",
+    "title": "Lantana",
+    "type": "advanced",
+    "level": 14,
+    "bpm": "210",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2292_lantana_aaaaoi/jk_2292_1_b.webp",
+    "max_exscore": 3932,
+    "chartUrl": "https://sdvxindex.com/s/2292/2/",
+    "reading": "らんたな"
   },
   {
     "key": "1177_advanced",
@@ -74280,6 +74412,18 @@
     "reading": "らのすとらすとーりあ"
   },
   {
+    "key": "2312_exhaust",
+    "title": "La Vita in Wanderland",
+    "type": "exhaust",
+    "level": 16,
+    "bpm": "198",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2312_lavitainwanderland_meto/jk_2312_1_b.webp",
+    "max_exscore": 5816,
+    "chartUrl": "https://sdvxindex.com/s/2312/3/",
+    "reading": "らゔぃーたいんわんだーらんど"
+  },
+  {
     "key": "1197_exhaust",
     "title": "LastΩmegA",
     "type": "exhaust",
@@ -75634,6 +75778,18 @@
     "max_exscore": 6327,
     "chartUrl": "https://sdvxindex.com/s/2181/3/",
     "reading": "りらいず"
+  },
+  {
+    "key": "2297_exhaust",
+    "title": "Re:xollect -燃ゆる想い、舞う命-",
+    "type": "exhaust",
+    "level": 16,
+    "bpm": "160",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2297_rexollect_leviernlufm/jk_2297_3_b.webp",
+    "max_exscore": 3783,
+    "chartUrl": "https://sdvxindex.com/s/2297/3/",
+    "reading": "りこれくともゆるおもいまういのち"
   },
   {
     "key": "1220_exhaust",
@@ -77866,6 +78022,18 @@
     "max_exscore": 5739,
     "chartUrl": "https://sdvxindex.com/s/2111/3/",
     "reading": "えいとびっとゆにばーす"
+  },
+  {
+    "key": "2300_exhaust",
+    "title": "「4x」",
+    "type": "exhaust",
+    "level": 16,
+    "bpm": "210",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2300_4x_otoshib/jk_2300_1_b.webp",
+    "max_exscore": 4812,
+    "chartUrl": "https://sdvxindex.com/s/2300/3/",
+    "reading": "さよなら"
   },
   {
     "key": "0757_exhaust",
@@ -87936,6 +88104,18 @@
     "reading": "らんすろっとふれいむおぶざりべりおん"
   },
   {
+    "key": "2292_exhaust",
+    "title": "Lantana",
+    "type": "exhaust",
+    "level": 17.5,
+    "bpm": "210",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2292_lantana_aaaaoi/jk_2292_1_b.webp",
+    "max_exscore": 6629,
+    "chartUrl": "https://sdvxindex.com/s/2292/3/",
+    "reading": "らんたな"
+  },
+  {
     "key": "0363_exhaust",
     "title": "Last Concerto",
     "type": "exhaust",
@@ -91512,6 +91692,18 @@
     "reading": "すらっしゅしすたーず"
   },
   {
+    "key": "2432_maximum",
+    "title": "ダイダイダイダイダイキライ",
+    "type": "maximum",
+    "level": 18,
+    "bpm": "130",
+    "date": "2026-10-29",
+    "jacket": "https://sdvxindex.com//img/2432_daidai_amala/jk_2432_1_b.webp",
+    "max_exscore": 7314,
+    "chartUrl": "https://sdvxindex.com/s/2432/5/",
+    "reading": "だいだいだいだいだいきらい"
+  },
+  {
     "key": "1807_maximum",
     "title": "ユメブキ",
     "type": "maximum",
@@ -92952,6 +93144,18 @@
     "reading": "あーるあいぴーごしっぷのうみ"
   },
   {
+    "key": "2297_maximum",
+    "title": "Re:xollect -燃ゆる想い、舞う命-",
+    "type": "maximum",
+    "level": 18.2,
+    "bpm": "160",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2297_rexollect_leviernlufm/jk_2297_5_b.webp",
+    "max_exscore": 6398,
+    "chartUrl": "https://sdvxindex.com/s/2297/5/",
+    "reading": "りこれくともゆるおもいまういのち"
+  },
+  {
     "key": "1258_maximum",
     "title": "Redshift",
     "type": "maximum",
@@ -93262,6 +93466,18 @@
     "max_exscore": 7641,
     "chartUrl": "https://sdvxindex.com/s/0793/3/",
     "reading": "とりじゅーか"
+  },
+  {
+    "key": "2300_maximum",
+    "title": "「4x」",
+    "type": "maximum",
+    "level": 18.2,
+    "bpm": "210",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2300_4x_otoshib/jk_2300_1_b.webp",
+    "max_exscore": 6019,
+    "chartUrl": "https://sdvxindex.com/s/2300/5/",
+    "reading": "さよなら"
   },
   {
     "key": "2313_maximum",
@@ -98400,6 +98616,18 @@
     "reading": "れくとりあ"
   },
   {
+    "key": "2312_maximum",
+    "title": "La Vita in Wanderland",
+    "type": "maximum",
+    "level": 18.6,
+    "bpm": "198",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2312_lavitainwanderland_meto/jk_2312_1_b.webp",
+    "max_exscore": 8095,
+    "chartUrl": "https://sdvxindex.com/s/2312/5/",
+    "reading": "らゔぃーたいんわんだーらんど"
+  },
+  {
     "key": "0634_exhaust",
     "title": "LegenD.",
     "type": "exhaust",
@@ -102418,6 +102646,18 @@
     "max_exscore": 8712,
     "chartUrl": "https://sdvxindex.com/s/0824/4g/",
     "reading": "けーえーしーにせんじゅうさんあるてぃめっとめどれーひすとりあさうんどぼるてっくすえんぺらーさいど"
+  },
+  {
+    "key": "2292_maximum",
+    "title": "Lantana",
+    "type": "maximum",
+    "level": 19.5,
+    "bpm": "210",
+    "date": "2026-11-12",
+    "jacket": "https://sdvxindex.com//img/2292_lantana_aaaaoi/jk_2292_1_b.webp",
+    "max_exscore": 8448,
+    "chartUrl": "https://sdvxindex.com/s/2292/5/",
+    "reading": "らんたな"
   },
   {
     "key": "2177_maximum",
